@@ -1,0 +1,1962 @@
+/* chakra clicker - design system modern & minimalista */
+:root {
+    /* Cores do Sistema - HSL Palettes */
+    --hue-primary: 354;   /* Crimson Red */
+    --hue-secondary: 5;   /* Fiery Neon Red (Replacing Chakra Blue) */
+    --hue-accent: 24;     /* Orange */
+    
+    --bg-color: hsl(222, 24%, 6%);
+    --panel-bg: hsl(222, 24%, 9%);
+    --card-bg: hsl(222, 24%, 13%);
+    --text-color: hsl(222, 20%, 98%);
+    --text-muted: hsl(222, 12%, 75%);
+    --border-color: hsl(222, 16%, 18%);
+    
+    --primary-color: hsl(var(--hue-primary), 84%, 52%);
+    --primary-glow: hsla(var(--hue-primary), 84%, 52%, 0.35);
+    --secondary-color: hsl(var(--hue-secondary), 100%, 48%);
+    --secondary-glow: hsla(var(--hue-secondary), 100%, 48%, 0.45);
+    --accent-color: hsl(var(--hue-accent), 100%, 50%);
+    --accent-glow: hsla(var(--hue-accent), 100%, 50%, 0.35);
+    
+    --font-title: 'Shojumaru', system-ui;
+    --font-body: 'Outfit', system-ui, -apple-system, sans-serif;
+    
+    /* Variáveis de Transição e Sombra */
+    --transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    --shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.7);
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+}
+
+body.light-theme {
+    --bg-color: hsl(210, 20%, 95%);
+    --panel-bg: hsl(0, 0%, 100%);
+    --card-bg: hsl(210, 20%, 97%);
+    --text-color: hsl(222, 24%, 12%);
+    --text-muted: hsl(222, 12%, 48%);
+    --border-color: hsl(210, 20%, 88%);
+    --shadow: 0 10px 30px -10px rgba(31, 38, 135, 0.08);
+}
+
+/* Reset Geral & Acessibilidade */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-body);
+    transition: background-color 0.4s ease, color 0.4s ease;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Tipografia Responsiva */
+h1, h2, h3 {
+    text-wrap: balance;
+}
+
+p, span, label {
+    text-wrap: pretty;
+}
+
+/* Scrollbar Premium */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 10px;
+    transition: var(--transition);
+    &:hover {
+        background: var(--primary-color);
+    }
+}
+
+/* Layout Principal - CSS Grid */
+.game-container {
+    display: grid;
+    grid-template-columns: 260px 1fr 340px; /* Sidebar (260px), Center (1fr), Right (340px) */
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-color);
+    overflow: hidden;
+    
+    & > * {
+        height: 100%;
+        overflow-y: auto;
+    }
+}
+
+/* Sidebar (Painel Esquerdo Adaptado - Premium Dark/Red theme) */
+.left-panel.sidebar {
+    background-color: #08090c; /* Black background */
+    border-right: 2px solid var(--primary-color); /* Premium red border separator */
+    box-shadow: 5px 0 25px rgba(255, 68, 68, 0.05); /* Subtle red glow cast onto the main panel */
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1rem;
+    justify-content: space-between; /* Header at top, tabs in middle, click at bottom */
+    align-items: stretch;
+    transition: var(--transition);
+    gap: 2rem;
+    z-index: 10;
+}
+
+.sidebar-header {
+    text-align: center;
+    & .ninja-display {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: -0.25rem;
+        letter-spacing: 0.5px;
+    }
+}
+
+/* Abas Verticais na Sidebar */
+.nav-tabs.vertical-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    
+    & .tab-btn {
+        width: 100%;
+        text-align: left;
+        padding: 0.8rem 1.1rem;
+        font-family: var(--font-body);
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        background: none; /* Crucial: removes default white button background */
+        border: 1px solid transparent;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        cursor: pointer;
+        transition: var(--transition);
+        
+        &:hover {
+            background-color: rgba(255, 68, 68, 0.06);
+            border-color: rgba(255, 68, 68, 0.2);
+            color: var(--primary-color);
+            transform: translateX(4px);
+        }
+        
+        &.active {
+            color: white;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 15px var(--primary-glow);
+            transform: translateX(6px);
+        }
+    }
+}
+
+/* Clique Compacto no Rodapé da Sidebar */
+.sidebar-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.click-area-compact {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.hand-seal-button-compact {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--panel-bg) 30%, var(--card-bg) 100%);
+    border: 3px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.4), inset 0 0 10px rgba(255,255,255,0.05);
+    transition: var(--transition);
+    user-select: none;
+    position: relative;
+    
+    &::after {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        border: 1.5px dashed var(--secondary-color);
+        opacity: 0.4;
+        animation: rotate 20s linear infinite;
+        pointer-events: none;
+        transition: var(--transition);
+    }
+
+    &:hover {
+        transform: scale(1.06);
+        border-color: var(--primary-color);
+        box-shadow: 0 0 25px var(--primary-glow), inset 0 0 12px var(--primary-glow);
+        &::after {
+            opacity: 0.8;
+            border-color: var(--primary-color);
+            inset: -6px;
+        }
+    }
+
+    &:active {
+        transform: scale(0.94);
+        border-color: var(--accent-color);
+        box-shadow: 0 0 15px var(--accent-glow);
+    }
+}
+
+.seal-icon-compact {
+    font-size: 2.2rem;
+    color: var(--text-color);
+    line-height: 1;
+    transition: var(--transition);
+}
+
+.click-stats-compact {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    letter-spacing: 0.3px;
+    text-align: center;
+}
+
+/* Painel Central: Cabeçalho do Chakra & Conteúdo */
+.chakra-display-header {
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: clamp(1rem, 2vw, 1.5rem);
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    text-align: center;
+    position: relative;
+    
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: var(--radius-lg);
+        border: 1px solid transparent;
+        background: linear-gradient(135deg, var(--primary-glow), transparent) border-box;
+        mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+        mask-composite: exclude;
+        pointer-events: none;
+    }
+}
+
+.chakra-info-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    
+    & .label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--text-muted);
+        font-weight: 700;
+    }
+    
+    & .counter {
+        font-size: clamp(2.2rem, 5vw, 3.2rem);
+        font-weight: 800;
+        color: var(--secondary-color);
+        text-shadow: 0 0 25px var(--secondary-glow);
+        font-variant-numeric: tabular-nums;
+        margin: 0.25rem 0;
+    }
+    
+    & .cps {
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+}
+
+/* Painel Central: Abas & Ações */
+.center-panel {
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    background-color: var(--bg-color);
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    
+    & h2 {
+        font-size: clamp(1.1rem, 2vw, 1.35rem);
+        font-weight: 700;
+        margin-bottom: 1.25rem;
+        color: var(--text-color);
+        border-left: 4px solid var(--primary-color);
+        padding-left: 0.75rem;
+        letter-spacing: 0.5px;
+    }
+}
+
+/* Header Highlight inteligente por pseudoclasses :has() */
+.upgrades-section:has(.upgrade-btn.purchased) h2 {
+    border-left-color: var(--secondary-color);
+}
+.prestige-tree-container:has(.p-upgrade-card.purchased) h2 {
+    border-left-color: var(--accent-color);
+}
+
+
+
+.tab-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    
+    &.hidden {
+        display: none !important;
+    }
+}
+
+/* Grid de Status */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+
+.stat-card {
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; width: 4px; height: 100%;
+        background: var(--secondary-color);
+        opacity: 0.8;
+    }
+    
+    &:nth-child(2)::before {
+        background: var(--primary-color);
+    }
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 600;
+}
+
+.stat-value {
+    font-size: clamp(1.2rem, 3vw, 1.8rem);
+    font-weight: 800;
+    color: var(--text-color);
+    margin-top: 0.5rem;
+    letter-spacing: -0.5px;
+}
+
+/* Upgrades com CSS Grid & Subgrid */
+.upgrades-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-auto-rows: auto;
+    gap: 1.5rem;
+}
+
+/* Efeito de Destaque / Dim com :has() */
+.upgrades-grid:has(.upgrade-btn:hover) .upgrade-btn:not(:hover) {
+    opacity: 0.5;
+    transform: scale(0.97);
+}
+
+.upgrade-btn {
+    grid-row: span 3;
+    display: grid;
+    grid-template-rows: subgrid;
+    row-gap: 0.35rem;
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    text-align: left;
+    cursor: pointer;
+    color: var(--text-color);
+    transition: var(--transition);
+    align-items: start;
+    
+    &:hover:not(:disabled) {
+        border-color: var(--primary-color);
+        transform: translateY(-4px);
+        box-shadow: var(--shadow), 0 0 20px var(--primary-glow);
+    }
+    
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    
+    &.purchased {
+        border-color: var(--secondary-color);
+        background: linear-gradient(135deg, hsla(var(--hue-secondary), 100%, 48%, 0.08) 0%, var(--panel-bg) 100%);
+        pointer-events: none;
+    }
+}
+
+.up-info {
+    display: contents; /* Expõe os filhos diretamente ao grid pai do card */
+}
+
+.up-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.3px;
+}
+
+.up-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.up-cost {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Conquistas (Achievements) */
+.achievements-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.achievement-item {
+    display: flex;
+    align-items: center;
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    gap: 1.25rem;
+    transition: var(--transition);
+    position: relative;
+    
+    &.locked {
+        opacity: 0.45;
+        filter: grayscale(0.95);
+        &::after {
+            content: '🔒';
+            position: absolute;
+            right: 1.25rem;
+            font-size: 1rem;
+            opacity: 0.6;
+        }
+    }
+    
+    &.unlocked {
+        border-color: var(--secondary-color);
+        background: linear-gradient(90deg, hsla(var(--hue-secondary), 100%, 48%, 0.05) 0%, var(--panel-bg) 100%);
+        box-shadow: 0 4px 20px -5px hsla(var(--hue-secondary), 100%, 48%, 0.1);
+    }
+}
+
+.ach-icon {
+    font-size: clamp(1.4rem, 3vw, 1.8rem);
+}
+
+.ach-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.ach-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.ach-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Painel Direito: Ninjas Aliados & Loja */
+.right-panel {
+    background-color: var(--panel-bg);
+    border-left: 1px solid var(--border-color);
+    padding: clamp(1.5rem, 3vw, 2.5rem) 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    transition: background-color 0.4s ease, border-color 0.4s ease;
+    z-index: 10;
+    
+    & h2 {
+        font-size: clamp(1.1rem, 2vw, 1.35rem);
+        font-weight: 700;
+        border-left: 4px solid var(--primary-color);
+        padding-left: 0.75rem;
+        letter-spacing: 0.5px;
+    }
+}
+
+.shop-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.mode-toggle, .qty-toggle {
+    display: flex;
+    border-radius: var(--radius-md);
+    background-color: var(--card-bg);
+    padding: 0.25rem;
+    border: 1px solid var(--border-color);
+}
+
+.control-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    padding: 0.55rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+    
+    &:hover {
+        color: var(--text-color);
+    }
+    
+    &.active {
+        background-color: var(--primary-color);
+        color: white;
+        box-shadow: 0 4px 15px var(--primary-glow);
+    }
+}
+
+.generators-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Hover dim para geradores */
+.generators-list:has(.generator-card:hover) .generator-card:not(:hover) {
+    opacity: 0.5;
+    transform: scale(0.97);
+}
+
+.generator-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.1rem;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 1.25rem;
+    cursor: pointer;
+    transition: var(--transition);
+    user-select: none;
+    position: relative;
+    
+    &:hover {
+        transform: translateX(-6px);
+        border-color: var(--primary-color);
+        box-shadow: var(--shadow), 0 0 20px var(--primary-glow);
+    }
+}
+
+.gen-image {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    width: clamp(45px, 10vw, 55px);
+    height: clamp(45px, 10vw, 55px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--panel-bg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.gen-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.gen-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.2px;
+}
+
+.gen-cps {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.gen-cost {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-top: 0.25rem;
+}
+
+.gen-qty {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--secondary-color);
+    padding: 0 0.25rem;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 10px var(--secondary-glow);
+}
+
+/* Scroll-driven Entry Animations */
+@keyframes slide-in-fade {
+    from {
+        opacity: 0.2;
+        transform: translateY(25px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stat-card, .upgrade-btn, .achievement-item, .mission-card, .generator-card, .p-upgrade-card, .sword-item-card {
+    view-timeline-name: --card-scroll;
+    view-timeline-axis: y;
+    animation: slide-in-fade both linear;
+    animation-timeline: --card-scroll;
+    animation-range: entry 5% cover 25%;
+}
+
+/* Missões & Invasões */
+.missions-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+.missions-grid:has(.mission-card:hover) .mission-card:not(:hover) {
+    opacity: 0.5;
+    transform: scale(0.97);
+}
+
+.mission-card {
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+    
+    &:hover {
+        border-color: var(--secondary-color);
+        box-shadow: var(--shadow), 0 0 15px var(--secondary-glow);
+    }
+}
+
+.mission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mission-name {
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: 0.3px;
+}
+
+.mission-req {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background-color: var(--card-bg);
+    padding: 0.3rem 0.6rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    font-weight: 600;
+}
+
+.mission-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.mission-rewards {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--secondary-color);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.mission-progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: var(--card-bg);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.mission-progress-fill {
+    width: 0%;
+    height: 100%;
+    background-color: var(--primary-color);
+    box-shadow: 0 0 8px var(--primary-glow);
+    transition: width 0.1s linear;
+}
+
+.mission-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 4px 12px var(--primary-glow);
+    
+    &:hover:not(:disabled) {
+        background-color: hsl(var(--hue-primary), 84%, 44%);
+        transform: translateY(-2px);
+    }
+    
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+}
+
+.mission-log {
+    font-size: 0.8rem;
+    color: var(--accent-color);
+    background-color: var(--card-bg);
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--accent-color);
+    font-style: italic;
+    min-height: 45px;
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-left-width: 3px;
+}
+
+.mission-speed-btn {
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 4px 12px var(--secondary-glow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    
+    &:hover {
+        background-color: hsl(var(--hue-secondary), 100%, 40%);
+        transform: translateY(-2px);
+    }
+}
+
+/* Árvore de Prestígio */
+.prestige-box {
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    text-align: center;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.prestige-btn {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0.85rem 2.5rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 4px 15px var(--accent-glow);
+    
+    &:hover:not(:disabled) {
+        background-color: hsl(var(--hue-accent), 100%, 42%);
+        transform: translateY(-2px);
+    }
+    
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+}
+
+.prestige-tree-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.prestige-points-display {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--accent-color);
+    text-shadow: 0 0 10px var(--accent-glow);
+    letter-spacing: 0.5px;
+}
+
+.prestige-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    width: 100%;
+}
+
+.prestige-grid:has(.p-upgrade-card:hover) .p-upgrade-card:not(:hover) {
+    opacity: 0.5;
+    transform: scale(0.97);
+}
+
+.p-upgrade-card {
+    background-color: var(--panel-bg);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    user-select: none;
+    align-items: center;
+    
+    &:hover:not(.purchased):not(.locked) {
+        border-color: var(--accent-color);
+        transform: translateY(-4px);
+        box-shadow: var(--shadow), 0 0 20px var(--accent-glow);
+    }
+    
+    &.purchased {
+        border-color: var(--accent-color);
+        background: linear-gradient(135deg, hsla(var(--hue-accent), 100%, 50%, 0.08) 0%, var(--panel-bg) 100%);
+        box-shadow: 0 4px 15px -3px hsla(var(--hue-accent), 100%, 50%, 0.1);
+    }
+    
+    &.locked {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+}
+
+.p-title {
+    font-weight: 800;
+    font-size: 1.05rem;
+}
+
+.p-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.p-cost {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--accent-color);
+    margin-top: auto;
+}
+
+/* Forja & Arsenal Gacha */
+.gacha-forge-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.gacha-display-card {
+    text-align: center;
+    background-color: var(--card-bg);
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    width: 100%;
+    max-width: 320px;
+    min-height: 230px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.gacha-sword-placeholder {
+    font-size: 4.5rem;
+    margin-bottom: 0.75rem;
+    filter: drop-shadow(0 0 10px var(--secondary-glow));
+}
+
+.gacha-sword-name {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 10px var(--primary-glow);
+}
+
+.gacha-sword-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.gacha-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0.85rem 2.5rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 4px 15px var(--primary-glow);
+    
+    &:hover:not(:disabled) {
+        background-color: hsl(var(--hue-primary), 84%, 44%);
+        transform: translateY(-2px);
+    }
+}
+
+/* Layout do Arsenal Ninja com subgrid vertical */
+.swords-grid-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-auto-rows: auto;
+    gap: 1.5rem;
+}
+
+.swords-grid-list:has(.sword-item-card:hover) .sword-item-card:not(:hover) {
+    opacity: 0.5;
+    transform: scale(0.97);
+}
+
+.sword-item-card {
+    grid-row: span 4;
+    display: grid;
+    grid-template-rows: subgrid;
+    row-gap: 0.5rem;
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    transition: var(--transition);
+    text-align: center;
+    align-items: start;
+    
+    &.locked {
+        opacity: 0.45;
+        filter: grayscale(0.9);
+    }
+    
+    &.equipped {
+        border-color: var(--accent-color);
+        background: linear-gradient(180deg, hsla(var(--hue-accent), 100%, 50%, 0.05) 0%, var(--panel-bg) 100%);
+        box-shadow: 0 4px 15px -3px hsla(var(--hue-accent), 100%, 50%, 0.1);
+    }
+}
+
+.sword-icon {
+    font-size: 3rem;
+    margin: 0.25rem 0;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+}
+
+.sword-details {
+    display: contents; /* Permite que os filhos se alinhem à subgrade vertical */
+}
+
+.sword-name {
+    font-weight: 800;
+    font-size: 1.05rem;
+}
+
+.sword-bonus {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+}
+
+.sword-equip-btn {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-top: auto;
+    align-self: center;
+    box-shadow: 0 4px 10px var(--accent-glow);
+    
+    &:hover:not(:disabled) {
+        background-color: hsl(var(--hue-accent), 100%, 42%);
+        transform: translateY(-2px);
+    }
+    
+    &.equipped {
+        background-color: var(--border-color);
+        color: var(--text-muted);
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+}
+
+/* Partícula de Clique */
+.click-particle {
+    position: fixed;
+    pointer-events: none;
+    font-family: var(--font-body);
+    font-weight: 800;
+    font-size: clamp(1.1rem, 3vw, 1.4rem);
+    color: var(--secondary-color);
+    text-shadow: 0 0 10px var(--secondary-glow);
+    animation: floatUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    z-index: 1000;
+}
+
+@keyframes floatUp {
+    0% {
+        transform: translate(-50%, -50%) scale(1.3);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -120px) scale(0.85);
+        opacity: 0;
+    }
+}
+
+/* Modais do Jogo */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(8px);
+}
+
+.modal-content {
+    background-color: var(--panel-bg);
+    border: 2px solid var(--primary-color);
+    border-radius: var(--radius-lg);
+    padding: clamp(1.5rem, 5vw, 2.5rem);
+    max-width: 440px;
+    width: 90%;
+    text-align: center;
+    box-shadow: var(--shadow), 0 0 30px var(--primary-glow);
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    
+    & h2 {
+        font-family: var(--font-title);
+        font-size: 1.25rem;
+        color: var(--primary-color);
+        margin-bottom: 1.5rem;
+        text-shadow: 0 0 10px var(--primary-glow);
+    }
+    
+    & p {
+        font-size: 0.95rem;
+        margin-bottom: 1.25rem;
+        line-height: 1.6;
+        color: var(--text-muted);
+    }
+    
+    & button {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: var(--radius-md);
+        padding: 0.75rem 2.25rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: var(--transition);
+        box-shadow: 0 4px 12px var(--primary-glow);
+        
+        &:hover {
+            background-color: hsl(var(--hue-primary), 84%, 44%);
+            transform: translateY(-2px);
+        }
+    }
+}
+
+@keyframes popIn {
+    0% { transform: scale(0.85); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Tema Claro/Escuro Switcher */
+.theme-switch-container {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    z-index: 100;
+}
+
+.theme-toggle-btn {
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 0.5rem 1.1rem;
+    border-radius: 30px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+    
+    &:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 10px var(--primary-glow);
+    }
+}
+
+/* Responsividade & Ajustes Mobile */
+@media (max-width: 1024px) {
+    .game-container {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow-y: auto;
+    }
+    
+    .left-panel {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        height: auto;
+        padding: 2rem 1.5rem;
+        min-height: auto;
+    }
+    
+    .right-panel {
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        height: auto;
+    }
+    
+    body {
+        overflow-y: auto;
+        height: auto;
+    }
+    
+    .stat-card, .upgrade-btn, .achievement-item, .mission-card, .generator-card, .p-upgrade-card, .sword-item-card {
+        animation: none; /* Desativa scroll timelines no mobile para performance */
+    }
+}
+
+/* Regra Utilitária Global para Esconder Elementos */
+.hidden {
+    display: none !important;
+}
+
+/* Animação para Conquistas Desbloqueadas */
+@keyframes unlock-pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7);
+        border-color: var(--primary-color);
+    }
+    30% {
+        transform: scale(1.04) rotate(1deg);
+        box-shadow: 0 0 25px 5px rgba(255, 68, 68, 0.5);
+        border-color: var(--accent-color);
+    }
+    50% {
+        transform: scale(1.04) rotate(-1deg);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 68, 68, 0);
+        border-color: var(--secondary-color);
+    }
+}
+
+@keyframes lock-shake {
+    0%, 100% { transform: rotate(0); }
+    15%, 45%, 75% { transform: rotate(-12deg) scale(1.2); }
+    30%, 60%, 90% { transform: rotate(12deg) scale(1.2); }
+}
+
+.achievement-item.just-unlocked {
+    animation: unlock-pulse 2.2s cubic-bezier(0.25, 1, 0.5, 1) both;
+    z-index: 10;
+    & .ach-icon {
+        animation: lock-shake 1.6s ease-in-out;
+    }
+}
+
+/* Efeito de Choque (Shockwave) no Clique Manual */
+.click-shockwave {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 3px solid var(--accent-color);
+    animation: shockwave 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+    pointer-events: none;
+}
+
+@keyframes shockwave {
+    0% {
+        transform: scale(1);
+        opacity: 0.9;
+        border-color: var(--accent-color);
+    }
+    100% {
+        transform: scale(1.6);
+        opacity: 0;
+        border-color: var(--primary-color);
+    }
+}
+
+/* Estilização para Missões de Campanha Bloqueadas */
+.mission-card.camp-locked {
+    opacity: 0.5;
+    filter: grayscale(0.8);
+    border-color: var(--border-color);
+    box-shadow: none;
+    pointer-events: none;
+    
+    & .mission-btn {
+        background-color: var(--border-color) !important;
+        color: var(--text-muted) !important;
+        cursor: not-allowed !important;
+        box-shadow: none !important;
+    }
+}
+
+/* === ESTILIZAÇÃO DO MINI-JOGO DE PARRY === */
+.parry-game-container {
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.parry-arena {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(20,20,20,0.4) 100%);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    height: 100px;
+    position: relative;
+}
+
+.parry-character {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 2rem;
+    z-index: 2;
+    transition: var(--transition);
+    user-select: none;
+}
+
+.parry-projectile {
+    position: absolute;
+    font-size: 1.75rem;
+    left: 10%;
+    z-index: 3;
+    filter: drop-shadow(0 0 8px var(--accent-color));
+    transform-origin: center;
+}
+
+.parry-slider-container {
+    width: 100%;
+    padding: 0.5rem 0;
+}
+
+.parry-slider-track {
+    width: 100%;
+    height: 18px;
+    background-color: hsl(222, 24%, 5%);
+    border-radius: 9px;
+    border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.parry-target-zone {
+    position: absolute;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(46, 204, 113, 0.4), rgba(46, 204, 113, 0.75), rgba(46, 204, 113, 0.4));
+    border-left: 1px dashed #2ecc71;
+    border-right: 1px dashed #2ecc71;
+    box-shadow: 0 0 15px rgba(46, 204, 113, 0.5);
+    z-index: 1;
+}
+
+.parry-indicator {
+    position: absolute;
+    width: 6px;
+    height: 100%;
+    background-color: var(--primary-color);
+    box-shadow: 0 0 10px var(--primary-color);
+    z-index: 2;
+    left: 0;
+    transition: left 0.016s linear;
+}
+
+.parry-controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.parry-btn {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.65rem 1.25rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    
+    &:hover:not(:disabled) {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        box-shadow: 0 0 10px var(--primary-glow);
+    }
+    
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+}
+
+.parry-btn.parry-strike-btn {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 4px 15px var(--primary-glow);
+    font-size: 1rem;
+    padding: 0.75rem 2rem;
+    
+    &:hover:not(:disabled) {
+        background-color: var(--accent-color);
+        border-color: var(--accent-color);
+        box-shadow: 0 0 20px var(--accent-glow);
+        transform: translateY(-2px);
+    }
+    
+    &:active:not(:disabled) {
+        transform: translateY(1px);
+    }
+}
+
+.parry-stats-display {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.parry-feedback-msg {
+    text-align: center;
+    font-weight: 800;
+    font-size: 1.05rem;
+    letter-spacing: 0.5px;
+    height: 1.5rem;
+    transition: var(--transition);
+}
+
+
+/* === ESTILIZAÇÃO DA ABA DA BIJUU LENDÁRIA === */
+.bijuu-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.bijuu-selector-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.bijuu-select-card {
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: var(--shadow);
+    gap: 0.75rem;
+    
+    &:hover {
+        transform: translateY(-5px) scale(1.02);
+        border-color: var(--secondary-color);
+        box-shadow: 0 8px 25px var(--secondary-glow);
+        & .bijuu-select-avatar {
+            transform: scale(1.15);
+            filter: drop-shadow(0 0 10px var(--secondary-glow));
+        }
+    }
+}
+
+.bijuu-select-avatar {
+    font-size: 3rem;
+    transition: var(--transition);
+}
+
+.bijuu-select-name {
+    font-family: var(--font-title);
+    font-size: 1rem;
+    color: var(--text-color);
+    font-weight: 800;
+}
+
+.bijuu-select-stat {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/* Painel de Status da Bijuu Ativa */
+.bijuu-active-container {
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.bijuu-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.bijuu-big-avatar {
+    font-size: 5.5rem;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle, rgba(255,68,68,0.15) 0%, rgba(0,0,0,0.3) 100%);
+    border: 2px solid var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: float-bijuu 4s ease-in-out infinite;
+    box-shadow: 0 0 30px var(--primary-glow);
+}
+
+@keyframes float-bijuu {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+.bijuu-profile-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.bijuu-title {
+    font-family: var(--font-title);
+    font-size: clamp(1.2rem, 3vw, 1.75rem);
+    color: var(--text-color);
+    text-shadow: 0 0 10px rgba(255,255,255,0.1);
+}
+
+.bijuu-badge {
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 800;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    display: inline-block;
+    align-self: flex-start;
+    box-shadow: 0 4px 10px var(--primary-glow);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bijuu-multiplier-info {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+.bijuu-goals-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.bijuu-goals-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    
+    & li {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 0.85rem 1.25rem;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 600;
+        transition: var(--transition);
+    }
+    
+    & li.goal-met {
+        border-color: rgba(46, 204, 113, 0.4);
+        background-color: rgba(46, 204, 113, 0.05);
+        color: #2ecc71;
+    }
+    
+    & li.goal-pending {
+        border-color: rgba(231, 76, 60, 0.3);
+        background-color: rgba(231, 76, 60, 0.03);
+        color: var(--text-muted);
+    }
+}
+
+.bijuu-evolve-btn {
+    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+    border: none;
+    color: white;
+    font-family: var(--font-body);
+    font-weight: 800;
+    font-size: 1rem;
+    padding: 1rem 2rem;
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    box-shadow: 0 5px 20px var(--primary-glow);
+    transition: var(--transition);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    align-self: flex-start;
+    
+    &:hover:not(:disabled) {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 30px var(--secondary-glow);
+    }
+    
+    &:active:not(:disabled) {
+        transform: translateY(1px);
+    }
+    
+    &:disabled {
+        background: var(--border-color);
+        color: var(--text-muted);
+        box-shadow: none;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+}
+
+/* === EFEITOS DE BUFFS NO HEADER === */
+.active-buffs-row {
+    display: flex;
+    gap: 0.5rem;
+    position: absolute;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.buff-badge {
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.buff-badge.red-pulse {
+    background-color: #ff3333;
+    animation: red-pulse-anim 1.5s infinite;
+}
+
+.buff-badge.green-pulse {
+    background-color: #2ecc71;
+    animation: green-pulse-anim 1.5s infinite;
+}
+
+.buff-badge.black-exhaustion {
+    background-color: #333333;
+    border: 1px solid #555;
+    color: #888;
+}
+
+@keyframes red-pulse-anim {
+    0%, 100% { box-shadow: 0 0 5px rgba(255, 51, 51, 0.4); }
+    50% { box-shadow: 0 0 15px rgba(255, 51, 51, 0.8); }
+}
+
+@keyframes green-pulse-anim {
+    0%, 100% { box-shadow: 0 0 5px rgba(46, 204, 113, 0.4); }
+    50% { box-shadow: 0 0 15px rgba(46, 204, 113, 0.8); }
+}
+
+/* === ESTILIZAÇÃO DOS 8 PORTÕES INTERNOS === */
+.gates-section {
+    margin-top: 2rem;
+}
+
+.gates-container {
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    box-shadow: var(--shadow);
+}
+
+.gates-grid-row {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.gate-node {
+    background-color: var(--card-bg);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 0.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+    transition: var(--transition);
+}
+
+.gate-node.locked {
+    opacity: 0.5;
+    & .gate-num {
+        background-color: #333;
+        color: #777;
+    }
+}
+
+.gate-node.unlocked {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 10px var(--primary-glow);
+    & .gate-num {
+        background-color: var(--primary-color);
+        color: white;
+        box-shadow: 0 0 8px var(--primary-color);
+    }
+    & .gate-name {
+        color: var(--text-color);
+    }
+}
+
+.gate-node.active-release {
+    border-color: var(--accent-color);
+    animation: gate-release-pulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes gate-release-pulse {
+    0% {
+        box-shadow: 0 0 5px var(--accent-glow);
+        transform: scale(1);
+    }
+    100% {
+        box-shadow: 0 0 20px var(--accent-color);
+        transform: scale(1.03);
+    }
+}
+
+.gate-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    transition: var(--transition);
+}
+
+.gate-name {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.gate-bonus {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--accent-color);
+}
+
+.gates-control-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.gate-upgrade-info, .gate-active-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.gate-cost-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.gate-buy-btn, .gate-release-btn {
+    background-color: var(--primary-color);
+    border: none;
+    color: white;
+    font-family: var(--font-body);
+    font-weight: 800;
+    font-size: 0.85rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    box-shadow: 0 4px 10px var(--primary-glow);
+    transition: var(--transition);
+    
+    &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 0 15px var(--primary-color);
+    }
+    
+    &:disabled {
+        background-color: var(--border-color);
+        color: var(--text-muted);
+        box-shadow: none;
+        cursor: not-allowed;
+    }
+}
+
+.gate-release-btn {
+    background: linear-gradient(135deg, #ff2222 0%, #cc0000 100%);
+    box-shadow: 0 4px 12px rgba(255,0,0,0.3);
+    
+    &:hover:not(:disabled) {
+        background: #ff0000;
+        box-shadow: 0 0 20px rgba(255,0,0,0.6);
+    }
+}
+
+.gate-timer-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--accent-color);
+}
+
+
+/* === ESTILIZAÇÃO DO CENTRO DE TREINAMENTO === */
+.train-tab-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    
+    &:hover {
+        border-color: var(--primary-color);
+        color: var(--text-color);
+    }
+    
+    &.active {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+        box-shadow: 0 3px 10px var(--primary-glow);
+    }
+}
+
+.train-game-panel {
+    transition: var(--transition);
+}
+
+.jutsu-key-node {
+    width: 45px;
+    height: 45px;
+    border-radius: 8px;
+    background-color: var(--card-bg);
+    border: 2px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.5rem;
+    transition: var(--transition);
+    color: var(--text-muted);
+}
+
+.jutsu-key-node.correct {
+    border-color: #2ecc71;
+    background-color: rgba(46, 204, 113, 0.1);
+    color: #2ecc71;
+    box-shadow: 0 0 10px rgba(46, 204, 113, 0.3);
+    transform: scale(1.05);
+}
+
+/* === REFINAMENTO DE ESPADAS (UPGRADE) === */
+.sword-upgrade-btn {
+    background-color: var(--secondary-color);
+    border: none;
+    color: white;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    box-shadow: 0 2px 8px var(--secondary-glow);
+    transition: var(--transition);
+    flex-grow: 1;
+    
+    &:hover {
+        background-color: var(--accent-color);
+        box-shadow: 0 0 12px var(--accent-glow);
+        transform: translateY(-1px);
+    }
+}

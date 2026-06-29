@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chakra Clicker: Portal Ninja</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Shojumaru&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Seletor de Tema Claro/Escuro -->
+    <div class="theme-switch-container">
+        <button id="theme-toggle" class="theme-toggle-btn" onclick="toggleTheme()">
+            <span id="theme-icon">🌙</span> <span id="theme-text">Tema Escuro</span>
+        </button>
+    </div>
+
+    <!-- Tela de Login / Cadastro -->
+    <div class="login-overlay">
+        <div class="login-card">
+            <h2>Chakra Clicker</h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: -10px;">A Jornada Ninja</p>
+            
+            <div class="login-form">
+                <div class="form-group">
+                    <label for="username-input">Nome de Usuário</label>
+                    <input type="text" id="username-input" placeholder="Digite seu nome ninja">
+                </div>
+                <div class="form-group">
+                    <label for="password-input">Senha Secreta</label>
+                    <input type="password" id="password-input" placeholder="Digite sua senha">
+                </div>
+            </div>
+
+            <div class="login-actions">
+                <button id="login-action-btn" class="login-btn" onclick="submitAuth('login')">Entrar na Vila</button>
+                <span id="auth-switch-link" class="register-link" onclick="toggleAuthMode()">Não tem conta? Registre-se aqui</span>
+            </div>
+            
+            <div id="login-error-msg" style="color: var(--accent-color); font-size: 0.85rem; font-weight: bold; min-height: 20px;"></div>
+        </div>
+    </div>
+
+    <script type="module" src="login.js"></script>
+</body>
+</html>

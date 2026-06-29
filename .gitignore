@@ -1,0 +1,6 @@
+saves/
+users.json
+save.json
+__pycache__/
+*.db
+.gemini/
