@@ -44,11 +44,8 @@ export function submitAuth(type) {
                 setAuthMode("login");
                 toggleAuthMode();
             } else {
-                setUsername(data.username);
-                document.getElementById('display-username').innerText = data.username;
-                document.getElementById('login-screen').style.display = "none";
-                document.getElementById('app').style.display = "grid";
-                loadGame();
+                localStorage.setItem('username', data.username);
+                window.location.href = "index.html";
             }
         }
     })
@@ -57,3 +54,6 @@ export function submitAuth(type) {
         console.error(err);
     });
 }
+
+window.submitAuth = submitAuth;
+window.toggleAuthMode = toggleAuthMode;

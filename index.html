@@ -22,7 +22,7 @@
             <div class="sidebar-header">
                 <h1 class="game-title">Chakra Clicker</h1>
                 <div class="ninja-display">
-                    Ninja: <span id="display-username" style="color: var(--primary-color); font-weight: 800;">-</span>
+                    Ninja: <span id="display-username" style="color: var(--primary-color); font-weight: 800;">-</span> | <span onclick="logout()" style="color: var(--accent-color); cursor: pointer; text-decoration: underline;">Sair</span>
                 </div>
             </div>
             
@@ -346,7 +346,7 @@
                     <!-- JOGO 1: Parry de Kunai -->
                     <div id="train-game-parry" class="train-game-panel">
                         <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-                            Deflita os ataques ninja de Zabuza no momento exato! Acerte na zona verde para acumular combo e ganhar bônus de Chakra.
+                            Deflita os ataques ninja de Zabuza no momento exato! Pressione a tecla <strong>F</strong> ou clique no botão para acumular combo e ganhar bônus de Chakra.
                         </p>
                         <div class="parry-game-container">
                             <div class="parry-arena">
@@ -364,7 +364,7 @@
                             
                             <div class="parry-controls-row">
                                 <button id="parry-start-btn" class="parry-btn" onclick="startParryGame()">Iniciar Combate</button>
-                                <button id="parry-action-btn" class="parry-btn parry-strike-btn" onclick="triggerParry()" disabled>DEFLETIR!</button>
+                                <button id="parry-action-btn" class="parry-btn parry-strike-btn" onclick="triggerParry()" disabled>DEFLETIR! (Tecla F)</button>
                                 <div class="parry-stats-display">
                                     Combo: <span id="parry-streak-display" style="color: var(--accent-color); font-weight: 800;">0</span> | 
                                     Bônus: <span id="parry-bonus-display" style="color: var(--secondary-color); font-weight: 800;">+0%</span>
@@ -434,7 +434,7 @@
                                 <span class="mission-req">Requer: 1 Chunin</span>
                             </div>
                             <p class="mission-desc">Bandidos estão ameaçando o comércio local de Konoha. Vá detê-los!</p>
-                            <div class="mission-rewards">Recompensas: +1.500 Chakra</div>
+                            <div class="mission-rewards">Preço: 10.000 Chakra | Recompensa: +15.000 Chakra</div>
                             <div id="log-protect_village" class="mission-log hidden">Aguardando início...</div>
                             <div class="mission-progress-bar">
                                 <div id="bar-protect_village" class="mission-progress-fill"></div>
@@ -450,7 +450,7 @@
                                 <span class="mission-req">Requer: 1 Jonin</span>
                             </div>
                             <p class="mission-desc">Infiltre-se para recuperar pergaminhos de segredos de Konoha roubados.</p>
-                            <div class="mission-rewards">Recompensas: +10.000 Chakra, +1 Ponto de Prestígio</div>
+                            <div class="mission-rewards">Preço: 50.000 Chakra | Recompensa: +100.000 Chakra, +1 Ponto de Prestígio</div>
                             <div id="log-infiltrate_akatsuki" class="mission-log hidden">Aguardando início...</div>
                             <div class="mission-progress-bar">
                                 <div id="bar-infiltrate_akatsuki" class="mission-progress-fill"></div>
@@ -466,7 +466,7 @@
                                 <span class="mission-req">Requer: 1 Kage</span>
                             </div>
                             <p class="mission-desc">Batalha massiva contra a lendária Fera de Nove Caudas. Defesa máxima da vila!</p>
-                            <div class="mission-rewards">Recompensas: +250.000 Chakra, +2 Pontos de Prestígio</div>
+                            <div class="mission-rewards">Preço: 250.000 Chakra | Recompensa: +2.500.000 Chakra, +2 Pontos de Prestígio</div>
                             <div id="log-kyuubi_battle" class="mission-log hidden">Aguardando início...</div>
                             <div class="mission-progress-bar">
                                 <div id="bar-kyuubi_battle" class="mission-progress-fill"></div>
@@ -490,7 +490,7 @@
                                 <span class="mission-req">Requer: 1 Jonin, 2 Genins</span>
                             </div>
                             <p class="mission-desc">Kakashi, Naruto e Sasuke enfrentam Zabuza Momochi e Haku na Ponte do País das Ondas.</p>
-                            <div class="mission-rewards">Recompensas: +5.000 Chakra & +1 Ponto de Prestígio</div>
+                            <div class="mission-rewards">Preço: 25.000 Chakra | Recompensa: +50.000 Chakra & +1 Ponto de Prestígio</div>
                             <div id="log-camp_zabuza" class="mission-log hidden">Aguardando início...</div>
                             <div class="mission-progress-bar">
                                 <div id="bar-camp_zabuza" class="mission-progress-fill"></div>
@@ -506,7 +506,7 @@
                                 <span class="mission-req">Requer: 1 Chunin, 3 Genins</span>
                             </div>
                             <p class="mission-desc">Sobreviva ao ataque de Orochimaru na Floresta da Morte e recupere os pergaminhos da Terra e do Céu.</p>
-                            <div class="mission-rewards">Recompensas: +25.000 Chakra & +2 Pontos de Prestígio</div>
+                            <div class="mission-rewards">Preço: 100.000 Chakra | Recompensa: +250.000 Chakra & +2 Pontos de Prestígio</div>
                             <div id="log-camp_forest_death" class="mission-log hidden">Aguardando início...</div>
                             <div class="mission-progress-bar">
                                 <div id="bar-camp_forest_death" class="mission-progress-fill"></div>
@@ -522,7 +522,7 @@
                                 <span class="mission-req">Requer: 1 Sannin, 2 Chunins</span>
                             </div>
                             <p class="mission-desc">Orochimaru inicia a destruição de Konoha com a ajuda da Vila da Areia. Impeça a queda da vila!</p>
-                            <div class="mission-rewards">Recompensas: +120.000 Chakra & +3 Pontos de Prestígio</div>
+                            <div class="mission-rewards">Preço: 500.000 Chakra | Recompensa: +1.200.000 Chakra & +3 Pontos de Prestígio</div>
                             <div id="log-camp_orochimaru" class="mission-log hidden">Aguardando início...</div>
                             <div class="mission-progress-bar">
                                 <div id="bar-camp_orochimaru" class="mission-progress-fill"></div>
@@ -538,7 +538,7 @@
                                 <span class="mission-req">Requer: 2 Jonins, 5 Genins</span>
                             </div>
                             <p class="mission-desc">Sasuke foge para se juntar a Orochimaru. Naruto tenta pará-lo no Vale do Fim em uma batalha épica.</p>
-                            <div class="mission-rewards">Recompensas: +500.000 Chakra & +5 Pontos de Prestígio</div>
+                            <div class="mission-rewards">Preço: 2.000.000 Chakra | Recompensa: +5.000.000 Chakra & +5 Pontos de Prestígio</div>
                             <div id="log-camp_final_valley" class="mission-log hidden">Aguardando início...</div>
                             <div class="mission-progress-bar">
                                 <div id="bar-camp_final_valley" class="mission-progress-fill"></div>

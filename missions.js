@@ -84,6 +84,11 @@ export function startMission(missionId) {
     
     if (activeMission.status !== "idle") return;
     
+    if (mission.price && gameState.chakra < mission.price) {
+        alert(`Chakra insuficiente! Você precisa de pelo menos ${mission.price.toLocaleString()} Chakra para iniciar esta missão.`);
+        return;
+    }
+    
     if (mission.reqs) {
         for (const req of mission.reqs) {
             const userQty = gameState.generators[req.gen] || 0;
@@ -112,12 +117,18 @@ export function startMission(missionId) {
         }
     }
     
+    if (mission.price) {
+        gameState.chakra -= mission.price;
+    }
+    
     let duration = mission.duration;
     if (gameState.prestige_upgrades.ancestral_voice) {
         duration *= 0.8;
     }
     if (gameState.equipped_sword === "hiramekarei") {
-        duration *= 0.85;
+        const lvl = (gameState.swords_levels && gameState.swords_levels.hiramekarei) || 1;
+        const mult = 1.0 + (lvl - 1) * 0.25;
+        duration *= Math.max(0.1, 1.0 - 0.15 * mult);
     }
     
     activeMission.status = "running";
@@ -432,6 +443,15 @@ function updateParryUI() {
 
 // === SWITCH TRAINING GAME ===
 export function switchTrainingGame(gameId) {
+    const clicks = gameState.clicks || 0;
+    if (gameId === 'jutsu' && clicks < 100) {
+        alert(`Treinamento de base insuficiente! Você precisa de pelo menos 100 cliques manuais para liberar o treino de Sequência de Jutsu.`);
+        return;
+    }
+    if (gameId === 'chakra' && clicks < 300) {
+        alert(`Falta controle espiritual! Você precisa de pelo menos 300 cliques manuais para liberar o treino de Controle de Chakra.`);
+        return;
+    }
     const games = ['parry', 'jutsu', 'chakra'];
     games.forEach(g => {
         const tab = document.getElementById(`train-tab-${g}`);
@@ -504,8 +524,13 @@ export function startJutsuGame() {
 }
 
 window.addEventListener('keydown', (e) => {
-    if (!jutsuActive) return;
     const pressed = e.key.toLowerCase();
+    if (parryGameActive && pressed === 'f') {
+        e.preventDefault();
+        triggerParry();
+        return;
+    }
+    if (!jutsuActive) return;
     
     if (KEY_KEYS.includes(pressed)) {
         e.preventDefault();

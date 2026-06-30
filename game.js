@@ -15,16 +15,38 @@ export const BASE_COSTS = {
     rikudou: 100000000
 };
 
+export const GATE_NAMES = [
+    "Portão da Abertura",
+    "Portão da Cura",
+    "Portão da Vida",
+    "Portão da Dor",
+    "Portão do Limite",
+    "Portão da Visão",
+    "Portão da Maravilha",
+    "Portão da Morte"
+];
+
+export const GATE_COSTS = [
+    5000,
+    25000,
+    100000,
+    500000,
+    2500000,
+    10000000,
+    50000000,
+    250000000
+];
+
 export const MISSION_INFO = {
-    protect_village: { duration: 60, reqs: [{ gen: "chunin", qty: 1 }], rewardChakra: 1500, rewardPrestige: 0 },
-    infiltrate_akatsuki: { duration: 300, reqs: [{ gen: "jonin", qty: 1 }], rewardChakra: 10000, rewardPrestige: 1 },
-    kyuubi_battle: { duration: 900, reqs: [{ gen: "kage", qty: 1 }], rewardChakra: 250000, rewardPrestige: 2 },
+    protect_village: { duration: 60, reqs: [{ gen: "chunin", qty: 1 }], rewardChakra: 15000, rewardPrestige: 0, price: 10000 },
+    infiltrate_akatsuki: { duration: 300, reqs: [{ gen: "jonin", qty: 1 }], rewardChakra: 100000, rewardPrestige: 1, price: 50000 },
+    kyuubi_battle: { duration: 900, reqs: [{ gen: "kage", qty: 1 }], rewardChakra: 2500000, rewardPrestige: 2, price: 250000 },
     
     // Campanha Naruto Clássico
-    camp_zabuza: { duration: 120, reqs: [{ gen: "jonin", qty: 1 }, { gen: "genin", qty: 2 }], rewardChakra: 5000, rewardPrestige: 1, next: "camp_forest_death" },
-    camp_forest_death: { duration: 300, reqs: [{ gen: "chunin", qty: 1 }, { gen: "genin", qty: 3 }], rewardChakra: 25000, rewardPrestige: 2, next: "camp_orochimaru" },
-    camp_orochimaru: { duration: 600, reqs: [{ gen: "sannin", qty: 1 }, { gen: "chunin", qty: 2 }], rewardChakra: 120000, rewardPrestige: 3, next: "camp_final_valley" },
-    camp_final_valley: { duration: 900, reqs: [{ gen: "jonin", qty: 2 }, { gen: "genin", qty: 5 }], rewardChakra: 500000, rewardPrestige: 5, next: null }
+    camp_zabuza: { duration: 120, reqs: [{ gen: "jonin", qty: 1 }, { gen: "genin", qty: 2 }], rewardChakra: 50000, rewardPrestige: 1, price: 25000, next: "camp_forest_death" },
+    camp_forest_death: { duration: 300, reqs: [{ gen: "chunin", qty: 1 }, { gen: "genin", qty: 3 }], rewardChakra: 250000, rewardPrestige: 2, price: 100000, next: "camp_orochimaru" },
+    camp_orochimaru: { duration: 600, reqs: [{ gen: "sannin", qty: 1 }, { gen: "chunin", qty: 2 }], rewardChakra: 1200000, rewardPrestige: 3, price: 500000, next: "camp_final_valley" },
+    camp_final_valley: { duration: 900, reqs: [{ gen: "jonin", qty: 2 }, { gen: "genin", qty: 5 }], rewardChakra: 5000000, rewardPrestige: 5, price: 2000000, next: null }
 };
 
 export const SWORDS_INFO = {
@@ -116,6 +138,15 @@ export let calculatedCps = 0.0;
 export let calculatedClickPower = 1.0;
 export let shopMode = 'buy';
 export let shopQty = 1;
+
+export let gatesActiveTime = 0.0;
+export let gatesCooldown = 0.0;
+export let exhaustionTime = 0.0;
+export let trainingBuffTimer = 0.0;
+
+let lastRenderedSwordsState = "";
+let lastRenderedBijuuState = "";
+let lastRenderedBuffsState = "";
 
 // Theme controls
 export function toggleTheme() {
@@ -398,45 +429,62 @@ export function updateDOM() {
 
     const listEl = document.getElementById('swords-list');
     if (listEl) {
-        listEl.innerHTML = "";
-        for (let key in SWORDS_INFO) {
-            const info = SWORDS_INFO[key];
-            const hasIt = gameState.swords && gameState.swords[key];
-            const isEquipped = gameState.equipped_sword === key;
-            
-            const card = document.createElement('div');
-            card.className = `sword-item-card ${hasIt ? '' : 'locked'} ${isEquipped ? 'equipped' : ''}`;
-            
-            let buttonHtml = "";
-            if (hasIt) {
+        const stateSignature = JSON.stringify({
+            swords: gameState.swords,
+            swords_levels: gameState.swords_levels,
+            equipped: gameState.equipped_sword
+        });
+        
+        if (lastRenderedSwordsState !== stateSignature) {
+            lastRenderedSwordsState = stateSignature;
+            listEl.innerHTML = "";
+            for (let key in SWORDS_INFO) {
+                const info = SWORDS_INFO[key];
+                const hasIt = gameState.swords && gameState.swords[key];
+                const isEquipped = gameState.equipped_sword === key;
+                
+                const card = document.createElement('div');
+                card.className = `sword-item-card ${hasIt ? '' : 'locked'} ${isEquipped ? 'equipped' : ''}`;
+                
                 const lvl = (gameState.swords_levels && gameState.swords_levels[key]) || 1;
-                const cost = Math.floor(25000 * Math.pow(2.2, lvl - 1));
-                const costStr = cost >= 1000000 ? `${(cost / 1000000).toFixed(1)}M` : `${(cost / 1000).toFixed(0)}k`;
+                const descText = hasIt ? getDynamicSwordDesc(key, lvl) : info.desc;
                 
-                const equipBtn = isEquipped 
-                    ? `<button class="sword-equip-btn equipped" disabled>Empunhada</button>`
-                    : `<button class="sword-equip-btn" onclick="equipSword('${key}')">Empunhar</button>`;
+                let buttonHtml = "";
+                if (hasIt) {
+                    const cost = Math.floor(25000 * Math.pow(2.2, lvl - 1));
+                    const costStr = cost >= 1000000 ? `${(cost / 1000000).toFixed(1)}M` : `${(cost / 1000).toFixed(0)}k`;
+                    
+                    const equipBtn = isEquipped 
+                        ? `<button class="sword-equip-btn equipped" disabled>Empunhada</button>`
+                        : `<button class="sword-equip-btn" onclick="equipSword('${key}')">Empunhar</button>`;
+                    
+                    buttonHtml = `
+                        <div class="sword-actions-container">
+                            <div class="sword-level-tag" style="font-size: 0.8rem; color: var(--accent-color); font-weight: 800; margin-bottom: 0.25rem;">Nível ${lvl}</div>
+                            <div class="sword-buttons-row">
+                                ${equipBtn}
+                                <button class="sword-upgrade-btn" onclick="upgradeSword('${key}', ${cost})">Refinar (${costStr})</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    buttonHtml = `
+                        <div class="sword-actions-container">
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">Bloqueada</span>
+                        </div>
+                    `;
+                }
                 
-                buttonHtml = `
-                    <div class="sword-level-tag" style="font-size: 0.8rem; color: var(--accent-color); font-weight: 800; margin-bottom: 0.25rem;">Nível ${lvl}</div>
-                    <div style="display: flex; gap: 0.5rem; width: 100%; margin-top: 0.5rem;">
-                        ${equipBtn}
-                        <button class="sword-upgrade-btn" onclick="upgradeSword('${key}', ${cost})">Refinar (${costStr})</button>
+                card.innerHTML = `
+                    <div class="sword-icon">${info.icon}</div>
+                    <div class="sword-details" style="width: 100%;">
+                        <span class="sword-name">${info.name}</span>
+                        <span class="sword-bonus">${descText}</span>
+                        ${buttonHtml}
                     </div>
                 `;
-            } else {
-                buttonHtml = `<span style="font-size: 0.8rem; color: var(--text-muted);">Bloqueada</span>`;
+                listEl.appendChild(card);
             }
-            
-            card.innerHTML = `
-                <div class="sword-icon">${info.icon}</div>
-                <div class="sword-details" style="width: 100%;">
-                    <span class="sword-name">${info.name}</span>
-                    <span class="sword-bonus">${info.desc}</span>
-                    ${buttonHtml}
-                </div>
-            `;
-            listEl.appendChild(card);
         }
     }
     
@@ -445,58 +493,67 @@ export function updateDOM() {
     const bijuuActive = document.getElementById('bijuu-active-screen');
     
     if (bijuuSelector && bijuuActive) {
-        if (!gameState.bijuu || !gameState.bijuu.chosen) {
-            bijuuSelector.classList.remove('hidden');
-            bijuuActive.classList.add('hidden');
-        } else {
-            bijuuSelector.classList.add('hidden');
-            bijuuActive.classList.remove('hidden');
-            
-            const bijuuId = gameState.bijuu.chosen;
-            const bijuuInfo = BIJUUS[bijuuId];
-            const level = gameState.bijuu.level;
-            
-            document.getElementById('bijuu-avatar-display').innerText = bijuuInfo.avatar;
-            document.getElementById('bijuu-name-display').innerText = bijuuInfo.name;
-            document.getElementById('bijuu-stage-display').innerText = BIJUU_STAGES[level] || `Estágio ${level}`;
-            
-            const multipliers = [1.0, 1.0, 1.5, 2.5, 5.0, 10.0];
-            const multVal = multipliers[Math.min(level, multipliers.length - 1)] || 1.0;
-            document.getElementById('bijuu-mult-display').innerText = `${multVal}x (CPS & Cliques)`;
-            
-            const nextLvl = level + 1;
-            const nextLvlEl = document.getElementById('bijuu-next-level-display');
-            const evolveBtn = document.getElementById('bijuu-evolve-btn');
-            
-            if (nextLvl > 5) {
-                if (nextLvlEl) nextLvlEl.innerText = "Máximo";
-                if (evolveBtn) {
-                    evolveBtn.disabled = true;
-                    evolveBtn.innerText = "Nível Máximo Alcançado!";
-                }
-                const goalsList = document.getElementById('bijuu-goals-list');
-                if (goalsList) goalsList.innerHTML = `<li style="color: var(--secondary-color); font-weight: bold;">Sua Bijuu atingiu o ápice do seu poder!</li>`;
+        const level = (gameState.bijuu && gameState.bijuu.level) || 1;
+        const goals = getBijuuGoals(level);
+        const bijuuStateSig = JSON.stringify({
+            chosen: (gameState.bijuu && gameState.bijuu.chosen) || "",
+            level: level,
+            goals_met: goals.map(g => g.check())
+        });
+        
+        if (lastRenderedBijuuState !== bijuuStateSig) {
+            lastRenderedBijuuState = bijuuStateSig;
+            if (!gameState.bijuu || !gameState.bijuu.chosen) {
+                bijuuSelector.classList.remove('hidden');
+                bijuuActive.classList.add('hidden');
             } else {
-                if (nextLvlEl) nextLvlEl.innerText = nextLvl;
+                bijuuSelector.classList.add('hidden');
+                bijuuActive.classList.remove('hidden');
                 
-                const goals = getBijuuGoals(level);
-                const goalsList = document.getElementById('bijuu-goals-list');
-                if (goalsList) {
-                    goalsList.innerHTML = "";
-                    let allMet = true;
-                    goals.forEach(goal => {
-                        const met = goal.check();
-                        if (!met) allMet = false;
-                        
-                        const li = document.createElement('li');
-                        li.className = met ? "goal-met" : "goal-pending";
-                        li.innerHTML = `${met ? "✅" : "❌"} ${goal.desc}`;
-                        goalsList.appendChild(li);
-                    });
-                    
+                const bijuuId = gameState.bijuu.chosen;
+                const bijuuInfo = BIJUUS[bijuuId];
+                
+                document.getElementById('bijuu-avatar-display').innerText = bijuuInfo.avatar;
+                document.getElementById('bijuu-name-display').innerText = bijuuInfo.name;
+                document.getElementById('bijuu-stage-display').innerText = BIJUU_STAGES[level] || `Estágio ${level}`;
+                
+                const multipliers = [1.0, 1.0, 1.5, 2.5, 5.0, 10.0];
+                const multVal = multipliers[Math.min(level, multipliers.length - 1)] || 1.0;
+                document.getElementById('bijuu-mult-display').innerText = `${multVal}x (CPS & Cliques)`;
+                
+                const nextLvl = level + 1;
+                const nextLvlEl = document.getElementById('bijuu-next-level-display');
+                const evolveBtn = document.getElementById('bijuu-evolve-btn');
+                
+                if (nextLvl > 5) {
+                    if (nextLvlEl) nextLvlEl.innerText = "Máximo";
                     if (evolveBtn) {
-                        evolveBtn.disabled = !allMet;
-                        evolveBtn.innerText = allMet ? "Evoluir Bijuu! ⚡" : "Objetivos Pendentes";
+                        evolveBtn.disabled = true;
+                        evolveBtn.innerText = "Nível Máximo Alcançado!";
+                    }
+                    const goalsList = document.getElementById('bijuu-goals-list');
+                    if (goalsList) goalsList.innerHTML = `<li style="color: var(--secondary-color); font-weight: bold;">Sua Bijuu atingiu o ápice do seu poder!</li>`;
+                } else {
+                    if (nextLvlEl) nextLvlEl.innerText = nextLvl;
+                    
+                    const goalsList = document.getElementById('bijuu-goals-list');
+                    if (goalsList) {
+                        goalsList.innerHTML = "";
+                        let allMet = true;
+                        goals.forEach(goal => {
+                            const met = goal.check();
+                            if (!met) allMet = false;
+                            
+                            const li = document.createElement('li');
+                            li.className = met ? "goal-met" : "goal-pending";
+                            li.innerHTML = `${met ? "✅" : "❌"} ${goal.desc}`;
+                            goalsList.appendChild(li);
+                        });
+                        
+                        if (evolveBtn) {
+                            evolveBtn.disabled = !allMet;
+                            evolveBtn.innerText = allMet ? "Evoluir Bijuu! ⚡" : "Objetivos Pendentes";
+                        }
                     }
                 }
             }
@@ -560,27 +617,53 @@ export function updateDOM() {
     // Active buffs list rendering
     const buffsContainer = document.getElementById('active-buffs-container');
     if (buffsContainer) {
-        buffsContainer.innerHTML = "";
-        
-        if (gatesActiveTime > 0) {
-            const div = document.createElement('div');
-            div.className = 'buff-badge red-pulse';
-            div.innerHTML = `🔴 8 Portões: +${((gameState.gates_unlocked || 0) * 150)}% (${gatesActiveTime.toFixed(0)}s)`;
-            buffsContainer.appendChild(div);
+        const buffsSig = `${Math.ceil(gatesActiveTime)}-${Math.ceil(exhaustionTime)}-${Math.ceil(trainingBuffTimer)}`;
+        if (lastRenderedBuffsState !== buffsSig) {
+            lastRenderedBuffsState = buffsSig;
+            buffsContainer.innerHTML = "";
+            
+            if (gatesActiveTime > 0) {
+                const div = document.createElement('div');
+                div.className = 'buff-badge red-pulse';
+                div.innerHTML = `🔴 8 Portões: +${((gameState.gates_unlocked || 0) * 150)}% (${gatesActiveTime.toFixed(0)}s)`;
+                buffsContainer.appendChild(div);
+            }
+            
+            if (exhaustionTime > 0) {
+                const div = document.createElement('div');
+                div.className = 'buff-badge black-exhaustion';
+                div.innerHTML = `💀 Exaustão: 0 CPS (${exhaustionTime.toFixed(0)}s)`;
+                buffsContainer.appendChild(div);
+            }
+            
+            if (trainingBuffTimer > 0) {
+                const div = document.createElement('div');
+                div.className = 'buff-badge green-pulse';
+                div.innerHTML = `🔥 Treino de Chakra: +50% CPS (${trainingBuffTimer.toFixed(0)}s)`;
+                buffsContainer.appendChild(div);
+            }
         }
-        
-        if (exhaustionTime > 0) {
-            const div = document.createElement('div');
-            div.className = 'buff-badge black-exhaustion';
-            div.innerHTML = `💀 Exaustão: 0 CPS (${exhaustionTime.toFixed(0)}s)`;
-            buffsContainer.appendChild(div);
+    }
+
+    const clicksVal = gameState.clicks || 0;
+    const tabJutsu = document.getElementById('train-tab-jutsu');
+    const tabChakra = document.getElementById('train-tab-chakra');
+    if (tabJutsu) {
+        if (clicksVal < 100) {
+            tabJutsu.classList.add('tab-locked');
+            tabJutsu.innerHTML = "🔒 Sequência de Jutsu (100)";
+        } else {
+            tabJutsu.classList.remove('tab-locked');
+            tabJutsu.innerHTML = "🔥 Sequência de Jutsu";
         }
-        
-        if (trainingBuffTimer > 0) {
-            const div = document.createElement('div');
-            div.className = 'buff-badge green-pulse';
-            div.innerHTML = `🔥 Treino de Chakra: +50% CPS (${trainingBuffTimer.toFixed(0)}s)`;
-            buffsContainer.appendChild(div);
+    }
+    if (tabChakra) {
+        if (clicksVal < 300) {
+            tabChakra.classList.add('tab-locked');
+            tabChakra.innerHTML = "🔒 Controle de Chakra (300)";
+        } else {
+            tabChakra.classList.remove('tab-locked');
+            tabChakra.innerHTML = "☯️ Controle de Chakra";
         }
     }
 }export function loadGame() {
@@ -640,9 +723,13 @@ function setupClickAnimation() {
         
         let clickPowerVal = calculatedClickPower;
         let isCrit = false;
-        if (gameState.equipped_sword === 'kiba' && Math.random() < 0.15) {
-            clickPowerVal *= 5;
-            isCrit = true;
+        if (gameState.equipped_sword === 'kiba') {
+            const lvl = (gameState.swords_levels && gameState.swords_levels.kiba) || 1;
+            const mult = 1.0 + (lvl - 1) * 0.25;
+            if (Math.random() < Math.min(0.5, 0.15 * mult)) {
+                clickPowerVal *= (5 * mult);
+                isCrit = true;
+            }
         }
         
         gameState.chakra += clickPowerVal;
@@ -687,6 +774,34 @@ function setupClickAnimation() {
     });
 }
 
+export function buyGate() {
+    const currentGates = gameState.gates_unlocked || 0;
+    if (currentGates >= 8) return;
+    const cost = GATE_COSTS[currentGates];
+    if (gameState.chakra >= cost) {
+        gameState.chakra -= cost;
+        gameState.gates_unlocked = currentGates + 1;
+        recalculateStats();
+        updateDOM();
+        saveGame();
+    } else {
+        alert("Chakra insuficiente para abrir este portão!");
+    }
+}
+
+export function triggerGateRelease() {
+    const currentGates = gameState.gates_unlocked || 0;
+    if (currentGates === 0) return;
+    if (gatesActiveTime > 0 || gatesCooldown > 0 || exhaustionTime > 0) return;
+
+    gatesActiveTime = 20.0;
+    gatesCooldown = 60.0;
+    
+    recalculateStats();
+    updateDOM();
+    saveGame();
+}
+
 export function closeModal() {
     document.getElementById('offline-modal').classList.add('hidden');
 }
@@ -718,6 +833,8 @@ window.switchTrainingGame = switchTrainingGame;
 window.startJutsuGame = startJutsuGame;
 window.startBalanceGame = startBalanceGame;
 window.balanceClick = balanceClick;
+window.buyGate = buyGate;
+window.triggerGateRelease = triggerGateRelease;
 
 export const BIJUUS = {
     "1": { name: "Shukaku (1 Cauda)", avatar: "🦝", stat: "Foco: Defesa Sand" },
@@ -797,6 +914,19 @@ export function evolveBijuu() {
     saveGame();
 }
 
+export function getDynamicSwordDesc(key, lvl) {
+    const mult = 1.0 + (lvl - 1) * 0.25;
+    const descs = {
+        kubikiribocho: `A Lâmina Decapitadora. Cliques ganham +${(2 * mult).toFixed(1)}% do seu CPS global.`,
+        samehada: `A Pele de Tubarão. Aliados ficam +${(10 * mult).toFixed(1)}% mais eficientes.`,
+        kusanagi: `A Espada de Sasuke. Multiplica o poder do seu clique manual em ${(1.0 + 0.5 * mult).toFixed(2)}x.`,
+        totsuka: `A Lâmina de Itachi. Multiplica o seu CPS global em ${(1.0 + 0.20 * mult).toFixed(2)}x.`,
+        hiramekarei: `A Espada de Chojuro. Reduz o tempo de missões em ${(15 * mult).toFixed(1)}%.`,
+        kiba: `As Lâminas de Trovão. Cliques têm ${(15 * mult).toFixed(1)}% de chance de Crítico (${(5 * mult).toFixed(1)}x).`
+    };
+    return descs[key] || "";
+}
+
 export function upgradeSword(swordId, cost) {
     if (gameState.chakra < cost) {
         alert("Chakra insuficiente para refinar esta espada!");
@@ -829,7 +959,7 @@ export function setTrainingBuff(duration) {
 
 export function logout() {
     localStorage.removeItem('username');
-    window.location.href = "index.html";
+    window.location.href = "login.html";
 }
 
 window.logout = logout;
@@ -838,8 +968,8 @@ window.logout = logout;
 window.addEventListener('load', () => {
     let user = localStorage.getItem('username');
     if (!user) {
-        user = 'Shinobi';
-        localStorage.setItem('username', user);
+        window.location.href = "login.html";
+        return;
     }
     setUsername(user);
     const displayEl = document.getElementById('display-username');
