@@ -111,11 +111,11 @@ p, span, label {
     box-shadow: 4px 0 25px rgba(255, 68, 68, 0.12); /* Glowing shadow cast onto the main panel */
     display: flex;
     flex-direction: column;
-    padding: 1.5rem 1rem;
+    padding: 1rem 0.75rem;
     justify-content: space-between; /* Header at top, tabs in middle, click at bottom */
     align-items: stretch;
     transition: var(--transition);
-    gap: 2rem;
+    gap: 1rem;
     z-index: 10;
 }
 
@@ -124,9 +124,9 @@ p, span, label {
     background: linear-gradient(135deg, rgba(255, 68, 68, 0.05) 0%, rgba(255, 153, 0, 0.02) 100%);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    padding: 1rem 0.85rem;
+    padding: 0.75rem 0.5rem;
     box-shadow: inset 0 0 15px rgba(255, 68, 68, 0.05);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
     transition: var(--transition);
 }
 
@@ -145,7 +145,7 @@ p, span, label {
 .nav-tabs.vertical-tabs {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
     background: none;
     border: none;
     padding: 0;
@@ -154,7 +154,7 @@ p, span, label {
     & .tab-btn {
         width: 100%;
         text-align: left;
-        padding: 0.9rem 1.2rem;
+        padding: 0.75rem 1rem;
         font-family: var(--font-body);
         font-size: 0.85rem;
         font-weight: 700;
@@ -206,8 +206,8 @@ p, span, label {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.75rem;
-    padding-top: 1.25rem;
+    gap: 0.5rem;
+    padding-top: 1rem;
     border-top: 1px solid var(--border-color);
 }
 
@@ -219,8 +219,8 @@ p, span, label {
 }
 
 .hand-seal-button-compact {
-    width: 100px;
-    height: 100px;
+    width: 140px;
+    height: 140px;
     border-radius: 50%;
     background: radial-gradient(circle, #0e121a 20%, #06080b 100%);
     border: 3px solid rgba(255, 68, 68, 0.6);
@@ -266,7 +266,7 @@ p, span, label {
 }
 
 .seal-icon-compact {
-    font-size: 2.2rem;
+    font-size: 3.2rem;
     color: var(--text-color);
     line-height: 1;
     transition: var(--transition);
@@ -294,7 +294,7 @@ p, span, label {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
     text-align: center;
     position: relative;
     
@@ -1012,7 +1012,7 @@ p, span, label {
     font-size: 1.3rem;
     font-weight: 800;
     color: var(--primary-color);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
     text-shadow: 0 0 10px var(--primary-glow);
 }
 
@@ -1835,7 +1835,7 @@ p, span, label {
     justify-content: center;
     font-size: 0.85rem;
     font-weight: 800;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
     transition: var(--transition);
 }
 
