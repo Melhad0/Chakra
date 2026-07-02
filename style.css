@@ -117,6 +117,7 @@ p, span, label {
     transition: var(--transition);
     gap: 1rem;
     z-index: 10;
+    overflow: hidden; /* Disable scrolling completely */
 }
 
 .sidebar-header {
