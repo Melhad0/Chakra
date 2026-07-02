@@ -144,6 +144,12 @@ export let gameState = {
     },
     upgrades: {
         bandana_genin: false,
+        sealing_scroll: false,
+        tactical_kunai: false,
+        tree_climbing: false,
+        ninja_sandals: false,
+        chakra_concentration: false,
+        shadow_clone_scroll: false,
         ninja_food_pill: false,
         sharingan: false,
         sage_mode: false,
@@ -264,7 +270,10 @@ export function setShopQty(qty) {
 
 export function getGeneratorCostRange(key, mode, qty) {
     const count = gameState.generators[key] || 0;
-    const base = BASE_COSTS[key];
+    let base = BASE_COSTS[key];
+    if (gameState.upgrades.chakra_concentration) {
+        base = Math.floor(base * 0.95);
+    }
     const multiplier = 1.25;
     
     if (mode === 'buy') {
@@ -320,15 +329,16 @@ export function buyUpgrade(key, cost) {
 
 export function recalculateStats() {
     const baseCpsMap = {
-        academy_student: 0.1,
-        shadow_clone: 0.5,
-        genin: 2.0,
+        academy_student: 0.5,
+        shadow_clone: 1,
+        genin: 5,
+       
         chunin: 10.0,
-        jonin: 50.0,
-        anbu: 200.0,
-        sannin: 1000.0,
-        kage: 5000.0,
-        jinchuriki: 25000.0,
+        jonin: 30.0,
+        anbu: 100.0,
+        sannin: 500.0,
+        kage: 1000.0,
+        jinchuriki: 5000,
         rikudou: 150000.0,
         toad_summon: 500000.0,
         slug_summon: 1500000.0,
@@ -360,6 +370,12 @@ export function recalculateStats() {
         if (key === 'shadow_clone' && gameState.upgrades.ninja_food_pill) {
             mult *= 2.0;
         }
+        if (key === 'academy_student' && gameState.upgrades.tree_climbing) {
+            mult *= 2.0;
+        }
+        if (key === 'shadow_clone' && gameState.upgrades.shadow_clone_scroll) {
+            mult *= 1.5;
+        }
         if ((key === 'genin' || key === 'chunin') && gameState.upgrades.gravity_training) {
             mult *= 2.0;
         }
@@ -378,6 +394,7 @@ export function recalculateStats() {
         cps += count * base * mult;
     }
 
+    if (gameState.upgrades.ninja_sandals) cps *= 1.1;
     if (gameState.upgrades.sage_mode) cps *= 3.0;
     if (gameState.upgrades.kurama_mode) cps *= 4.0;
     if (gameState.upgrades.six_paths_sage) cps *= 5.0;
@@ -408,6 +425,8 @@ export function recalculateStats() {
     if (equipped === 'totsuka') cps *= (1.0 + 0.20 * swordMultVal);
 
     let clickPower = 1.0;
+    if (gameState.upgrades.sealing_scroll) clickPower += 0.1 * (gameState.generators.shadow_clone || 0);
+    if (gameState.upgrades.tactical_kunai) clickPower *= 1.25;
     if (gameState.upgrades.bandana_genin) clickPower *= 1.5;
     if (gameState.upgrades.kyuubi_cloak) clickPower += 0.005 * cps;
     if (gameState.upgrades.reaper_seal) clickPower += 0.02 * cps;

@@ -77,6 +77,12 @@ DEFAULT_STATE = {
     },
     "upgrades": {
         "bandana_genin": False,
+        "sealing_scroll": False,
+        "tactical_kunai": False,
+        "tree_climbing": False,
+        "ninja_sandals": False,
+        "chakra_concentration": False,
+        "shadow_clone_scroll": False,
         "ninja_food_pill": False,
         "sharingan": False,
         "sage_mode": False,
