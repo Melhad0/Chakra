@@ -105,9 +105,10 @@ p, span, label {
 
 /* Sidebar (Painel Esquerdo Adaptado - Premium Dark/Red theme) */
 .left-panel.sidebar {
-    background-color: #08090c; /* Black background */
+    background: rgba(8, 9, 12, 0.85); /* Black background with transparency */
+    backdrop-filter: blur(12px); /* Glassmorphism backing blur */
     border-right: 2px solid var(--primary-color); /* Premium red border separator */
-    box-shadow: 5px 0 25px rgba(255, 68, 68, 0.05); /* Subtle red glow cast onto the main panel */
+    box-shadow: 4px 0 25px rgba(255, 68, 68, 0.12); /* Glowing shadow cast onto the main panel */
     display: flex;
     flex-direction: column;
     padding: 1.5rem 1rem;
@@ -120,19 +121,31 @@ p, span, label {
 
 .sidebar-header {
     text-align: center;
-    & .ninja-display {
-        font-size: 0.85rem;
-        color: var(--text-muted);
-        margin-top: -0.25rem;
-        letter-spacing: 0.5px;
-    }
+    background: linear-gradient(135deg, rgba(255, 68, 68, 0.05) 0%, rgba(255, 153, 0, 0.02) 100%);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1rem 0.85rem;
+    box-shadow: inset 0 0 15px rgba(255, 68, 68, 0.05);
+    margin-bottom: 0.5rem;
+    transition: var(--transition);
+}
+
+.sidebar-header:hover {
+    border-color: rgba(255, 68, 68, 0.25);
+    box-shadow: inset 0 0 20px rgba(255, 68, 68, 0.1);
+}
+
+.sidebar-header .ninja-display {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
 }
 
 /* Abas Verticais na Sidebar */
 .nav-tabs.vertical-tabs {
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: 0.75rem;
     background: none;
     border: none;
     padding: 0;
@@ -141,33 +154,49 @@ p, span, label {
     & .tab-btn {
         width: 100%;
         text-align: left;
-        padding: 0.8rem 1.1rem;
+        padding: 0.9rem 1.2rem;
         font-family: var(--font-body);
         font-size: 0.85rem;
-        font-weight: 600;
+        font-weight: 700;
         color: var(--text-muted);
-        background: none; /* Crucial: removes default white button background */
-        border: 1px solid transparent;
+        background: rgba(255, 255, 255, 0.01); /* Subtle background */
+        border: 1px solid rgba(255, 68, 68, 0.1);
         border-radius: var(--radius-md);
         display: flex;
         align-items: center;
         gap: 0.6rem;
         cursor: pointer;
-        transition: var(--transition);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; bottom: 0;
+            width: 0;
+            background: linear-gradient(180deg, var(--primary-color), var(--accent-color));
+            transition: width 0.3s ease;
+            z-index: 1;
+        }
         
         &:hover {
-            background-color: rgba(255, 68, 68, 0.06);
-            border-color: rgba(255, 68, 68, 0.2);
+            background-color: rgba(255, 68, 68, 0.04);
+            border-color: rgba(255, 68, 68, 0.25);
             color: var(--primary-color);
             transform: translateX(4px);
         }
         
         &.active {
             color: white;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            background: linear-gradient(135deg, rgba(255, 68, 68, 0.12) 0%, rgba(255, 153, 0, 0.05) 100%);
             border-color: var(--primary-color);
-            box-shadow: 0 4px 15px var(--primary-glow);
+            box-shadow: 0 4px 20px rgba(255, 68, 68, 0.15), inset 0 0 10px rgba(255, 68, 68, 0.1);
             transform: translateX(6px);
+            
+            &::before {
+                width: 4px;
+            }
         }
     }
 }
@@ -178,7 +207,7 @@ p, span, label {
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
-    padding-top: 1rem;
+    padding-top: 1.25rem;
     border-top: 1px solid var(--border-color);
 }
 
@@ -190,17 +219,17 @@ p, span, label {
 }
 
 .hand-seal-button-compact {
-    width: 90px;
-    height: 90px;
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
-    background: radial-gradient(circle, var(--panel-bg) 30%, var(--card-bg) 100%);
-    border: 3px solid var(--border-color);
+    background: radial-gradient(circle, #0e121a 20%, #06080b 100%);
+    border: 3px solid rgba(255, 68, 68, 0.6);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.4), inset 0 0 10px rgba(255,255,255,0.05);
-    transition: var(--transition);
+    box-shadow: 0 0 15px var(--primary-glow), inset 0 0 15px rgba(255, 68, 68, 0.2);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     user-select: none;
     position: relative;
     
@@ -209,20 +238,22 @@ p, span, label {
         position: absolute;
         inset: -4px;
         border-radius: 50%;
-        border: 1.5px dashed var(--secondary-color);
-        opacity: 0.4;
-        animation: rotate 20s linear infinite;
+        border: 2px dashed var(--primary-color);
+        opacity: 0.6;
+        animation: rotate 15s linear infinite;
         pointer-events: none;
         transition: var(--transition);
+        box-shadow: 0 0 8px var(--primary-glow);
     }
 
     &:hover {
-        transform: scale(1.06);
-        border-color: var(--primary-color);
-        box-shadow: 0 0 25px var(--primary-glow), inset 0 0 12px var(--primary-glow);
+        transform: scale(1.08) rotate(5deg);
+        border-color: var(--accent-color);
+        box-shadow: 0 0 25px var(--accent-glow), inset 0 0 25px rgba(255, 153, 0, 0.3);
         &::after {
-            opacity: 0.8;
-            border-color: var(--primary-color);
+            border-color: var(--accent-color);
+            animation-duration: 8s;
+            opacity: 0.9;
             inset: -6px;
         }
     }
