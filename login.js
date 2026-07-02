@@ -1,32 +1,17 @@
-import { loadGame, setUsername, setAuthMode, authMode } from './game.js';
-
-export function toggleAuthMode() {
-    const btn = document.getElementById('login-action-btn');
-    const link = document.getElementById('auth-switch-link');
-    const error = document.getElementById('login-error-msg');
-    error.innerText = "";
-    if (authMode === "login") {
-        setAuthMode("register");
-        btn.innerText = "Registrar Shinobi";
-        link.innerText = "Já tem conta? Faça Login aqui";
-    } else {
-        setAuthMode("login");
-        btn.innerText = "Entrar na Vila";
-        link.innerText = "Não tem conta? Registre-se aqui";
-    }
-}
 
 export function submitAuth(type) {
     const user = document.getElementById('username-input').value.trim();
     const pass = document.getElementById('password-input').value.trim();
     const error = document.getElementById('login-error-msg');
     
+    error.style.color = "var(--accent-color)";
+    
     if (!user || !pass) {
         error.innerText = "Preencha todos os campos!";
         return;
     }
 
-    const url = authMode === "login" ? "/api/login" : "/api/register";
+    const url = type === "login" ? "/api/login" : "/api/register";
     
     fetch(url, {
         method: "POST",
@@ -36,13 +21,12 @@ export function submitAuth(type) {
     .then(res => res.json())
     .then(data => {
         if (data.error) {
+            error.style.color = "var(--accent-color)";
             error.innerText = data.error;
         } else {
-            if (authMode === "register") {
+            if (type === "register") {
                 error.style.color = "lightgreen";
-                error.innerText = "Shinobi registrado! Faça login.";
-                setAuthMode("login");
-                toggleAuthMode();
+                error.innerText = "Shinobi registrado! Agora clique em Entrar.";
             } else {
                 localStorage.setItem('username', data.username);
                 window.location.href = "index.html";
@@ -50,10 +34,13 @@ export function submitAuth(type) {
         }
     })
     .catch(err => {
+        error.style.color = "var(--accent-color)";
         error.innerText = "Erro de conexão com o servidor!";
         console.error(err);
     });
 }
+
+export function toggleAuthMode() {}
 
 window.submitAuth = submitAuth;
 window.toggleAuthMode = toggleAuthMode;

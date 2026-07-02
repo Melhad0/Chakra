@@ -8,12 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Shojumaru&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Seletor de Tema Claro/Escuro -->
-    <div class="theme-switch-container">
-        <button id="theme-toggle" class="theme-toggle-btn" onclick="toggleTheme()">
-            <span id="theme-icon">🌙</span> <span id="theme-text">Tema Escuro</span>
-        </button>
-    </div>
+
 
     <!-- Tela de Login / Cadastro -->
     <div class="login-overlay">
@@ -33,11 +28,11 @@
             </div>
 
             <div class="login-actions">
-                <button id="login-action-btn" class="login-btn" onclick="submitAuth('login')">Entrar na Vila</button>
-                <span id="auth-switch-link" class="register-link" onclick="toggleAuthMode()">Não tem conta? Registre-se aqui</span>
+                <button id="login-btn" class="login-btn" onclick="submitAuth('login')">Entrar na Vila</button>
+                <button id="register-btn" class="login-btn secondary" onclick="submitAuth('register')">Registrar Shinobi</button>
             </div>
             
-            <div id="login-error-msg" style="color: var(--accent-color); font-size: 0.85rem; font-weight: bold; min-height: 20px;"></div>
+            <div id="login-error-msg" style="color: var(--accent-color); font-size: 0.85rem; font-weight: bold; min-height: 20px; margin-top: 0.5rem;"></div>
         </div>
     </div>
 

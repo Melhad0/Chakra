@@ -3,16 +3,50 @@ import { performPrestige, buyPrestigeUpgrade, getPendingPrestigePoints } from '.
 import { rollGacha, equipSword } from './gacha.js';
 
 // Configuration constants
+export function formatNumber(num) {
+    if (num === null || num === undefined || isNaN(num)) return "0";
+    if (num === 0) return "0";
+    if (num < 1000 && num >= -1000) {
+        return num % 1 === 0 ? num.toString() : num.toFixed(1);
+    }
+    const suffixes = ["", "k", "m", "b", "t", "qa", "qi", "sx", "sp", "oc", "no", "dc"];
+    const i = Math.floor(Math.log10(Math.abs(num)) / 3);
+    if (i >= suffixes.length) return num.toExponential(2);
+    const formatted = (num / Math.pow(10, i * 3));
+    return formatted.toFixed(1).replace(/\.0$/, "") + suffixes[i];
+}
+
 export const BASE_COSTS = {
-    shadow_clone: 15,
-    genin: 100,
-    chunin: 500,
-    jonin: 3000,
-    anbu: 10000,
-    sannin: 50000,
-    kage: 1000000,
-    jinchuriki: 10000000,
-    rikudou: 100000000
+    academy_student: 150,
+    shadow_clone: 1000,
+    genin: 6000,
+    chunin: 35000,
+    jonin: 200000,
+    anbu: 1200000,
+    sannin: 7000000,
+    kage: 45000000,
+    jinchuriki: 300000000,
+    rikudou: 2000000000,
+    toad_summon: 15000000000,
+    slug_summon: 100000000000,
+    snake_summon: 750000000000,
+    sound_five: 5000000000000,
+    seven_swordsmen: 35000000000000,
+    akatsuki_member: 250000000000000,
+    taka_member: 1800000000000000,
+    edo_tensei_warrior: 12000000000000000,
+    hyuga_elite: 85000000000000000,
+    uchiha_elite: 600000000000000000,
+    senju_elite: 4500000000000000000,
+    otsutsuki_spirit: 35000000000000000000,
+    bijuu_manifestation: 280000000000000000000,
+    six_paths_clone: 2200000000000000000000,
+    shinobi_alliance_division: 18000000000000000000000,
+    kaguya_creation: 150000000000000000000000,
+    hamura_guardian: 1200000000000000000000000,
+    indras_reincarnation: 10000000000000000000000000,
+    asuras_reincarnation: 85000000000000000000000000,
+    otsutsuki_god: 750000000000000000000000000
 };
 
 export const GATE_NAMES = [
@@ -75,7 +109,27 @@ export let gameState = {
         clan_heritage: false,
         forbidden_scroll: false,
         tailed_chakra_beast: false,
-        ancestral_voice: false
+        ancestral_voice: false,
+        shadow_clone_mastery: false,
+        jonin_elite: false,
+        kage_council: false,
+        chakra_absorption: false,
+        will_of_fire: false,
+        bijuu_resonance: false,
+        anbu_shadow: false,
+        jinchuriki_bond: false,
+        rikudou_blessing: false,
+        ninja_alliance: false,
+        fourth_hokage: false,
+        hashirama_cells: false,
+        mangekyou_sharingan: false,
+        sage_contract: false,
+        eight_gates_mastery: false,
+        akatsuki_intel: false,
+        tenseigan: false,
+        byakugan: false,
+        reanimation_army: false,
+        heaven_star: false
     },
     generators: {
         shadow_clone: 0,
@@ -98,7 +152,17 @@ export let gameState = {
         choku_tomoe: false,
         gravity_training: false,
         reaper_seal: false,
-        kurama_mode: false
+        kurama_mode: false,
+        blade_storm: false,
+        rasengan_mastery: false,
+        perfect_susanoo: false,
+        edo_tensei: false,
+        truth_seeking_orbs: false,
+        six_paths_sage: false,
+        infinite_tsukuyomi: false,
+        otsutsuki_power: false,
+        divine_tree: false,
+        creation_all_things: false
     },
     achievements: {
         first_click: false,
@@ -158,8 +222,10 @@ export function toggleTheme() {
 }
 
 function updateThemeUI(isLight) {
-    document.getElementById('theme-icon').innerText = isLight ? '☀️' : '🌙';
-    document.getElementById('theme-text').innerText = isLight ? 'Tema Claro' : 'Tema Escuro';
+    const icon = document.getElementById('theme-icon');
+    const text = document.getElementById('theme-text');
+    if (icon) icon.innerText = isLight ? '☀️' : '🌙';
+    if (text) text.innerText = isLight ? 'Tema Claro' : 'Tema Escuro';
 }
 
 // Navigation Tabs
@@ -254,15 +320,36 @@ export function buyUpgrade(key, cost) {
 
 export function recalculateStats() {
     const baseCpsMap = {
-        shadow_clone: 1.0,
-        genin: 5.0,
-        chunin: 25.0,
-        jonin: 100.0,
-        anbu: 400.0,
-        sannin: 2000.0,
-        kage: 10000.0,
-        jinchuriki: 50000.0,
-        rikudou: 300000.0
+        academy_student: 0.1,
+        shadow_clone: 0.5,
+        genin: 2.0,
+        chunin: 10.0,
+        jonin: 50.0,
+        anbu: 200.0,
+        sannin: 1000.0,
+        kage: 5000.0,
+        jinchuriki: 25000.0,
+        rikudou: 150000.0,
+        toad_summon: 500000.0,
+        slug_summon: 1500000.0,
+        snake_summon: 4000000.0,
+        sound_five: 12000000.0,
+        seven_swordsmen: 35000000.0,
+        akatsuki_member: 100000000.0,
+        taka_member: 300000000.0,
+        edo_tensei_warrior: 1000000000.0,
+        hyuga_elite: 3500000000.0,
+        uchiha_elite: 12000000000.0,
+        senju_elite: 40000000000.0,
+        otsutsuki_spirit: 150000000000.0,
+        bijuu_manifestation: 600000000000.0,
+        six_paths_clone: 2500000000000.0,
+        shinobi_alliance_division: 10000000000000.0,
+        kaguya_creation: 50000000000000.0,
+        hamura_guardian: 250000000000000.0,
+        indras_reincarnation: 1200000000000000.0,
+        asuras_reincarnation: 6000000000000000.0,
+        otsutsuki_god: 30000000000000000.0
     };
 
     let cps = 0.0;
@@ -283,13 +370,35 @@ export function recalculateStats() {
         if ((key === 'sannin' || key === 'kage' || key === 'jinchuriki' || key === 'rikudou') && gameState.upgrades.summoning_scroll) {
             mult *= 2.0;
         }
+        if (key === 'shadow_clone' && gameState.upgrades.blade_storm) mult *= 1.5;
+        if ((key === 'genin' || key === 'chunin') && gameState.upgrades.rasengan_mastery) mult *= 1.8;
+        if ((key === 'jonin' || key === 'anbu') && gameState.upgrades.perfect_susanoo) mult *= 2.5;
+        if ((key === 'sannin' || key === 'kage') && gameState.upgrades.edo_tensei) mult *= 3.0;
+        if ((key === 'jinchuriki' || key === 'rikudou') && gameState.upgrades.truth_seeking_orbs) mult *= 4.0;
         cps += count * base * mult;
     }
 
     if (gameState.upgrades.sage_mode) cps *= 3.0;
     if (gameState.upgrades.kurama_mode) cps *= 4.0;
+    if (gameState.upgrades.six_paths_sage) cps *= 5.0;
+    if (gameState.upgrades.infinite_tsukuyomi) cps *= 2.0;
+    if (gameState.upgrades.otsutsuki_power) cps *= 6.0;
+    if (gameState.upgrades.divine_tree) cps *= 8.0;
+    if (gameState.upgrades.creation_all_things) cps *= 10.0;
     
     if (gameState.prestige_upgrades.forbidden_scroll) cps *= 1.25;
+    if (gameState.prestige_upgrades.shadow_clone_mastery && gameState.generators.shadow_clone > 0) cps += gameState.generators.shadow_clone * 1.0; // extra 100%
+    if (gameState.prestige_upgrades.kage_council) {
+        cps *= 1.0; // handled per-generator below — placeholder
+    }
+    if (gameState.prestige_upgrades.ninja_alliance) cps *= 1.30;
+    if (gameState.prestige_upgrades.bijuu_resonance && gameState.bijuu && gameState.bijuu.chosen) {
+        const bMults = [1,1,1.5,2.5,5,10];
+        const bLvl = Math.min(gameState.bijuu.level || 1, bMults.length - 1);
+        cps *= (1 + (bMults[bLvl] - 1) * 0.5); // +50% of bijuu bonus on top
+    }
+    if (gameState.prestige_upgrades.will_of_fire) cps *= (1 + 0.20 * (gameState.total_prestige_points || 1));
+    if (gameState.prestige_upgrades.heaven_star) cps *= 3.0;
 
     const equipped = gameState.equipped_sword || "";
     const swordLvl = (gameState.swords_levels && gameState.swords_levels[equipped]) || 1;
@@ -299,12 +408,20 @@ export function recalculateStats() {
     if (equipped === 'totsuka') cps *= (1.0 + 0.20 * swordMultVal);
 
     let clickPower = 1.0;
-    if (gameState.upgrades.bandana_genin) clickPower *= 1.5; // nerfed from 2.0
-    if (gameState.upgrades.kyuubi_cloak) clickPower += 0.005 * cps; // nerfed from 0.01
-    if (gameState.upgrades.reaper_seal) clickPower += 0.02 * cps; // nerfed from 0.05
+    if (gameState.upgrades.bandana_genin) clickPower *= 1.5;
+    if (gameState.upgrades.kyuubi_cloak) clickPower += 0.005 * cps;
+    if (gameState.upgrades.reaper_seal) clickPower += 0.02 * cps;
+    if (gameState.upgrades.blade_storm) clickPower *= 1.3;
+    if (gameState.upgrades.rasengan_mastery) clickPower *= 2.0;
+    if (gameState.upgrades.perfect_susanoo) clickPower += 0.03 * cps;
+    if (gameState.upgrades.truth_seeking_orbs) clickPower *= 3.0;
+    if (gameState.upgrades.otsutsuki_power) clickPower *= 4.0;
+    if (gameState.upgrades.creation_all_things) clickPower *= 5.0;
     
-    if (gameState.prestige_upgrades.clan_heritage) clickPower *= 1.25; // nerfed from 1.5
-    if (gameState.prestige_upgrades.tailed_chakra_beast) clickPower += 0.01 * cps; // nerfed from 0.02
+    if (gameState.prestige_upgrades.clan_heritage) clickPower *= 1.25;
+    if (gameState.prestige_upgrades.tailed_chakra_beast) clickPower += 0.01 * cps;
+    if (gameState.prestige_upgrades.fourth_hokage) clickPower += 2 * (gameState.total_prestige_points || 1);
+    if (gameState.prestige_upgrades.heaven_star) clickPower *= 3.0;
     
     if (equipped === 'kubikiribocho') clickPower += 0.01 * cps * swordMultVal;
     if (equipped === 'kusanagi') clickPower *= (1.0 + 0.5 * swordMultVal);
@@ -348,15 +465,15 @@ export function recalculateStats() {
 
 export function updateDOM() {
     document.getElementById('chakra-counter').innerText = Math.floor(gameState.chakra).toLocaleString();
-    document.getElementById('cps-counter').innerText = calculatedCps.toFixed(1) + ' CPS';
-    document.getElementById('click-power-display').innerText = 'Clique: +' + calculatedClickPower.toFixed(1);
+    document.getElementById('cps-counter').innerText = formatNumber(calculatedCps) + ' CPS';
+    document.getElementById('click-power-display').innerText = 'Clique: +' + formatNumber(calculatedClickPower);
     document.getElementById('total-clicks').innerText = gameState.clicks;
-    document.getElementById('total-earned').innerText = Math.floor(gameState.total_chakra_earned).toLocaleString();
+    document.getElementById('total-earned').innerText = formatNumber(gameState.total_chakra_earned);
 
     const pendingPts = getPendingPrestigePoints();
-    document.getElementById('prestige-pending-points').innerText = pendingPts;
+    document.getElementById('prestige-pending-points').innerText = formatNumber(pendingPts);
     document.getElementById('prestige-action-btn').disabled = (pendingPts <= 0);
-    document.getElementById('prestige-points-counter').innerText = `Chakra Ancestral: ${gameState.prestige_points} Pontos`;
+    document.getElementById('prestige-points-counter').innerText = `Chakra Ancestral: ${formatNumber(gameState.prestige_points)} Pontos`;
     
     const prestMultDisplay = document.getElementById('prestige-multiplier-display');
     if (gameState.total_prestige_points > 0) {
@@ -372,21 +489,37 @@ export function updateDOM() {
         }
     }
 
-    for (let key in BASE_COSTS) {
+    const genKeys = Object.keys(BASE_COSTS);
+    for (let i = 0; i < genKeys.length; i++) {
+        const key = genKeys[i];
         const costEl = document.getElementById(`cost-${key}`);
         const qtyEl = document.getElementById(`qty-${key}`);
         if (costEl) {
             if (shopMode === 'buy') {
                 const cost = getGeneratorCostRange(key, 'buy', shopQty);
-                costEl.innerText = `Comprar x${shopQty}: ${cost.toLocaleString()} Chakra`;
+                costEl.innerText = `Comprar x${shopQty}: ${formatNumber(cost)} Chakra`;
             } else {
                 const count = gameState.generators[key] || 0;
                 const sellQty = Math.min(shopQty, count);
                 const refund = getGeneratorCostRange(key, 'sell', shopQty);
-                costEl.innerText = `Vender x${sellQty}: +${refund.toLocaleString()} Chakra`;
+                costEl.innerText = `Vender x${sellQty}: +${formatNumber(refund)} Chakra`;
             }
         }
-        if (qtyEl) qtyEl.innerText = gameState.generators[key];
+        if (qtyEl) qtyEl.innerText = gameState.generators[key] || 0;
+
+        const cardEl = document.querySelector(`.generator-card[onclick*="${key}"]`);
+        if (cardEl) {
+            let visible = true;
+            if (i > 0) {
+                const prevKey = genKeys[i - 1];
+                visible = (gameState.generators[prevKey] || 0) > 0;
+            }
+            if (visible) {
+                cardEl.classList.remove('hidden');
+            } else {
+                cardEl.classList.add('hidden');
+            }
+        }
     }
 
     for (let key in gameState.upgrades) {
@@ -452,7 +585,7 @@ export function updateDOM() {
                 let buttonHtml = "";
                 if (hasIt) {
                     const cost = Math.floor(25000 * Math.pow(2.2, lvl - 1));
-                    const costStr = cost >= 1000000 ? `${(cost / 1000000).toFixed(1)}M` : `${(cost / 1000).toFixed(0)}k`;
+                    const costStr = formatNumber(cost);
                     
                     const equipBtn = isEquipped 
                         ? `<button class="sword-equip-btn equipped" disabled>Empunhada</button>`
@@ -586,7 +719,7 @@ export function updateDOM() {
             const nextName = GATE_NAMES[currentGates];
             const nextCost = GATE_COSTS[currentGates];
             gateTitle.innerText = `Próximo Portão: ${nextName}`;
-            gateCost.innerText = `Custo: ${nextCost.toLocaleString()} Chakra`;
+            gateCost.innerText = `Custo: ${formatNumber(nextCost)} Chakra`;
             gateBtn.disabled = gameState.chakra < nextCost;
             gateBtn.innerText = `Abrir ${nextName} 🔓`;
         }
@@ -678,7 +811,7 @@ export function updateDOM() {
 
             if (data.offline_seconds > 5 && data.offline_chakra > 0) {
                 document.getElementById('offline-time-val').innerText = Math.floor(data.offline_seconds);
-                document.getElementById('offline-chakra-val').innerText = Math.floor(data.offline_chakra).toLocaleString();
+                document.getElementById('offline-chakra-val').innerText = formatNumber(data.offline_chakra);
                 document.getElementById('offline-modal').classList.remove('hidden');
             }
         })

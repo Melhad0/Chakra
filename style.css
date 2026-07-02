@@ -91,7 +91,7 @@ p, span, label {
 /* Layout Principal - CSS Grid */
 .game-container {
     display: grid;
-    grid-template-columns: 260px 1fr 340px; /* Sidebar (260px), Center (1fr), Right (340px) */
+    grid-template-columns: 260px 1fr 170px 340px; /* Sidebar (260px), Center (1fr), Upgrades Sidebar (170px), Allies Sidebar (340px) */
     width: 100%;
     height: 100%;
     background-color: var(--bg-color);
@@ -2039,7 +2039,7 @@ p, span, label {
 .login-btn {
     background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
     color: var(--text-color);
-    border: none;
+    border: 2px solid transparent;
     border-radius: var(--radius-sm);
     padding: 0.9rem;
     font-family: var(--font-body);
@@ -2053,6 +2053,18 @@ p, span, label {
 .login-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px var(--primary-glow);
+}
+
+.login-btn.secondary {
+    background: transparent;
+    border: 2px solid var(--border-color);
+    color: var(--text-color);
+    text-shadow: none;
+}
+
+.login-btn.secondary:hover {
+    border-color: var(--accent-color);
+    box-shadow: 0 5px 15px var(--accent-glow);
 }
 
 .register-link {
@@ -2110,3 +2122,349 @@ p, span, label {
     align-items: center;
     justify-content: center;
 }
+
+/* ===== ADVANCED ANIMATIONS & DYNAMIC CSS ===== */
+
+@keyframes float-up {
+    0% { transform: translateY(0) scale(1); opacity: 0.9; }
+    100% { transform: translateY(-120px) scale(0.3); opacity: 0; }
+}
+
+@keyframes chakra-pulse-btn {
+    0%, 100% { box-shadow: 0 0 20px var(--primary-glow), 0 0 40px var(--accent-glow), inset 0 0 20px rgba(255,100,0,0.12); }
+    50% { box-shadow: 0 0 50px var(--primary-glow), 0 0 100px var(--accent-glow), 0 0 150px rgba(255,80,0,0.2), inset 0 0 50px rgba(255,100,0,0.18); }
+}
+
+@keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes counter-spin { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+
+@keyframes seal-glow {
+    0%, 100% { filter: drop-shadow(0 0 8px var(--accent-color)) brightness(1); }
+    50% { filter: drop-shadow(0 0 28px var(--accent-color)) drop-shadow(0 0 56px var(--primary-color)) brightness(1.4); }
+}
+
+@keyframes ring-expand {
+    0% { transform: scale(0.4); opacity: 0.9; }
+    100% { transform: scale(4); opacity: 0; }
+}
+
+@keyframes border-flow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes shimmer-text {
+    0% { background-position: -300% center; }
+    100% { background-position: 300% center; }
+}
+
+@keyframes levitate {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-6px); }
+}
+
+@keyframes neon-flicker {
+    0%, 94%, 96%, 98%, 100% { opacity: 1; }
+    95% { opacity: 0.3; }
+    97% { opacity: 0.7; }
+    99% { opacity: 0.4; }
+}
+
+/* === MEGA CLICK BUTTON === */
+.click-area-compact {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1.5rem 0;
+    position: relative;
+}
+
+.hand-seal-button-compact {
+    position: relative;
+    width: 145px;
+    height: 145px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, hsl(24, 100%, 65%), hsl(354, 84%, 40%), hsl(222, 50%, 8%));
+    border: 3px solid var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.08s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+    animation: chakra-pulse-btn 2.5s ease-in-out infinite;
+    user-select: none;
+    -webkit-user-select: none;
+    overflow: visible;
+}
+
+.hand-seal-button-compact::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, var(--primary-color), var(--accent-color), var(--secondary-color), var(--primary-color));
+    animation: spin-slow 3s linear infinite;
+    z-index: -1;
+    opacity: 0.8;
+}
+
+.hand-seal-button-compact::after {
+    content: '';
+    position: absolute;
+    inset: -16px;
+    border-radius: 50%;
+    background: conic-gradient(from 180deg, transparent 50%, var(--accent-color) 75%, transparent 100%);
+    animation: counter-spin 4s linear infinite;
+    z-index: -2;
+    opacity: 0.45;
+}
+
+.hand-seal-button-compact:hover {
+    transform: scale(1.12);
+    box-shadow: 0 0 50px var(--primary-glow), 0 0 100px var(--accent-glow);
+}
+
+.hand-seal-button-compact:active {
+    transform: scale(0.91);
+    filter: brightness(1.4);
+}
+
+.seal-icon-compact {
+    font-size: 3.8rem;
+    animation: seal-glow 2s ease-in-out infinite, levitate 3s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* === CLICK SHOCKWAVE === */
+.click-shockwave {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 3px solid var(--accent-color);
+    animation: ring-expand 0.6s ease-out forwards;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* === CLICK PARTICLE === */
+.click-particle {
+    position: fixed;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--accent-color);
+    text-shadow: 0 0 10px var(--accent-glow), 0 0 20px var(--primary-glow);
+    pointer-events: none;
+    z-index: 9999;
+    animation: float-up 1s ease-out forwards;
+    white-space: nowrap;
+}
+
+/* === GENERATOR CARDS DYNAMIC === */
+.generator-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.generator-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, hsla(24, 100%, 50%, 0.07), transparent);
+    background-size: 200% 100%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.generator-card:hover::before {
+    opacity: 1;
+    animation: border-flow 1.5s ease infinite;
+}
+
+.generator-card:hover {
+    border-color: var(--accent-color) !important;
+    transform: translateX(5px) !important;
+    box-shadow: -4px 0 0 var(--accent-color), 0 6px 24px rgba(0,0,0,0.5) !important;
+}
+
+.generator-card:active {
+    transform: translateX(2px) scale(0.98) !important;
+}
+
+/* === UPGRADE BUTTONS ACCENT LINE === */
+.upgrade-btn::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--primary-color), var(--accent-color));
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.upgrade-btn:hover::after { opacity: 1; }
+
+.upgrade-btn:hover:not(:disabled) {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 4px 20px var(--primary-glow) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* === PRESTIGE CARD PURCHASED CHECK === */
+.p-upgrade-card.purchased .p-title::after { content: ' ✅'; }
+.p-upgrade-card:hover:not(.purchased) { transform: translateY(-4px); box-shadow: 0 10px 30px hsla(276, 60%, 40%, 0.35); }
+
+/* === MISSION CARD TOP FLOW === */
+.mission-card { position: relative; overflow: hidden; }
+.mission-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color), var(--secondary-color), var(--primary-color));
+    background-size: 300% 100%;
+    animation: border-flow 4s ease infinite;
+    opacity: 0.7;
+}
+
+/* === GAME TITLE NEON === */
+.game-title {
+    animation: neon-flicker 10s ease-in-out infinite;
+    text-shadow: 0 0 10px var(--primary-color), 0 0 25px var(--primary-glow), 0 0 50px var(--primary-glow);
+}
+
+/* === CHAKRA COUNTER SHIMMER === */
+#chakra-counter {
+    background: linear-gradient(90deg, var(--text-color) 0%, var(--accent-color) 40%, var(--primary-color) 60%, var(--text-color) 100%);
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer-text 4s linear infinite;
+}
+
+/* === GATE & ACHIEVEMENT LEVITATE === */
+.gate-node.unlocked { animation: levitate 2.5s ease-in-out infinite; }
+.achievement-item.unlocked { animation: levitate 4s ease-in-out infinite; }
+
+/* === BIJUU SELECT === */
+.bijuu-select-card:hover {
+    transform: translateY(-6px) scale(1.05) !important;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.7), 0 0 24px var(--accent-glow) !important;
+}
+
+/* === BUFF BADGES === */
+.buff-badge { animation: levitate 2s ease-in-out infinite; }
+.buff-badge.red-pulse { animation: chakra-pulse-btn 1s ease-in-out infinite, levitate 1.5s ease-in-out infinite; }
+
+/* === TAB UNDERLINE ANIM === */
+.tab-btn { position: relative; overflow: hidden; }
+.tab-btn::after {
+    content: '';
+    position: absolute;
+    left: 0; bottom: 0;
+    width: 100%; height: 2px;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.35s ease;
+}
+.tab-btn.active::after { transform: scaleX(1); }
+
+/* === UPGRADES SIDEBAR PANEL === */
+.upgrades-panel {
+    background-color: #08090c;
+    border-left: 1px solid var(--border-color);
+    padding: 1.5rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    width: 100%;
+    max-width: 170px;
+    height: 100%;
+    overflow-y: auto;
+    z-index: 10;
+    transition: var(--transition);
+}
+
+.upgrades-panel h2 {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text-color);
+    border-left: 3px solid var(--secondary-color);
+    padding-left: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.25rem;
+}
+
+.upgrades-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.upgrades-panel .upgrade-btn {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 0.6rem;
+    text-align: left;
+    cursor: pointer;
+    color: var(--text-color);
+    transition: var(--transition);
+    gap: 0.3rem;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.upgrades-panel .upgrade-btn::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--secondary-color), var(--accent-color));
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.upgrades-panel .upgrade-btn:hover:not(:disabled)::after {
+    opacity: 1;
+}
+
+.upgrades-panel .upgrade-btn:hover:not(:disabled) {
+    border-color: var(--secondary-color) !important;
+    box-shadow: 0 4px 12px hsla(var(--hue-secondary), 100%, 48%, 0.15) !important;
+    transform: translateX(-3px) !important;
+}
+
+.upgrades-panel .upgrade-btn .up-title {
+    font-weight: 700;
+    font-size: 0.78rem !important;
+    line-height: 1.25;
+    letter-spacing: 0.2px;
+}
+
+.upgrades-panel .upgrade-btn .up-desc {
+    font-size: 0.68rem !important;
+    color: var(--text-muted);
+    line-height: 1.3;
+}
+
+.upgrades-panel .upgrade-btn .up-cost {
+    font-size: 0.72rem !important;
+    font-weight: 800;
+    color: var(--primary-color);
+    margin-top: 0.25rem;
+}
+
+.upgrades-panel .upgrade-btn.purchased {
+    display: none !important; /* Hide purchased upgrades completely to keep it clean */
+}
+

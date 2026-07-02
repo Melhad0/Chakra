@@ -1,4 +1,4 @@
-import { gameState, MISSION_INFO, updateDOM, saveGame, calculatedCps } from './game.js';
+import { gameState, MISSION_INFO, updateDOM, saveGame, calculatedCps, formatNumber } from './game.js';
 
 export function getMissionLogMessage(missionId, pct) {
     if (pct <= 0) return "Iniciando missão...";
@@ -85,7 +85,7 @@ export function startMission(missionId) {
     if (activeMission.status !== "idle") return;
     
     if (mission.price && gameState.chakra < mission.price) {
-        alert(`Chakra insuficiente! Você precisa de pelo menos ${mission.price.toLocaleString()} Chakra para iniciar esta missão.`);
+        alert(`Chakra insuficiente! Você precisa de pelo menos ${formatNumber(mission.price)} Chakra para iniciar esta missão.`);
         return;
     }
     
@@ -388,7 +388,7 @@ export function triggerParry() {
         
         if (feedback) {
             feedback.style.color = "lightgreen";
-            feedback.innerText = `💥 PARRY PERFEITO! +${reward.toLocaleString()} Chakra!`;
+            feedback.innerText = `💥 PARRY PERFEITO! +${formatNumber(reward)} Chakra!`;
         }
         
         // Deflect projectile back animation
@@ -423,6 +423,13 @@ function failParry(reason) {
     if (actionBtn) actionBtn.disabled = true;
     if (startBtn) startBtn.disabled = false;
     
+    // Penalidade: perde 5% do chakra atual
+    const penalty = Math.floor(gameState.chakra * 0.05);
+    if (penalty > 0) {
+        gameState.chakra = Math.max(0, gameState.chakra - penalty);
+        reason += ` (-${formatNumber(penalty)} Chakra!)` ;
+    }
+    
     if (feedback) {
         feedback.style.color = "var(--primary-color)";
         feedback.innerText = reason;
@@ -432,6 +439,7 @@ function failParry(reason) {
     }
     
     updateParryUI();
+    updateDOM();
 }
 
 function updateParryUI() {
@@ -448,11 +456,7 @@ export function switchTrainingGame(gameId) {
         alert(`Treinamento de base insuficiente! Você precisa de pelo menos 100 cliques manuais para liberar o treino de Sequência de Jutsu.`);
         return;
     }
-    if (gameId === 'chakra' && clicks < 300) {
-        alert(`Falta controle espiritual! Você precisa de pelo menos 300 cliques manuais para liberar o treino de Controle de Chakra.`);
-        return;
-    }
-    const games = ['parry', 'jutsu', 'chakra'];
+    const games = ['parry', 'jutsu'];
     games.forEach(g => {
         const tab = document.getElementById(`train-tab-${g}`);
         const panel = document.getElementById(`train-game-${g}`);
@@ -568,7 +572,7 @@ function completeJutsu() {
     
     if (feedback) {
         feedback.style.color = "lightgreen";
-        feedback.innerText = `🔥 KATON: JUTSU BOLA DE FOGO! +${reward.toLocaleString()} Chakra!`;
+        feedback.innerText = `🔥 KATON: JUTSU BOLA DE FOGO! +${formatNumber(reward)} Chakra!`;
     }
     
     const statusEl = document.getElementById('jutsu-input-status');
@@ -585,6 +589,13 @@ function failJutsu(reason) {
     const startBtn = document.getElementById('jutsu-start-btn');
     if (startBtn) startBtn.disabled = false;
     
+    // Penalidade: perde 8% do chakra atual
+    const penalty = Math.floor(gameState.chakra * 0.08);
+    if (penalty > 0) {
+        gameState.chakra = Math.max(0, gameState.chakra - penalty);
+        reason += ` (-${formatNumber(penalty)} Chakra!)`;
+    }
+    
     const feedback = document.getElementById('jutsu-feedback');
     if (feedback) {
         feedback.style.color = "var(--primary-color)";
@@ -593,6 +604,8 @@ function failJutsu(reason) {
     
     const statusEl = document.getElementById('jutsu-input-status');
     if (statusEl) statusEl.innerText = "Falhou!";
+    
+    updateDOM();
 }
 
 // === CHAKRA BALANCE GAME LOGIC ===
@@ -702,8 +715,18 @@ function failBalance(reason) {
     if (startBtn) startBtn.disabled = false;
     if (clickBtn) clickBtn.disabled = true;
     
+    // Penalidade: perde 10% do chakra atual
+    const penalty = Math.floor(gameState.chakra * 0.10);
+    if (penalty > 0) {
+        gameState.chakra = Math.max(0, gameState.chakra - penalty);
+        reason += ` (-${formatNumber(penalty)} Chakra!)`;
+    }
+    
     if (feedback) {
         feedback.style.color = "var(--primary-color)";
         feedback.innerText = reason;
     }
+    
+    updateDOM();
+    saveGame();
 }

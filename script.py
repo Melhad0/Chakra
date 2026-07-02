@@ -21,9 +21,30 @@ DEFAULT_STATE = {
         "clan_heritage": False,
         "forbidden_scroll": False,
         "tailed_chakra_beast": False,
-        "ancestral_voice": False
+        "ancestral_voice": False,
+        "shadow_clone_mastery": False,
+        "jonin_elite": False,
+        "kage_council": False,
+        "chakra_absorption": False,
+        "will_of_fire": False,
+        "bijuu_resonance": False,
+        "anbu_shadow": False,
+        "jinchuriki_bond": False,
+        "rikudou_blessing": False,
+        "ninja_alliance": False,
+        "fourth_hokage": False,
+        "hashirama_cells": False,
+        "mangekyou_sharingan": False,
+        "sage_contract": False,
+        "eight_gates_mastery": False,
+        "akatsuki_intel": False,
+        "tenseigan": False,
+        "byakugan": False,
+        "reanimation_army": False,
+        "heaven_star": False
     },
     "generators": {
+        "academy_student": 0,
         "shadow_clone": 0,
         "genin": 0,
         "chunin": 0,
@@ -32,7 +53,27 @@ DEFAULT_STATE = {
         "sannin": 0,
         "kage": 0,
         "jinchuriki": 0,
-        "rikudou": 0
+        "rikudou": 0,
+        "toad_summon": 0,
+        "slug_summon": 0,
+        "snake_summon": 0,
+        "sound_five": 0,
+        "seven_swordsmen": 0,
+        "akatsuki_member": 0,
+        "taka_member": 0,
+        "edo_tensei_warrior": 0,
+        "hyuga_elite": 0,
+        "uchiha_elite": 0,
+        "senju_elite": 0,
+        "otsutsuki_spirit": 0,
+        "bijuu_manifestation": 0,
+        "six_paths_clone": 0,
+        "shinobi_alliance_division": 0,
+        "kaguya_creation": 0,
+        "hamura_guardian": 0,
+        "indras_reincarnation": 0,
+        "asuras_reincarnation": 0,
+        "otsutsuki_god": 0
     },
     "upgrades": {
         "bandana_genin": False,
@@ -44,7 +85,17 @@ DEFAULT_STATE = {
         "choku_tomoe": False,
         "gravity_training": False,
         "reaper_seal": False,
-        "kurama_mode": False
+        "kurama_mode": False,
+        "blade_storm": False,
+        "rasengan_mastery": False,
+        "perfect_susanoo": False,
+        "edo_tensei": False,
+        "truth_seeking_orbs": False,
+        "six_paths_sage": False,
+        "infinite_tsukuyomi": False,
+        "otsutsuki_power": False,
+        "divine_tree": False,
+        "creation_all_things": False
     },
     "achievements": {
         "first_click": False,
@@ -95,15 +146,36 @@ DEFAULT_STATE = {
 }
 
 CPS_MAP = {
-    "shadow_clone": 1.0,
-    "genin": 5.0,
-    "chunin": 25.0,
-    "jonin": 100.0,
-    "anbu": 400.0,
-    "sannin": 2000.0,
-    "kage": 10000.0,
-    "jinchuriki": 50000.0,
-    "rikudou": 300000.0
+    "academy_student": 0.1,
+    "shadow_clone": 0.5,
+    "genin": 2.0,
+    "chunin": 10.0,
+    "jonin": 50.0,
+    "anbu": 200.0,
+    "sannin": 1000.0,
+    "kage": 5000.0,
+    "jinchuriki": 25000.0,
+    "rikudou": 150000.0,
+    "toad_summon": 500000.0,
+    "slug_summon": 1500000.0,
+    "snake_summon": 4000000.0,
+    "sound_five": 12000000.0,
+    "seven_swordsmen": 35000000.0,
+    "akatsuki_member": 100000000.0,
+    "taka_member": 300000000.0,
+    "edo_tensei_warrior": 1000000000.0,
+    "hyuga_elite": 3500000000.0,
+    "uchiha_elite": 12000000000.0,
+    "senju_elite": 40000000000.0,
+    "otsutsuki_spirit": 150000000000.0,
+    "bijuu_manifestation": 600000000000.0,
+    "six_paths_clone": 2500000000000.0,
+    "shinobi_alliance_division": 10000000000000.0,
+    "kaguya_creation": 50000000000000.0,
+    "hamura_guardian": 250000000000000.0,
+    "indras_reincarnation": 1200000000000000.0,
+    "asuras_reincarnation": 6000000000000000.0,
+    "otsutsuki_god": 30000000000000000.0
 }
 
 def load_users():
@@ -264,7 +336,7 @@ def check_achievements(state):
     if total_earned >= 1000000000:
         unlock("hero_of_konoha")
         
-    all_upgrades = ["bandana_genin", "ninja_food_pill", "sharingan", "sage_mode", "kyuubi_cloak", "summoning_scroll", "choku_tomoe", "gravity_training", "reaper_seal", "kurama_mode"]
+    all_upgrades = ["bandana_genin", "ninja_food_pill", "sharingan", "sage_mode", "kyuubi_cloak", "summoning_scroll", "choku_tomoe", "gravity_training", "reaper_seal", "kurama_mode", "blade_storm", "rasengan_mastery", "perfect_susanoo", "edo_tensei", "truth_seeking_orbs", "six_paths_sage", "infinite_tsukuyomi", "otsutsuki_power", "divine_tree", "creation_all_things"]
     if all(upgrades.get(up, False) for up in all_upgrades):
         unlock("ultimate_master")
         
@@ -334,6 +406,70 @@ def login():
     users = load_users()
     if username not in users or users[username] != password:
         return jsonify({"error": "Usuário ou senha incorretos"}), 400
+        
+    return jsonify({"status": "success", "username": username})
+
+@app.route("/api/google-login", methods=["POST"])
+def google_login():
+    data = request.json
+    username = data.get("username", "").strip()
+    if not username:
+        return jsonify({"error": "Nome de usuário do Google inválido"}), 400
+    
+    # Sanitize
+    username = "".join([c for c in username if c.isalnum() or c in "._-"])
+    if not username:
+        username = "GoogleNinja"
+        
+    users = load_users()
+    if username not in users:
+        users[username] = "google_oauth_bypass"
+        save_users(users)
+        write_user_save(username, copy.deepcopy(DEFAULT_STATE))
+        
+    return jsonify({"status": "success", "username": username})
+
+def decode_jwt_payload(token):
+    try:
+        parts = token.split('.')
+        if len(parts) < 2:
+            return None
+        payload_b64 = parts[1]
+        payload_b64 += '=' * (-len(payload_b64) % 4)
+        import base64
+        payload_json = base64.b64decode(payload_b64).decode('utf-8')
+        import json
+        return json.loads(payload_json)
+    except Exception:
+        return None
+
+@app.route("/api/google-real-login", methods=["POST"])
+def google_real_login():
+    data = request.json
+    token = data.get("token", "").strip()
+    if not token:
+        return jsonify({"error": "Token ausente"}), 400
+        
+    payload = decode_jwt_payload(token)
+    if not payload:
+        return jsonify({"error": "Token Google inválido"}), 400
+        
+    email = payload.get("email")
+    name = payload.get("name")
+    
+    if not email:
+        return jsonify({"error": "Email não retornado pelo Google"}), 400
+        
+    username = name if name else email.split("@")[0]
+    username = "".join([c for c in username if c.isalnum() or c in "._-"])
+    if not username:
+        username = "GoogleNinja"
+        
+    users = load_users()
+    if username not in users:
+        users[username] = "google_oauth_bypass"
+        save_users(users)
+        write_user_save(username, copy.deepcopy(DEFAULT_STATE))
         
     return jsonify({"status": "success", "username": username})
 
