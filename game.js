@@ -329,10 +329,9 @@ export function buyUpgrade(key, cost) {
 
 export function recalculateStats() {
     const baseCpsMap = {
-        academy_student: 0.5,
+        academy_student: 0.3,
         shadow_clone: 1,
         genin: 5,
-       
         chunin: 10.0,
         jonin: 30.0,
         anbu: 100.0,
@@ -425,7 +424,7 @@ export function recalculateStats() {
     if (equipped === 'totsuka') cps *= (1.0 + 0.20 * swordMultVal);
 
     let clickPower = 1.0;
-    if (gameState.upgrades.sealing_scroll) clickPower += 0.1 * (gameState.generators.shadow_clone || 0);
+    if (gameState.upgrades.sealing_scroll) clickPower += 0.5 * (gameState.generators.shadow_clone || 0);
     if (gameState.upgrades.tactical_kunai) clickPower *= 1.25;
     if (gameState.upgrades.bandana_genin) clickPower *= 1.5;
     if (gameState.upgrades.kyuubi_cloak) clickPower += 0.005 * cps;

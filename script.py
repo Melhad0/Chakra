@@ -152,7 +152,7 @@ DEFAULT_STATE = {
 }
 
 CPS_MAP = {
-    "academy_student": 0.1,
+    "academy_student": 0.5,
     "shadow_clone": 0.5,
     "genin": 2.0,
     "chunin": 10.0,
