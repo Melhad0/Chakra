@@ -7,6 +7,7 @@
 import { Decimal, D, formatBigNumber, setNotationMode, getNotationMode } from './BigNumber.js';
 import { sound } from './audio.js';
 import { particles } from './particles.js';
+import { fx } from './effects.js';
 import { CLAN_TREE, buyClanNode, renderClanTree } from './clans.js';
 import { chuninExamManager } from './exam.js';
 import { gauntletManager } from './gauntlet.js';
@@ -329,6 +330,7 @@ export function toggleTheme() {
     localStorage.setItem('theme', isLight ? 'light' : 'dark');
     updateThemeUI(isLight);
 }
+window.toggleTheme = toggleTheme;
 
 function updateThemeUI(isLight) {
     const icon = document.getElementById('theme-icon');
@@ -387,14 +389,48 @@ export function setShopQty(qty) {
     const b1 = document.getElementById('btn-qty-1');
     const b10 = document.getElementById('btn-qty-10');
     const b100 = document.getElementById('btn-qty-100');
+    const bMax = document.getElementById('btn-qty-max');
     if (b1) b1.classList.toggle('active', qty === 1);
     if (b10) b10.classList.toggle('active', qty === 10);
     if (b100) b100.classList.toggle('active', qty === 100);
+    if (bMax) bMax.classList.toggle('active', qty === 'max');
     updateDOM();
 }
 window.setShopQty = setShopQty;
 
+export function getMaxBuyable(key) {
+    const count = gameState.generators[key] || 0;
+    let base = D(BASE_COSTS[key] || 100);
+    if (gameState.upgrades.chakra_concentration) base = base.mul(0.95);
+    const r = COST_MULTIPLIER;
+    const initial = base.mul(D(r).pow(count));
+    const currentChakra = D(gameState.chakra);
+    if (currentChakra.lt(initial)) return 0;
+
+    try {
+        const factor = currentChakra.mul(r - 1).div(initial).add(1);
+        const logVal = Math.log(factor.toNumber());
+        const n = Math.floor(logVal / Math.log(r));
+        return Math.max(1, n);
+    } catch (_) {
+        return 1;
+    }
+}
+
+export function getEffectiveQty(key, mode, qty) {
+    if (qty === 'max') {
+        if (mode === 'buy') {
+            return Math.max(1, getMaxBuyable(key));
+        } else {
+            const count = gameState.generators[key] || 0;
+            return Math.max(1, count);
+        }
+    }
+    return typeof qty === 'number' ? qty : 1;
+}
+
 export function getGeneratorCostRange(key, mode, qty) {
+    const effectiveQty = getEffectiveQty(key, mode, qty);
     const count = gameState.generators[key] || 0;
     let base = D(BASE_COSTS[key] || 100);
 
@@ -405,15 +441,15 @@ export function getGeneratorCostRange(key, mode, qty) {
     const r = COST_MULTIPLIER; // 1.15
 
     if (mode === 'buy') {
-        // Geometric series formula: Base * r^count * (r^qty - 1) / (r - 1)
-        if (qty === 1) {
+        if (effectiveQty <= 0) return base.mul(D(r).pow(count));
+        if (effectiveQty === 1) {
             return base.mul(D(r).pow(count));
         }
         const initial = base.mul(D(r).pow(count));
-        const sumMultiplier = D(r).pow(qty).sub(1).div(r - 1);
+        const sumMultiplier = D(r).pow(effectiveQty).sub(1).div(r - 1);
         return initial.mul(sumMultiplier);
     } else {
-        const sellQty = Math.min(qty, count);
+        const sellQty = Math.min(effectiveQty, count);
         if (sellQty <= 0) return D(0);
         let refund = D(0);
         for (let i = 0; i < sellQty; i++) {
@@ -425,11 +461,14 @@ export function getGeneratorCostRange(key, mode, qty) {
 
 export function buyGenerator(key) {
     const count = gameState.generators[key] || 0;
+    const effectiveQty = getEffectiveQty(key, shopMode, shopQty);
+    if (effectiveQty <= 0) return;
+
     if (shopMode === 'buy') {
-        const cost = getGeneratorCostRange(key, 'buy', shopQty);
-        if (D(gameState.chakra).gte(cost)) {
+        const cost = getGeneratorCostRange(key, 'buy', effectiveQty);
+        if (D(gameState.chakra).gte(cost) && effectiveQty > 0) {
             gameState.chakra = D(gameState.chakra).sub(cost);
-            gameState.generators[key] = count + shopQty;
+            gameState.generators[key] = count + effectiveQty;
             sound.playBuy();
             recalculateStats();
             updateDOM();
@@ -438,9 +477,9 @@ export function buyGenerator(key) {
             sound.playAlert();
         }
     } else {
-        const sellQty = Math.min(shopQty, count);
+        const sellQty = Math.min(effectiveQty, count);
         if (sellQty > 0) {
-            const refund = getGeneratorCostRange(key, 'sell', shopQty);
+            const refund = getGeneratorCostRange(key, 'sell', sellQty);
             gameState.chakra = D(gameState.chakra).add(refund);
             gameState.generators[key] = count - sellQty;
             sound.playBuy();
@@ -610,12 +649,20 @@ export function updateDOM() {
     const clickPowerEl = document.getElementById('click-power-display');
     const totalClicksEl = document.getElementById('total-clicks');
     const totalEarnedEl = document.getElementById('total-earned');
+    const hudAncestral = document.getElementById('hud-ancestral-val');
+    const hudRank = document.getElementById('hud-rank-title');
+    const critEl = document.getElementById('click-crit-display');
+    const presenceLabel = document.getElementById('hud-presence-label');
 
     if (chakraEl) chakraEl.innerText = formatBigNumber(gameState.chakra);
     if (cpsEl) cpsEl.innerText = `${formatBigNumber(calculatedCps)} CPS`;
     if (clickPowerEl) clickPowerEl.innerText = `Clique: +${formatBigNumber(calculatedClickPower)}`;
     if (totalClicksEl) totalClicksEl.innerText = (gameState.clicks || 0).toLocaleString();
     if (totalEarnedEl) totalEarnedEl.innerText = formatBigNumber(gameState.total_chakra_earned);
+    if (hudAncestral) hudAncestral.innerText = (gameState.prestige_points || 0).toLocaleString();
+    if (hudRank) hudRank.innerText = rankingsManager.getShinobiRank ? rankingsManager.getShinobiRank(gameState.total_chakra_earned).title : "Gennin";
+    if (critEl) critEl.innerText = `Crítico: ${(calculatedCritChance * 100).toFixed(0)}% (${calculatedCritMult.toFixed(1)}x)`;
+    if (presenceLabel) presenceLabel.innerText = presenceRewardManager.getNextClaimTimeFormatted ? presenceRewardManager.getNextClaimTimeFormatted() : "5m";
 
     // Generator Cards
     const genKeys = Object.keys(BASE_COSTS);
@@ -624,13 +671,14 @@ export function updateDOM() {
         const costEl = document.getElementById(`cost-${key}`);
         const qtyEl = document.getElementById(`qty-${key}`);
         if (costEl) {
+            const effectiveQty = getEffectiveQty(key, shopMode, shopQty);
             if (shopMode === 'buy') {
-                const cost = getGeneratorCostRange(key, 'buy', shopQty);
-                costEl.innerText = `Comprar x${shopQty}: ${formatBigNumber(cost)} Chakra`;
+                const cost = getGeneratorCostRange(key, 'buy', effectiveQty);
+                costEl.innerText = `Comprar x${effectiveQty}: ${formatBigNumber(cost)} Chakra`;
             } else {
                 const count = gameState.generators[key] || 0;
-                const sellQty = Math.min(shopQty, count);
-                const refund = getGeneratorCostRange(key, 'sell', shopQty);
+                const sellQty = Math.min(effectiveQty, count);
+                const refund = getGeneratorCostRange(key, 'sell', sellQty);
                 costEl.innerText = `Vender x${sellQty}: +${formatBigNumber(refund)} Chakra`;
             }
         }
@@ -728,6 +776,7 @@ export function setupClickAnimation() {
     if (!btn) return;
 
     particles.setAuraAnchor(btn);
+    fx.init('click-stage');
 
     btn.addEventListener('click', (e) => {
         sessionClicks++;
@@ -738,6 +787,7 @@ export function setupClickAnimation() {
         if (isCrit) {
             clickVal = clickVal.mul(calculatedCritMult);
             sound.playCrit();
+            fx.triggerStageShake();
         } else {
             sound.playClick();
         }
@@ -749,8 +799,10 @@ export function setupClickAnimation() {
         const x = e.clientX || (rect.left + rect.width / 2);
         const y = e.clientY || (rect.top + rect.height / 2);
 
-        particles.spawnBurst(x, y, isCrit ? 20 : 10, isCrit ? "crit" : "chakra");
-        particles.spawnFloatingText(x, y, `+${formatBigNumber(clickVal)}`, isCrit);
+        // Dinâmica Cinética: Onda de choque radial e balística parabólica
+        fx.spawnRadialShockwave(x, y, isCrit);
+        fx.spawnParabolicNumber(x, y, `+${formatBigNumber(clickVal)}`, isCrit);
+        particles.spawnBurst(x, y, isCrit ? 22 : 12, isCrit ? "crit" : "chakra");
 
         updateDOM();
     });
@@ -995,6 +1047,7 @@ window.addEventListener('load', () => {
     // Initialize Subsystems
     chuninExamManager.init(gameState, saveGame, updateDOM);
     gauntletManager.init(gameState, saveGame, updateDOM);
+    switchTab('gauntlet');
 
     // Start decoupled rAF Game Loop
     lastTime = performance.now();

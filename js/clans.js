@@ -5,6 +5,7 @@
 
 import { D, formatBigNumber } from './BigNumber.js';
 import { sound } from './audio.js';
+import { fx } from './effects.js';
 
 export const CLAN_TREE = {
     primordial_chakra: {
@@ -217,6 +218,11 @@ export function buyClanNode(nodeId, gameState, saveFn, updateDomFn) {
     saveFn();
     updateDomFn();
     renderClanTree(gameState, saveFn, updateDomFn);
+
+    const childNodes = Object.values(CLAN_TREE).filter(n => n.parent === nodeId).map(n => n.id);
+    childNodes.forEach(childId => {
+        fx.triggerLightBeam(nodeId, childId);
+    });
 }
 
 export function renderClanTree(gameState, saveFn, updateDomFn) {

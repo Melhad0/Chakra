@@ -6,6 +6,7 @@
 import { D, formatBigNumber } from './BigNumber.js';
 import { sound } from './audio.js';
 import { particles } from './particles.js';
+import { fx } from './effects.js';
 
 export const GAUNTLET_ENEMIES = [
     // --- 1. ARCO CLÁSSICO: FORMAÇÃO & PAÍS DAS ONDAS (1-10) ---
@@ -215,6 +216,12 @@ export class GauntletManager {
         this.currentEnemyHp = this.currentEnemyHp.sub(dmg);
         sound.playCrit();
 
+        const avatarEl = document.querySelector('.boss-avatar');
+        if (avatarEl) {
+            fx.triggerHitFlash(avatarEl);
+            fx.spawnSlashImpact(avatarEl);
+        }
+
         const btn = document.getElementById("gauntlet-attack-btn");
         if (btn) {
             const rect = btn.getBoundingClientRect();
@@ -234,6 +241,12 @@ export class GauntletManager {
         this.isFighting = false;
         sound.playJutsu();
         sound.playLevelUp();
+
+        const avatarEl = document.querySelector('.boss-avatar');
+        if (avatarEl) {
+            const rect = avatarEl.getBoundingClientRect();
+            particles.spawnBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 35, "smoke");
+        }
 
         const enemy = GAUNTLET_ENEMIES.find(e => e.id === this.currentEnemyId);
         const wasFirstClear = !this.gameState.gauntlet.defeated_ids[this.currentEnemyId];
@@ -298,8 +311,9 @@ export class GauntletManager {
                         <span class="boss-title">${currentEnemy.title}</span>
 
                         <div class="boss-hp-container">
-                            <div class="meter-track" style="height: 18px; margin-top: 8px;">
-                                <div id="boss-hp-bar" class="meter-fill fill-red" style="width: ${hpPercent}%;"></div>
+                            <div class="meter-track fluid-track" style="height: 18px; margin-top: 8px;">
+                                <div id="boss-hp-ghost" class="meter-ghost" style="width: ${hpPercent}%;"></div>
+                                <div id="boss-hp-bar" class="meter-fill fill-red fluid-fill" style="width: ${hpPercent}%;"></div>
                             </div>
                             <div class="boss-hp-text">
                                 <span id="boss-hp-val">${formatBigNumber(this.currentEnemyHp)} / ${formatBigNumber(this.currentEnemyMaxHp)} HP</span>
@@ -365,6 +379,7 @@ export class GauntletManager {
 
     updateCombatDOM() {
         const hpBar = document.getElementById("boss-hp-bar");
+        const hpGhost = document.getElementById("boss-hp-ghost");
         const hpVal = document.getElementById("boss-hp-val");
         const timerVal = document.getElementById("boss-timer-val");
 
@@ -373,6 +388,12 @@ export class GauntletManager {
                 ? Math.max(0, Math.min(100, this.currentEnemyHp.div(this.currentEnemyMaxHp).toNumber() * 100))
                 : 0;
             hpBar.style.width = `${hpPercent}%`;
+
+            if (hpGhost) {
+                setTimeout(() => {
+                    hpGhost.style.width = `${hpPercent}%`;
+                }, 300);
+            }
         }
 
         if (hpVal) {

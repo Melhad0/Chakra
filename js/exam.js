@@ -352,17 +352,18 @@ export class ChuninExamManager {
                     <p>O objetivo é colar as respostas sem levantar suspeitas dos fiscais de Ibiki Morino!</p>
                 </div>
                 <div class="proctor-panel">
+                    <div class="proctor-vision-cone"></div>
                     <div id="exam-proctor-eye" class="proctor-big-eye">📝💤</div>
                     <div id="exam-proctor-status" class="proctor-safe">Fiscal distraído anotando. COLE AGORA!</div>
                 </div>
                 <div class="exam-meters">
                     <div class="meter-block">
                         <label>Respostas Copiadas: <span id="exam-copy-text">0%</span></label>
-                        <div class="meter-track"><div id="exam-copy-bar" class="meter-fill fill-green" style="width: 0%;"></div></div>
+                        <div class="meter-track fluid-track"><div id="exam-copy-bar" class="meter-fill fill-green fluid-fill" style="width: 0%;"></div></div>
                     </div>
                     <div class="meter-block">
                         <label>Medidor de Suspeita ANBU: <span id="exam-suspicion-text">0%</span></label>
-                        <div class="meter-track"><div id="exam-suspicion-bar" class="meter-fill fill-red" style="width: 0%;"></div></div>
+                        <div class="meter-track fluid-track"><div id="exam-suspicion-bar" class="meter-fill fill-red fluid-fill" style="width: 0%;"></div></div>
                     </div>
                 </div>
                 <div class="exam-actions">
@@ -383,12 +384,15 @@ export class ChuninExamManager {
                     <p>Você possui o <strong>Pergaminho do ${this.playerScroll}</strong>. Derrote os esquadrões rivais e consiga o <strong>Pergaminho da ${this.targetScroll}</strong> antes do tempo esgotar!</p>
                     <div class="forest-countdown">⏳ Tempo Restante: <span id="forest-timer-val">3:00</span></div>
                 </div>
+                <div class="parallax-forest-stage">
+                    <div class="forest-running-runner">🏃🍃</div>
+                </div>
                 <div class="forest-battle-arena">
                     <div class="forest-enemy-card">
                         <div class="enemy-avatar">🥷</div>
                         <div class="enemy-name">Esquadrão Rival ${this.forestEncounterIndex + 1}/3</div>
-                        <div class="meter-track" style="margin: 0.8rem 0;">
-                            <div id="forest-enemy-hp-bar" class="meter-fill fill-red" style="width: 100%;"></div>
+                        <div class="meter-track fluid-track" style="margin: 0.8rem 0;">
+                            <div id="forest-enemy-hp-bar" class="meter-fill fill-red fluid-fill" style="width: 100%;"></div>
                         </div>
                         <span id="forest-enemy-hp-text">${this.forestEnemyHp} / ${this.forestEnemyMaxHp} HP</span>
                     </div>
@@ -411,13 +415,14 @@ export class ChuninExamManager {
                     <div class="arena-rival-info">
                         <h3>${opp.name}</h3>
                         <p class="rival-title">${opp.title}</p>
-                        <div class="meter-track" style="margin: 0.5rem 0;">
-                            <div id="arena-hp-bar" class="meter-fill fill-purple" style="width: ${(opp.hp / opp.maxHp) * 100}%;"></div>
+                        <div class="meter-track fluid-track" style="margin: 0.5rem 0;">
+                            <div id="arena-hp-bar" class="meter-fill fill-purple fluid-fill" style="width: ${(opp.hp / opp.maxHp) * 100}%;"></div>
                         </div>
                         <span id="arena-hp-text">${opp.hp} / ${opp.maxHp} HP</span>
                     </div>
                 </div>
                 <div class="arena-qte-container">
+                    <div class="parry-timing-ring ring-shrink"></div>
                     <div id="qte-box" class="qte-box ${this.qteActive ? 'qte-active' : ''}">
                         <div id="qte-prompt" class="qte-prompt">${opp.qtePrompt}</div>
                         <button id="qte-action-btn" class="qte-btn" onclick="window.chuninExamManager.handleQTEPress()">

@@ -3,1063 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chakra Clicker: A Jornada Ninja</title>
+    <title>Chakra Clicker: Cockpit Shinobi</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Shojumaru&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=Shojumaru&display=swap" rel="stylesheet">
 </head>
-<body>
-    <!-- Canvas de Partículas Shinobi -->
+<body class="cockpit-body">
+    <!-- Canvas de Partículas Dinâmicas -->
     <canvas id="fx-canvas"></canvas>
 
-    <!-- Conteúdo do Jogo -->
-    <div id="app" class="game-container">
-        <!-- Sidebar Esquerda (Painel de Navegação & Clique) -->
-        <header class="left-panel sidebar">
-            <div class="sidebar-header">
-                <div class="ninja-display">
-                    Ninja: <span id="display-username" style="color: var(--primary-color); font-weight: 800;">-</span> | <span onclick="logout()" style="color: var(--accent-color); cursor: pointer; text-decoration: underline;">Sair</span>
-                </div>
-                <div class="sidebar-quick-controls">
-                    <button id="sound-toggle-btn" class="ctrl-btn" onclick="window.toggleMute()">🔊 Som: Ligado</button>
-                    <button id="notation-toggle-btn" class="ctrl-btn" onclick="window.toggleNotation()">Notação: Sufixos</button>
-                    <button id="theme-toggle" class="ctrl-btn" onclick="toggleTheme()">
-                        <span id="theme-icon">🌙</span> <span id="theme-text">Tema</span>
-                    </button>
-                </div>
+    <!-- 1. HUD SUPERIOR FIXO (GLOBAL COCKPIT) -->
+    <header class="cockpit-hud">
+        <div class="hud-brand">
+            <span class="hud-logo-icon">🍥</span>
+            <div class="hud-titles">
+                <h1 class="hud-game-title">CHAKRA CLICKER</h1>
+                <span class="hud-sub">COCKPIT SHINOBI</span>
             </div>
-            
-            <!-- Menu de Abas Vertical na Sidebar -->
-            <nav class="nav-tabs vertical-tabs">
-                <button id="tab-btn-upgrades" class="tab-btn active" onclick="switchTab('upgrades')">🏆 Progresso & Portões</button>
-                <button id="tab-btn-clans" class="tab-btn" onclick="switchTab('clans')">🌀 Árvore de Clãs</button>
-                <button id="tab-btn-exam" class="tab-btn" onclick="switchTab('exam')">📜 Exame Chūnin</button>
-                <button id="tab-btn-gauntlet" class="tab-btn" onclick="switchTab('gauntlet')">⚔️ Gauntlet 100+</button>
-                <button id="tab-btn-rankings" class="tab-btn" onclick="switchTab('rankings')">👑 Rankings</button>
-                <button id="tab-btn-rewards" class="tab-btn" onclick="switchTab('rewards')">⏳ Presença Shinobi</button>
-                <button id="tab-btn-missions" class="tab-btn" onclick="switchTab('missions')">🎯 Missões & Treino</button>
-                <button id="tab-btn-bijuu" class="tab-btn" onclick="switchTab('bijuu')">🦊 Bijuu Lendária</button>
-                <button id="tab-btn-gacha" class="tab-btn" onclick="switchTab('gacha')">🗡️ Forja Gacha</button>
-            </nav>
+        </div>
 
-            <!-- Botão de Clique Compacto no Canto Inferior da Sidebar -->
-            <div class="sidebar-footer">
-                <div class="click-area-compact">
-                    <div id="click-btn" class="hand-seal-button-compact">
-                        <span class="seal-icon-compact">🤚</span>
-                    </div>
-                </div>
-                <div class="click-stats-compact">
-                    <span id="click-power-display">Clique: +1.0</span>
-                    <span id="prestige-multiplier-display" style="font-size: 0.8rem; color: var(--accent-color); font-weight: 800;"></span>
-                </div>
-            </div>
-        </header>
-
-        <!-- Coluna Central: Informações Globais & Conteúdo das Abas -->
-        <main class="center-panel">
-            <!-- Chakra Display Permanente no Topo do Painel Central -->
-            <div class="chakra-display-header">
-                <div class="chakra-info-group">
-                    <span class="label">Chakra Acumulado</span>
-                    <span id="chakra-counter" class="counter">0</span>
-                    <span id="cps-counter" class="cps">0.0 CPS</span>
-                </div>
-                <div id="active-buffs-container" class="active-buffs-row"></div>
+        <div class="hud-metrics">
+            <div class="hud-metric-card metric-chakra">
+                <span class="metric-label">CHAKRA ACUMULADO</span>
+                <span id="chakra-counter" class="metric-value counter-glow">0</span>
             </div>
 
-            <!-- Aba 1: Upgrades & Conquistas -->
-            <div id="tab-content-upgrades" class="tab-content">
-                <section class="status-section">
-                    <h2>Progresso Ninja</h2>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <span class="stat-label">Cliques Totais</span>
-                            <span id="total-clicks" class="stat-value">0</span>
-                        </div>
-                        <div class="stat-card">
-                            <span class="stat-label">Chakra Acumulado na Carreira</span>
-                            <span id="total-earned" class="stat-value">0</span>
-                        </div>
-                    </div>
-                </section>
-
-                
-                
-                <section class="gates-section">
-                    <h2>Os Oito Portões Internos (Maito Gai & Rock Lee)</h2>
-                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
-                        Abra os portões de chakra internos para obter aumentos de poder permanentes (+10% CPS & Cliques por portão). Libere os portões temporariamente para entrar em fúria (+150% multiplicador por portão)!
-                    </p>
-                    
-                    <div class="gates-container">
-                        <!-- Portões Row -->
-                        <div class="gates-grid-row">
-                            <div class="gate-node locked" id="gate-1">
-                                <span class="gate-num">1</span>
-                                <span class="gate-name">Abertura</span>
-                                <span class="gate-bonus">+10%</span>
-                            </div>
-                            <div class="gate-node locked" id="gate-2">
-                                <span class="gate-num">2</span>
-                                <span class="gate-name">Cura</span>
-                                <span class="gate-bonus">+10%</span>
-                            </div>
-                            <div class="gate-node locked" id="gate-3">
-                                <span class="gate-num">3</span>
-                                <span class="gate-name">Vida</span>
-                                <span class="gate-bonus">+10%</span>
-                            </div>
-                            <div class="gate-node locked" id="gate-4">
-                                <span class="gate-num">4</span>
-                                <span class="gate-name">Dor</span>
-                                <span class="gate-bonus">+10%</span>
-                            </div>
-                            <div class="gate-node locked" id="gate-5">
-                                <span class="gate-num">5</span>
-                                <span class="gate-name">Limite</span>
-                                <span class="gate-bonus">+10%</span>
-                            </div>
-                            <div class="gate-node locked" id="gate-6">
-                                <span class="gate-num">6</span>
-                                <span class="gate-name">Visão</span>
-                                <span class="gate-bonus">+10%</span>
-                            </div>
-                            <div class="gate-node locked" id="gate-7">
-                                <span class="gate-num">7</span>
-                                <span class="gate-name">Maravilha</span>
-                                <span class="gate-bonus">+10%</span>
-                            </div>
-                            <div class="gate-node locked" id="gate-8">
-                                <span class="gate-num">8</span>
-                                <span class="gate-name">Morte</span>
-                                <span class="gate-bonus">+10%</span>
-                            </div>
-                        </div>
-                        
-                        <div class="gates-control-panel">
-                            <div class="gate-upgrade-info">
-                                <h4 id="gate-upgrade-title">Próximo Portão: Portão da Abertura</h4>
-                                <span id="gate-upgrade-cost" class="gate-cost-label">Custo: 5.000 Chakra</span>
-                                <button id="gate-upgrade-btn" class="gate-buy-btn" onclick="buyGate()">Abrir Portão 🔓</button>
-                            </div>
-                            <div class="gate-active-info">
-                                <button id="gate-release-btn" class="gate-release-btn" onclick="triggerGateRelease()" disabled>Liberar Portões 🔴</button>
-                                <span id="gate-timer-display" class="gate-timer-label">Requer pelo menos 1 portão aberto</span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="achievements-section">
-                    <h2>Conquistas</h2>
-                    <div class="achievements-list">
-                        <div id="ach-first_click" class="achievement-item locked">
-                            <span class="ach-icon">🔓</span>
-                            <div class="ach-text">
-                                <span class="ach-name">Primeiro Selo de Mão</span>
-                                <span class="ach-desc">Realize o seu primeiro clique.</span>
-                            </div>
-                        </div>
-                        <div id="ach-reach_100" class="achievement-item locked">
-                            <span class="ach-icon">🔓</span>
-                            <div class="ach-text">
-                                <span class="ach-name">Genin Iniciante</span>
-                                <span class="ach-desc">Acumule 100 de Chakra total.</span>
-                            </div>
-                        </div>
-                        <div id="ach-ten_clones" class="achievement-item locked">
-                            <span class="ach-icon">🔓</span>
-                            <div class="ach-text">
-                                <span class="ach-name">Exército de Clones</span>
-                                <span class="ach-desc">Possua 10 Clones das Sombras.</span>
-                            </div>
-                        </div>
-                        <div id="ach-have_kakashi" class="achievement-item locked">
-                            <span class="ach-icon">🔓</span>
-                            <div class="ach-text">
-                                <span class="ach-name">Força Oculta</span>
-                                <span class="ach-desc">Recrute um Jonin (Kakashi).</span>
-                            </div>
-                        </div>
-                        <div id="ach-reach_1m" class="achievement-item locked">
-                            <span class="ach-icon">🔓</span>
-                            <div class="ach-text">
-                                <span class="ach-name">Nível Kage</span>
-                                <span class="ach-desc">Acumule 1.000.000 de Chakra total.</span>
-                            </div>
-                        </div>
-                        <div id="ach-sage_master" class="achievement-item locked">
-                            <span class="ach-icon">🔓</span>
-                            <div class="ach-text">
-                                <span class="ach-name">Domínio do Senjutsu</span>
-                                <span class="ach-desc">Desbloqueie o Modo Sábio.</span>
-                            </div>
-                        </div>
-                        <div id="ach-infinite_chakra" class="achievement-item locked">
-                            <span class="ach-icon">🔓</span>
-                            <div class="ach-text">
-                                <span class="ach-name">Chakra Infinito</span>
-                                <span class="ach-desc">Acumule 10.000.000 de Chakra total.</span>
-                            </div>
-                        </div>
-                        <div id="ach-clicks_1000" class="achievement-item locked">
-                            <span class="ach-icon">🔓</span>
-                            <div class="ach-text">
-                                <span class="ach-name">Treinamento Intenso</span>
-                                <span class="ach-desc">Realize 1.000 cliques no total.</span>
-                            </div>
-                        </div>
-                        <div id="ach-first_summon" class="achievement-item locked">
-                            <span class="ach-icon">🔓</span>
-                            <div class="ach-text">
-                                <span class="ach-name">Primeiro Contrato</span>
-                                <span class="ach-desc">Recrute o lendário Sannin Jiraiya.</span>
-                            </div>
-                        </div>
-                        <div id="ach-tailed_chakra" class="achievement-item locked">
-                            <span class="ach-icon">🔓</span>
-                            <div class="ach-text">
-                                <span class="ach-name">Chakra das Feras de Cauda</span>
-                                <span class="ach-desc">Acumule 100.000.000 de Chakra total.</span>
-                            </div>
-                        </div>
-                        <div id="ach-hero_of_konoha" class="achievement-item locked">
-                            <span class="ach-icon">🔓</span>
-                            <div class="ach-text">
-                                <span class="ach-name">O Herói de Konoha</span>
-                                <span class="ach-desc">Acumule 1.000.000.000 de Chakra total.</span>
-                            </div>
-                        </div>
-                        <div id="ach-ultimate_master" class="achievement-item locked">
-                            <span class="ach-icon">🔓</span>
-                            <div class="ach-text">
-                                <span class="ach-name">Mestre Supremo</span>
-                                <span class="ach-desc">Adquira todas as melhorias do jogo.</span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+            <div class="hud-metric-card metric-cps">
+                <span class="metric-label">PRODUÇÃO PASSIVA</span>
+                <span id="cps-counter" class="metric-value">0.0 CPS</span>
             </div>
 
-            <!-- Aba 2: Missões & Invasões -->
-            <div id="tab-content-missions" class="tab-content hidden">
-                <!-- Mini-Jogo Interativo: Parry Training -->
-                <section class="training-center-section">
-                    <h2>Centro de Treinamento Shinobi</h2>
-                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.25rem;">
-                        Pratique técnicas para ganhar bônus de Chakra e buffs de treinamento ativos. Escolha o seu tipo de treino abaixo:
-                    </p>
-                    
-                    <div class="training-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-                        <button id="train-tab-parry" class="train-tab-btn active" onclick="switchTrainingGame('parry')">🛡️ Deflexão (Parry)</button>
-                        <button id="train-tab-jutsu" class="train-tab-btn" onclick="switchTrainingGame('jutsu')">🔥 Sequência de Jutsu</button>
-                    </div>
-
-                    <!-- JOGO 1: Parry de Kunai -->
-                    <div id="train-game-parry" class="train-game-panel">
-                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-                            Deflita os ataques ninja de Zabuza no momento exato! Pressione a tecla <strong>F</strong> ou clique no botão para acumular combo e ganhar bônus de Chakra.
-                        </p>
-                        <div class="parry-game-container">
-                            <div class="parry-arena">
-                                <div id="parry-enemy" class="parry-character">🥷 <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Zabuza</span></div>
-                                <div id="parry-projectile" class="parry-projectile hidden">🗡️</div>
-                                <div id="parry-player" class="parry-character">🛡️ <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Você</span></div>
-                            </div>
-                            
-                            <div class="parry-slider-container">
-                                <div class="parry-slider-track">
-                                    <div class="parry-target-zone"></div>
-                                    <div id="parry-slider-indicator" class="parry-indicator"></div>
-                                </div>
-                            </div>
-                            
-                            <div class="parry-controls-row">
-                                <button id="parry-start-btn" class="parry-btn" onclick="startParryGame()">Iniciar Combate</button>
-                                <button id="parry-action-btn" class="parry-btn parry-strike-btn" onclick="triggerParry()" disabled>DEFLETIR! (Tecla F)</button>
-                                <div class="parry-stats-display">
-                                    Combo: <span id="parry-streak-display" style="color: var(--accent-color); font-weight: 800;">0</span> | 
-                                    Bônus: <span id="parry-bonus-display" style="color: var(--secondary-color); font-weight: 800;">+0%</span>
-                                </div>
-                            </div>
-                            <div id="parry-feedback" class="parry-feedback-msg">Aguardando início...</div>
-                        </div>
-                    </div>
-
-                    <!-- JOGO 2: Sequência de Jutsu (Memória/Teclas rápidos) -->
-                    <div id="train-game-jutsu" class="train-game-panel hidden">
-                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-                            Digite a sequência de selos de mão mostrada no teclado (W, A, S, D) rapidamente para liberar um Jutsu devastador!
-                        </p>
-                        <div class="jutsu-game-container" style="background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; box-shadow: var(--shadow);">
-                            <div class="jutsu-display-box" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(20,20,20,0.4) 100%); border-radius: var(--radius-md); padding: 2rem; position: relative; gap: 1rem; overflow: hidden; min-height: 120px;">
-                                <div id="jutsu-sequence-keys" class="jutsu-sequence-row" style="display: flex; gap: 1rem; font-size: 2.2rem; min-height: 45px;">
-                                    <!-- Ex: W A S D -->
-                                </div>
-                                <div class="jutsu-timer-container" style="width: 100%; height: 6px; background-color: hsl(222, 24%, 5%); border-radius: 3px; overflow: hidden;">
-                                    <div id="jutsu-timer-bar" class="jutsu-timer-fill" style="width: 100%; height: 100%; background-color: var(--accent-color); transition: width 0.04s linear;"></div>
-                                </div>
-                            </div>
-                            
-                            <div class="jutsu-controls-row" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
-                                <button id="jutsu-start-btn" class="parry-btn" onclick="startJutsuGame()">Concentrar Selos</button>
-                                <div id="jutsu-input-status" class="jutsu-input-status-text" style="font-size: 1rem; font-weight: 700; color: var(--text-muted);">Aguardando...</div>
-                            </div>
-                            <div id="jutsu-feedback" class="parry-feedback-msg">Foque no seu Chakra!</div>
-                        </div>
-                    </div>
-
-                    
-                </section>
-
-                <section class="missions-section">
-                    <h2>Quadro de Missões Hokage</h2>
-                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">
-                        Envie seus ninjas aliados para proteger Konoha ou infiltrar esconderijos inimigos.
-                    </p>
-                    
-                    <div class="missions-grid">
-                        <!-- Missão 1 -->
-                        <div class="mission-card" id="mis-protect_village">
-                            <div class="mission-header">
-                                <span class="mission-name">Proteger a Vila</span>
-                                <span class="mission-req">Requer: 1 Chunin</span>
-                            </div>
-                            <p class="mission-desc">Bandidos estão ameaçando o comércio local de Konoha. Vá detê-los!</p>
-                            <div class="mission-rewards">Preço: 10.000 Chakra | Recompensa: +15.000 Chakra</div>
-                            <div id="log-protect_village" class="mission-log hidden">Aguardando início...</div>
-                            <div class="mission-progress-bar">
-                                <div id="bar-protect_village" class="mission-progress-fill"></div>
-                            </div>
-                            <button id="btn-speed-protect_village" class="mission-speed-btn hidden" onclick="speedUpMission('protect_village', event)">⚡ Ajudar no Combate (-1s)</button>
-                            <button id="btn-mission-protect_village" class="mission-btn" onclick="handleMissionClick('protect_village')">Iniciar Missão (1 min)</button>
-                        </div>
-
-                        <!-- Missão 2 -->
-                        <div class="mission-card" id="mis-infiltrate_akatsuki">
-                            <div class="mission-header">
-                                <span class="mission-name">Infiltrar Esconderijo Akatsuki</span>
-                                <span class="mission-req">Requer: 1 Jonin</span>
-                            </div>
-                            <p class="mission-desc">Infiltre-se para recuperar pergaminhos de segredos de Konoha roubados.</p>
-                            <div class="mission-rewards">Preço: 50.000 Chakra | Recompensa: +100.000 Chakra, +1 Ponto de Prestígio</div>
-                            <div id="log-infiltrate_akatsuki" class="mission-log hidden">Aguardando início...</div>
-                            <div class="mission-progress-bar">
-                                <div id="bar-infiltrate_akatsuki" class="mission-progress-fill"></div>
-                            </div>
-                            <button id="btn-speed-infiltrate_akatsuki" class="mission-speed-btn hidden" onclick="speedUpMission('infiltrate_akatsuki', event)">⚡ Ajudar no Combate (-1s)</button>
-                            <button id="btn-mission-infiltrate_akatsuki" class="mission-btn" onclick="handleMissionClick('infiltrate_akatsuki')">Iniciar Missão (5 min)</button>
-                        </div>
-
-                        <!-- Missão 3 -->
-                        <div class="mission-card" id="mis-kyuubi_battle">
-                            <div class="mission-header">
-                                <span class="mission-name">Invasão da Kyuubi</span>
-                                <span class="mission-req">Requer: 1 Kage</span>
-                            </div>
-                            <p class="mission-desc">Batalha massiva contra a lendária Fera de Nove Caudas. Defesa máxima da vila!</p>
-                            <div class="mission-rewards">Preço: 250.000 Chakra | Recompensa: +2.500.000 Chakra, +2 Pontos de Prestígio</div>
-                            <div id="log-kyuubi_battle" class="mission-log hidden">Aguardando início...</div>
-                            <div class="mission-progress-bar">
-                                <div id="bar-kyuubi_battle" class="mission-progress-fill"></div>
-                            </div>
-                            <button id="btn-speed-kyuubi_battle" class="mission-speed-btn hidden" onclick="speedUpMission('kyuubi_battle', event)">⚡ Ajudar no Combate (-1s)</button>
-                            <button id="btn-mission-kyuubi_battle" class="mission-btn" onclick="handleMissionClick('kyuubi_battle')">Iniciar Missão (15 min)</button>
-                        </div>
-                    </div>
-                </section>
-                
-                <section class="campaign-section" style="margin-top: 2rem;">
-                    <h2>Campanha: Saga Clássica</h2>
-                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">
-                        Reviva as batalhas mais marcantes da história do Naruto Clássico.
-                    </p>
-                    <div class="missions-grid" id="campaign-grid">
-                        <!-- Missão Campanha 1: Zabuza -->
-                        <div class="mission-card" id="mis-camp_zabuza">
-                            <div class="mission-header">
-                                <span class="mission-name">Arco 1: O Demônio do Gás Oculto (Zabuza)</span>
-                                <span class="mission-req">Requer: 1 Jonin, 2 Genins</span>
-                            </div>
-                            <p class="mission-desc">Kakashi, Naruto e Sasuke enfrentam Zabuza Momochi e Haku na Ponte do País das Ondas.</p>
-                            <div class="mission-rewards">Preço: 25.000 Chakra | Recompensa: +50.000 Chakra & +1 Ponto de Prestígio</div>
-                            <div id="log-camp_zabuza" class="mission-log hidden">Aguardando início...</div>
-                            <div class="mission-progress-bar">
-                                <div id="bar-camp_zabuza" class="mission-progress-fill"></div>
-                            </div>
-                            <button id="btn-speed-camp_zabuza" class="mission-speed-btn hidden" onclick="speedUpMission('camp_zabuza', event)">⚡ Ajudar no Combate (-1s)</button>
-                            <button id="btn-mission-camp_zabuza" class="mission-btn" onclick="handleMissionClick('camp_zabuza')">Iniciar Batalha (2 min)</button>
-                        </div>
-                        
-                        <!-- Missão Campanha 2: Exame Chunin -->
-                        <div class="mission-card" id="mis-camp_forest_death">
-                            <div class="mission-header">
-                                <span class="mission-name">Arco 2: A Floresta da Morte</span>
-                                <span class="mission-req">Requer: 1 Chunin, 3 Genins</span>
-                            </div>
-                            <p class="mission-desc">Sobreviva ao ataque de Orochimaru na Floresta da Morte e recupere os pergaminhos da Terra e do Céu.</p>
-                            <div class="mission-rewards">Preço: 100.000 Chakra | Recompensa: +250.000 Chakra & +2 Pontos de Prestígio</div>
-                            <div id="log-camp_forest_death" class="mission-log hidden">Aguardando início...</div>
-                            <div class="mission-progress-bar">
-                                <div id="bar-camp_forest_death" class="mission-progress-fill"></div>
-                            </div>
-                            <button id="btn-speed-camp_forest_death" class="mission-speed-btn hidden" onclick="speedUpMission('camp_forest_death', event)">⚡ Ajudar no Combate (-1s)</button>
-                            <button id="btn-mission-camp_forest_death" class="mission-btn" onclick="handleMissionClick('camp_forest_death')">Bloqueado (Complete o Arco 1)</button>
-                        </div>
-
-                        <!-- Missão Campanha 3: Orochimaru -->
-                        <div class="mission-card" id="mis-camp_orochimaru">
-                            <div class="mission-header">
-                                <span class="mission-name">Arco 3: A Invasão de Konoha (Orochimaru)</span>
-                                <span class="mission-req">Requer: 1 Sannin, 2 Chunins</span>
-                            </div>
-                            <p class="mission-desc">Orochimaru inicia a destruição de Konoha com a ajuda da Vila da Areia. Impeça a queda da vila!</p>
-                            <div class="mission-rewards">Preço: 500.000 Chakra | Recompensa: +1.200.000 Chakra & +3 Pontos de Prestígio</div>
-                            <div id="log-camp_orochimaru" class="mission-log hidden">Aguardando início...</div>
-                            <div class="mission-progress-bar">
-                                <div id="bar-camp_orochimaru" class="mission-progress-fill"></div>
-                            </div>
-                            <button id="btn-speed-camp_orochimaru" class="mission-speed-btn hidden" onclick="speedUpMission('camp_orochimaru', event)">⚡ Ajudar no Combate (-1s)</button>
-                            <button id="btn-mission-camp_orochimaru" class="mission-btn" onclick="handleMissionClick('camp_orochimaru')">Bloqueado (Complete o Arco 2)</button>
-                        </div>
-
-                        <!-- Missão Campanha 4: Vale do Fim -->
-                        <div class="mission-card" id="mis-camp_final_valley">
-                            <div class="mission-header">
-                                <span class="mission-name">Arco Final: O Vale do Fim (Naruto vs Sasuke)</span>
-                                <span class="mission-req">Requer: 2 Jonins, 5 Genins</span>
-                            </div>
-                            <p class="mission-desc">Sasuke foge para se juntar a Orochimaru. Naruto tenta pará-lo no Vale do Fim em uma batalha épica.</p>
-                            <div class="mission-rewards">Preço: 2.000.000 Chakra | Recompensa: +5.000.000 Chakra & +5 Pontos de Prestígio</div>
-                            <div id="log-camp_final_valley" class="mission-log hidden">Aguardando início...</div>
-                            <div class="mission-progress-bar">
-                                <div id="bar-camp_final_valley" class="mission-progress-fill"></div>
-                            </div>
-                            <button id="btn-speed-camp_final_valley" class="mission-speed-btn hidden" onclick="speedUpMission('camp_final_valley', event)">⚡ Ajudar no Combate (-1s)</button>
-                            <button id="btn-mission-camp_final_valley" class="mission-btn" onclick="handleMissionClick('camp_final_valley')">Bloqueado (Complete o Arco 3)</button>
-                        </div>
-                    </div>
-                </section>
+            <div class="hud-metric-card metric-ancestral">
+                <span class="metric-label">CHAKRA ANCESTRAL</span>
+                <span id="hud-ancestral-val" class="metric-value">0</span>
             </div>
 
-            <!-- Aba 5: Bijuu Divina (Nova!) -->
-            <div id="tab-content-bijuu" class="tab-content hidden">
-                <section class="bijuu-section">
-                    <h2>Bijuu Lendária</h2>
-                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">
-                        Escolha e sele uma das Bestas de Cauda em seu corpo. Esta escolha é <strong>única e inalterável</strong>. A Bijuu evoluirá com o tempo seguindo a história de Naruto Clássico, exigindo metas e objetivos cumpridos para upar de nível e conceder multiplicadores massivos.
-                    </p>
-                    
-                    <!-- Painel de Seleção de Bijuu -->
-                    <div id="bijuu-selector-screen" class="bijuu-selector-grid">
-                        <div class="bijuu-select-card" onclick="selectBijuu('1')">
-                            <span class="bijuu-select-avatar">🦝</span>
-                            <span class="bijuu-select-name">Shukaku (1 Cauda)</span>
-                            <span class="bijuu-select-stat">Foco: Defesa</span>
-                        </div>
-                        <div class="bijuu-select-card" onclick="selectBijuu('2')">
-                            <span class="bijuu-select-avatar">🐱</span>
-                            <span class="bijuu-select-name">Matatabi (2 Caudas)</span>
-                            <span class="bijuu-select-stat">Foco: Fogo</span>
-                        </div>
-                        <div class="bijuu-select-card" onclick="selectBijuu('3')">
-                            <span class="bijuu-select-avatar">🐢</span>
-                            <span class="bijuu-select-name">Isobu (3 Caudas)</span>
-                            <span class="bijuu-select-stat">Foco: Água</span>
-                        </div>
-                        <div class="bijuu-select-card" onclick="selectBijuu('4')">
-                            <span class="bijuu-select-avatar">🦍</span>
-                            <span class="bijuu-select-name">Son Gokū (4 Caudas)</span>
-                            <span class="bijuu-select-stat">Foco: Lava</span>
-                        </div>
-                        <div class="bijuu-select-card" onclick="selectBijuu('5')">
-                            <span class="bijuu-select-avatar">🐴</span>
-                            <span class="bijuu-select-name">Kokuō (5 Caudas)</span>
-                            <span class="bijuu-select-stat">Foco: Vapor</span>
-                        </div>
-                        <div class="bijuu-select-card" onclick="selectBijuu('6')">
-                            <span class="bijuu-select-avatar">🐌</span>
-                            <span class="bijuu-select-name">Saiken (6 Caudas)</span>
-                            <span class="bijuu-select-stat">Foco: Ácido</span>
-                        </div>
-                        <div class="bijuu-select-card" onclick="selectBijuu('7')">
-                            <span class="bijuu-select-avatar">🪲</span>
-                            <span class="bijuu-select-name">Chōmei (7 Caudas)</span>
-                            <span class="bijuu-select-stat">Foco: Vento</span>
-                        </div>
-                        <div class="bijuu-select-card" onclick="selectBijuu('8')">
-                            <span class="bijuu-select-avatar">🐙</span>
-                            <span class="bijuu-select-name">Gyūki (8 Caudas)</span>
-                            <span class="bijuu-select-stat">Foco: Tinta</span>
-                        </div>
-                        <div class="bijuu-select-card" onclick="selectBijuu('9')">
-                            <span class="bijuu-select-avatar">🦊</span>
-                            <span class="bijuu-select-name">Kurama (9 Caudas)</span>
-                            <span class="bijuu-select-stat">Foco: Chakra Kyuubi</span>
-                        </div>
-                        <div class="bijuu-select-card" onclick="selectBijuu('10')">
-                            <span class="bijuu-select-avatar">👁️</span>
-                            <span class="bijuu-select-name">Jūbi (10 Caudas)</span>
-                            <span class="bijuu-select-stat">Foco: Progenitora</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Painel de Status da Bijuu Ativa -->
-                    <div id="bijuu-active-screen" class="bijuu-active-container hidden">
-                        <div class="bijuu-profile-header">
-                            <div id="bijuu-avatar-display" class="bijuu-big-avatar">🦊</div>
-                            <div class="bijuu-profile-text">
-                                <h3 id="bijuu-name-display" class="bijuu-title">Kurama (9 Caudas)</h3>
-                                <div class="bijuu-badge" id="bijuu-stage-display">Estágio 1: Selado</div>
-                                <div class="bijuu-multiplier-info">Multiplicador de Poder: <span id="bijuu-mult-display" style="color: var(--secondary-color); font-weight: 800;">1.0x</span></div>
-                            </div>
-                        </div>
-                        
-                        <div class="bijuu-goals-section">
-                            <h4>Metas de Evolução para o Estágio <span id="bijuu-next-level-display">2</span></h4>
-                            <ul id="bijuu-goals-list" class="bijuu-goals-list">
-                                <!-- Metas preenchidas dinamicamente pelo JS -->
-                            </ul>
-                            <button id="bijuu-evolve-btn" class="bijuu-evolve-btn" onclick="evolveBijuu()">Evoluir Bijuu</button>
-                        </div>
-                    </div>
-                </section>
+            <div class="hud-metric-card metric-rank">
+                <span class="metric-label">PATAMAR SHINOBI</span>
+                <span id="hud-rank-title" class="metric-value">Gennin</span>
             </div>
+        </div>
 
-            <!-- Aba 3: Árvore de Prestígio -->
-            <div id="tab-content-prestige" class="tab-content hidden">
-                <section class="prestige-box">
-                    <h2>Renascimento Ninja (Prestige)</h2>
-                    <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem;">
-                        Ao realizar o Renascimento, você reinicia todo o seu Chakra, Aliados Ninjas e Upgrades comuns, mas ganha **Pontos de Prestígio (Chakra Ancestral)** para gastar na Árvore de Prestígio. O progresso de cliques e conquistas é mantido.
-                    </p>
-                    <p style="font-size: 0.95rem; font-weight: 800;">
-                        Requer no mínimo <span style="color: var(--primary-color);">10.000.000</span> de Chakra acumulado no total.
-                    </p>
-                    
-                    <div style="margin: 1.5rem 0;">
-                        <div style="font-size: 0.9rem; color: var(--text-muted);">Pontos a receber no reset:</div>
-                        <div id="prestige-pending-points" style="font-size: 2.2rem; font-weight: 800; color: var(--accent-color);">0</div>
+        <div class="hud-actions">
+            <!-- Cronômetro Circular de Presença Shinobi -->
+            <button id="hud-presence-btn" class="hud-circular-timer-btn" onclick="switchTab('rewards')" title="Recompensas de Presença">
+                <span class="timer-icon">⏳</span>
+                <span id="hud-presence-label">5m</span>
+            </button>
+
+            <!-- Menu de Configurações Rápidas -->
+            <div class="hud-quick-controls">
+                <button id="sound-toggle-btn" class="hud-ctrl-btn" onclick="window.toggleMute()" title="Ativar/Desativar Som">🔊</button>
+                <button id="notation-toggle-btn" class="hud-ctrl-btn" onclick="window.toggleNotation()" title="Notação Numérica">🔢</button>
+                <button id="kinetic-toggle-btn" class="hud-ctrl-btn" onclick="window.fx.toggleKineticMode()" title="Modo Cinético 60FPS">⚡</button>
+                <button id="theme-toggle" class="hud-ctrl-btn" onclick="toggleTheme()" title="Alternar Tema">🌙</button>
+                <button class="hud-ctrl-btn hud-logout" onclick="logout()" title="Sair da Vila">🚪</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. GRID PRINCIPAL DISTRIBUÍDO EM 3 COLUNAS -->
+    <div id="app" class="cockpit-container">
+
+        <!-- ========================================================
+             COLUNA ESQUERDA: ECONOMIA, RECRUTAMENTO & UPGRADES
+             ======================================================== -->
+        <aside class="cockpit-col cockpit-left">
+            <div class="col-header">
+                <h3>📜 Base & Recrutamento</h3>
+                <!-- Controles de Compra em Lote -->
+                <div class="shop-controls-bar">
+                    <div class="shop-mode-toggles">
+                        <button id="btn-mode-buy" class="shop-chip active" onclick="setShopMode('buy')">Comprar</button>
+                        <button id="btn-mode-sell" class="shop-chip" onclick="setShopMode('sell')">Vender</button>
                     </div>
-
-                    <button id="prestige-action-btn" class="prestige-btn" onclick="performPrestige()" disabled>Realizar Renascimento</button>
-                </section>
-
-                <section class="prestige-tree-container">
-                    <h2>Árvore de Habilidades Ancestrais</h2>
-                    <div id="prestige-points-counter" class="prestige-points-display">Chakra Ancestral: 0 Pontos</div>
-                    
-                    <div class="prestige-grid">
-                        <!-- Upgrade 1 -->
-                        <div id="pu-clan_heritage" class="p-upgrade-card" onclick="buyPrestigeUpgrade('clan_heritage', 1)">
-                            <span class="p-title">Herança de Clã</span>
-                            <span class="p-desc">Clique manual +1.25x permanente.</span>
-                            <span class="p-cost">Custo: 1 Ponto</span>
-                        </div>
-
-                        <!-- Upgrade 2 -->
-                        <div id="pu-forbidden_scroll" class="p-upgrade-card" onclick="buyPrestigeUpgrade('forbidden_scroll', 2)">
-                            <span class="p-title">Pergaminho Proibido</span>
-                            <span class="p-desc">CPS global de todos os aliados +25%.</span>
-                            <span class="p-cost">Custo: 2 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 3 -->
-                        <div id="pu-ancestral_voice" class="p-upgrade-card" onclick="buyPrestigeUpgrade('ancestral_voice', 3)">
-                            <span class="p-title">Voz dos Ancestrais</span>
-                            <span class="p-desc">Reduz o tempo de missões em 20%.</span>
-                            <span class="p-cost">Custo: 3 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 4 -->
-                        <div id="pu-tailed_chakra_beast" class="p-upgrade-card" onclick="buyPrestigeUpgrade('tailed_chakra_beast', 5)">
-                            <span class="p-title">Pacto da Fera de Cauda</span>
-                            <span class="p-desc">Cliques manuais +1% do CPS global.</span>
-                            <span class="p-cost">Custo: 5 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 5 -->
-                        <div id="pu-shadow_clone_mastery" class="p-upgrade-card" onclick="buyPrestigeUpgrade('shadow_clone_mastery', 3)">
-                            <span class="p-title">🌀 Mestria dos Clones</span>
-                            <span class="p-desc">Clones das Sombras geram +100% CPS.</span>
-                            <span class="p-cost">Custo: 3 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 6 -->
-                        <div id="pu-jonin_elite" class="p-upgrade-card" onclick="buyPrestigeUpgrade('jonin_elite', 4)">
-                            <span class="p-title">⚡ Jonin de Elite</span>
-                            <span class="p-desc">Jonins 2x mais eficientes permanentemente.</span>
-                            <span class="p-cost">Custo: 4 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 7 -->
-                        <div id="pu-kage_council" class="p-upgrade-card" onclick="buyPrestigeUpgrade('kage_council', 6)">
-                            <span class="p-title">🔥 Conselho dos Kages</span>
-                            <span class="p-desc">Kages e Sannins 3x mais eficientes.</span>
-                            <span class="p-cost">Custo: 6 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 8 -->
-                        <div id="pu-chakra_absorption" class="p-upgrade-card" onclick="buyPrestigeUpgrade('chakra_absorption', 5)">
-                            <span class="p-title">🌊 Absorção de Chakra</span>
-                            <span class="p-desc">Cliques offline rendem 50% mais Chakra.</span>
-                            <span class="p-cost">Custo: 5 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 9 -->
-                        <div id="pu-will_of_fire" class="p-upgrade-card" onclick="buyPrestigeUpgrade('will_of_fire', 4)">
-                            <span class="p-title">🌸 Vontade do Fogo</span>
-                            <span class="p-desc">Todo CPS +20% por prestígio realizado.</span>
-                            <span class="p-cost">Custo: 4 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 10 -->
-                        <div id="pu-bijuu_resonance" class="p-upgrade-card" onclick="buyPrestigeUpgrade('bijuu_resonance', 7)">
-                            <span class="p-title">🦊 Ressonância Bijuu</span>
-                            <span class="p-desc">Bijuu concede +50% extra de multiplicador.</span>
-                            <span class="p-cost">Custo: 7 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 11 -->
-                        <div id="pu-anbu_shadow" class="p-upgrade-card" onclick="buyPrestigeUpgrade('anbu_shadow', 5)">
-                            <span class="p-title">🎭 Sombra ANBU</span>
-                            <span class="p-desc">ANBUs 2.5x mais eficientes.</span>
-                            <span class="p-cost">Custo: 5 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 12 -->
-                        <div id="pu-jinchuriki_bond" class="p-upgrade-card" onclick="buyPrestigeUpgrade('jinchuriki_bond', 8)">
-                            <span class="p-title">🧡 Vínculo Jinchuriki</span>
-                            <span class="p-desc">Jinchurikis 3x mais eficientes.</span>
-                            <span class="p-cost">Custo: 8 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 13 -->
-                        <div id="pu-rikudou_blessing" class="p-upgrade-card" onclick="buyPrestigeUpgrade('rikudou_blessing', 10)">
-                            <span class="p-title">☯️ Bênção do Rikudou</span>
-                            <span class="p-desc">Deus Shinobi 5x mais eficiente.</span>
-                            <span class="p-cost">Custo: 10 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 14 -->
-                        <div id="pu-ninja_alliance" class="p-upgrade-card" onclick="buyPrestigeUpgrade('ninja_alliance', 6)">
-                            <span class="p-title">🌍 Grande Aliança Ninja</span>
-                            <span class="p-desc">Todos os geradores +30% CPS.</span>
-                            <span class="p-cost">Custo: 6 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 15 -->
-                        <div id="pu-fourth_hokage" class="p-upgrade-card" onclick="buyPrestigeUpgrade('fourth_hokage', 8)">
-                            <span class="p-title">✨ Herança do 4º Hokage</span>
-                            <span class="p-desc">Velocidade de clique +2 por prestígio.</span>
-                            <span class="p-cost">Custo: 8 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 16 -->
-                        <div id="pu-hashirama_cells" class="p-upgrade-card" onclick="buyPrestigeUpgrade('hashirama_cells', 9)">
-                            <span class="p-title">🌿 Células de Hashirama</span>
-                            <span class="p-desc">Regeneração de Chakra +10% ao mês offline.</span>
-                            <span class="p-cost">Custo: 9 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 17 -->
-                        <div id="pu-mangekyou_sharingan" class="p-upgrade-card" onclick="buyPrestigeUpgrade('mangekyou_sharingan', 7)">
-                            <span class="p-title">👁️ Mangekyou Sharingan</span>
-                            <span class="p-desc">Jonins e ANBUs +150% CPS.</span>
-                            <span class="p-cost">Custo: 7 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 18 -->
-                        <div id="pu-sage_contract" class="p-upgrade-card" onclick="buyPrestigeUpgrade('sage_contract', 6)">
-                            <span class="p-title">🐸 Contrato dos Sábios</span>
-                            <span class="p-desc">Duração do Modo Sábio 3x.</span>
-                            <span class="p-cost">Custo: 6 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 19 -->
-                        <div id="pu-eight_gates_mastery" class="p-upgrade-card" onclick="buyPrestigeUpgrade('eight_gates_mastery', 8)">
-                            <span class="p-title">🔴 Mestria dos 8 Portões</span>
-                            <span class="p-desc">Portões concedem +25% extra de bônus.</span>
-                            <span class="p-cost">Custo: 8 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 20 -->
-                        <div id="pu-akatsuki_intel" class="p-upgrade-card" onclick="buyPrestigeUpgrade('akatsuki_intel', 5)">
-                            <span class="p-title">🔵 Inteligência Akatsuki</span>
-                            <span class="p-desc">Recompensa de missões +50%.</span>
-                            <span class="p-cost">Custo: 5 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 21 -->
-                        <div id="pu-tenseigan" class="p-upgrade-card" onclick="buyPrestigeUpgrade('tenseigan', 10)">
-                            <span class="p-title">🌟 Tenseigan</span>
-                            <span class="p-desc">Todo CPS +50% por cada upgrade de prestígio comprado.</span>
-                            <span class="p-cost">Custo: 10 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 22 -->
-                        <div id="pu-byakugan" class="p-upgrade-card" onclick="buyPrestigeUpgrade('byakugan', 4)">
-                            <span class="p-title">⚪ Byakugan</span>
-                            <span class="p-desc">Custo de todos os geradores -15%.</span>
-                            <span class="p-cost">Custo: 4 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 23 -->
-                        <div id="pu-reanimation_army" class="p-upgrade-card" onclick="buyPrestigeUpgrade('reanimation_army', 12)">
-                            <span class="p-title">💀 Exército Reanimado</span>
-                            <span class="p-desc">Cada gerador comprado gera +1% extra de CPS.</span>
-                            <span class="p-cost">Custo: 12 Pontos</span>
-                        </div>
-
-                        <!-- Upgrade 24 -->
-                        <div id="pu-heaven_star" class="p-upgrade-card" onclick="buyPrestigeUpgrade('heaven_star', 15)">
-                            <span class="p-title">🌠 Estrela do Paraíso Celestial</span>
-                            <span class="p-desc">CPS global 3x + Clique 3x — Poder Absoluto Ancestral.</span>
-                            <span class="p-cost">Custo: 15 Pontos</span>
-                        </div>
+                    <div class="shop-qty-toggles">
+                        <button id="btn-qty-1" class="qty-chip active" onclick="setShopQty(1)">x1</button>
+                        <button id="btn-qty-10" class="qty-chip" onclick="setShopQty(10)">x10</button>
+                        <button id="btn-qty-100" class="qty-chip" onclick="setShopQty(100)">x100</button>
+                        <button id="btn-qty-max" class="qty-chip" onclick="setShopQty('max')">Max</button>
                     </div>
-                </section>
-            </div>
-
-            <!-- Aba 4: Arsenal Gacha -->
-            <div id="tab-content-gacha" class="tab-content hidden">
-                <section class="gacha-section">
-                    <h2>Forja de Espadas Lendárias</h2>
-                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">
-                        Forje uma espada lendária aleatória usando seu Chakra. Cada espada concede efeitos passivos especiais quando empunhada! (Custo: 50.000 Chakra)
-                    </p>
-                    
-                    <div class="gacha-forge-area">
-                        <div class="gacha-display-card">
-                            <div id="gacha-sword-anim" class="gacha-sword-placeholder">🗡️</div>
-                            <div id="gacha-result-name" class="gacha-sword-name">Arsenal de Konoha</div>
-                            <div id="gacha-result-desc" class="gacha-sword-desc">Gaste Chakra para forjar uma arma ninja.</div>
-                        </div>
-                        <button id="gacha-roll-btn" class="gacha-btn" onclick="rollGacha()">Forjar Espada (50k Chakra)</button>
-                    </div>
-                </section>
-
-                <section class="swords-inventory-section">
-                    <h2>Seu Arsenal Ninja</h2>
-                    <div id="swords-list" class="swords-grid-list">
-                        <!-- Espadas renderizadas dinamicamente -->
-                    </div>
-                </section>
-            </div>
-
-            <!-- Aba 2: Árvore Genealógica (Clãs & Linhagem) -->
-            <div id="tab-content-clans" class="tab-content hidden">
-                <div id="clan-tree-container"></div>
-            </div>
-
-            <!-- Aba 3: Exame Chūnin (Canônico) -->
-            <div id="tab-content-exam" class="tab-content hidden">
-                <section class="exam-hub-card">
-                    <h2>📜 Exame Chūnin Oficial da Vila da Folha</h2>
-                    <p>Prove seu valor como verdadeiro shinobi! O Exame Chūnin é um rito de passagem composto por 3 fases canônicas e rigorosas.</p>
-                    <div class="exam-phases-preview">
-                        <div class="exam-phase-badge">
-                            <span class="badge-icon">📝</span>
-                            <h4>1ª Fase: Prova Escrita</h4>
-                            <p>Trapaça furtiva sem ser detectado pelos fiscais ANBU de Ibiki Morino.</p>
-                        </div>
-                        <div class="exam-phase-badge">
-                            <span class="badge-icon">🌳</span>
-                            <h4>2ª Fase: Floresta da Morte</h4>
-                            <p>Sobrevivência contra esquadrões rivais para saquear o pergaminho faltante em até 3 minutos.</p>
-                        </div>
-                        <div class="exam-phase-badge">
-                            <span class="badge-icon">⚔️</span>
-                            <h4>3ª Fase: Torneio 1v1</h4>
-                            <p>Duelos na arena contra Shikamaru, Temari, Neji e Gaara com mecânicas de reação e QTE.</p>
-                        </div>
-                    </div>
-                    <div class="exam-launch-box">
-                        <button class="exam-launch-btn" onclick="window.openChuninExam()">
-                            🔥 INICIAR EXAME CHŪNIN AGORA!
-                        </button>
-                    </div>
-                </section>
-            </div>
-
-            <!-- Aba 4: Gauntlet com mais de 100 Inimigos -->
-            <div id="tab-content-gauntlet" class="tab-content hidden">
-                <div id="gauntlet-container"></div>
-            </div>
-
-            <!-- Aba 5: Rankings Segmentados -->
-            <div id="tab-content-rankings" class="tab-content hidden">
-                <div id="rankings-container"></div>
-            </div>
-
-            <!-- Aba 6: Recompensas de Presença Shinobi -->
-            <div id="tab-content-rewards" class="tab-content hidden">
-                <div id="presence-rewards-container"></div>
-            </div>
-        </main>
-
-        <!-- Coluna Direita: Geradores e Ninjas -->
-        <!-- Coluna Upgrades: Melhorias -->
-        <aside class="upgrades-panel">
-            <h2>Melhorias</h2>
-            <div class="upgrades-list">
-                <div class="upgrades-list-container">
-                        <!-- Pergaminho de Selamento -->
-                        <button id="up-sealing_scroll" class="upgrade-btn" onclick="buyUpgrade('sealing_scroll', 500)">
-                            <div class="up-info">
-                                <span class="up-title">📜 Selo de Armazenamento</span>
-                                <span class="up-desc">Clones geram +0.1 de poder por clique</span>
-                                <span class="up-cost">Custo: 500 Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Kunai Tática -->
-                        <button id="up-tactical_kunai" class="upgrade-btn" onclick="buyUpgrade('tactical_kunai', 1000)">
-                            <div class="up-info">
-                                <span class="up-title">🗡️ Kunai Tática</span>
-                                <span class="up-desc">Cliques manuais +25% de poder base</span>
-                                <span class="up-cost">Custo: 1.000 Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Treino de Árvore -->
-                        <button id="up-tree_climbing" class="upgrade-btn" onclick="buyUpgrade('tree_climbing', 1800)">
-                            <div class="up-info">
-                                <span class="up-title">🌳 Escalada em Árvores</span>
-                                <span class="up-desc">Estudantes com 2x mais CPS</span>
-                                <span class="up-cost">Custo: 1.800 Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Sandálias Ninja Reforçadas -->
-                        <button id="up-ninja_sandals" class="upgrade-btn" onclick="buyUpgrade('ninja_sandals', 3000)">
-                            <div class="up-info">
-                                <span class="up-title">🥾 Sandálias Reforçadas</span>
-                                <span class="up-desc">Todo o CPS global +10%</span>
-                                <span class="up-cost">Custo: 3.000 Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Concentração de Chakra -->
-                        <button id="up-chakra_concentration" class="upgrade-btn" onclick="buyUpgrade('chakra_concentration', 4500)">
-                            <div class="up-info">
-                                <span class="up-title">🌀 Concentração Mental</span>
-                                <span class="up-desc">Reduz custo dos aliados em 5%</span>
-                                <span class="up-cost">Custo: 4.500 Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Pergaminho de Clone Rápido -->
-                        <button id="up-shadow_clone_scroll" class="upgrade-btn" onclick="buyUpgrade('shadow_clone_scroll', 7500)">
-                            <div class="up-info">
-                                <span class="up-title">👥 Rápida Replicação</span>
-                                <span class="up-desc">Clones das Sombras +50% eficientes</span>
-                                <span class="up-cost">Custo: 7.500 Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Bandana Genin -->
-                        <button id="up-bandana_genin" class="upgrade-btn" onclick="buyUpgrade('bandana_genin', 100)">
-                            <div class="up-info">
-                                <span class="up-title">Bandana Genin</span>
-                                <span class="up-desc">Clique gera 1.5x mais Chakra</span>
-                                <span class="up-cost">Custo: 100 Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Pílula de Comida Ninja -->
-                        <button id="up-ninja_food_pill" class="upgrade-btn" onclick="buyUpgrade('ninja_food_pill', 500)">
-                            <div class="up-info">
-                                <span class="up-title">Pílula Ninja</span>
-                                <span class="up-desc">Clones das Sombras 2x mais eficientes</span>
-                                <span class="up-cost">Custo: 500 Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Sharingan -->
-                        <button id="up-sharingan" class="upgrade-btn" onclick="buyUpgrade('sharingan', 2500)">
-                            <div class="up-info">
-                                <span class="up-title">Sharingan</span>
-                                <span class="up-desc">Jonin e ANBU ficam 2x mais eficientes</span>
-                                <span class="up-cost">Custo: 2,500 Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Modo Sábio -->
-                        <button id="up-sage_mode" class="upgrade-btn" onclick="buyUpgrade('sage_mode', 20000)">
-                            <div class="up-info">
-                                <span class="up-title">Modo Sábio</span>
-                                <span class="up-desc">Multiplica todo o CPS em 3x</span>
-                                <span class="up-cost">Custo: 20k Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Manto da Kyuubi -->
-                        <button id="up-kyuubi_cloak" class="upgrade-btn" onclick="buyUpgrade('kyuubi_cloak', 150000)">
-                            <div class="up-info">
-                                <span class="up-title">Manto da Kyuubi</span>
-                                <span class="up-desc">Clique ganha +0.5% do seu CPS total</span>
-                                <span class="up-cost">Custo: 150k Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Treinamento de Gravidade -->
-                        <button id="up-gravity_training" class="upgrade-btn" onclick="buyUpgrade('gravity_training', 5000)">
-                            <div class="up-info">
-                                <span class="up-title">Treinamento de Gravidade</span>
-                                <span class="up-desc">Genins e Chunins ficam 2x mais eficientes</span>
-                                <span class="up-cost">Custo: 5k Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Choku Tomoe Sharingan -->
-                        <button id="up-choku_tomoe" class="upgrade-btn" onclick="buyUpgrade('choku_tomoe', 50000)">
-                            <div class="up-info">
-                                <span class="up-title">Choku Tomoe Sharingan</span>
-                                <span class="up-desc">Jonin e ANBU ficam 2x mais eficientes</span>
-                                <span class="up-cost">Custo: 50k Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Pergaminho de Invocação -->
-                        <button id="up-summoning_scroll" class="upgrade-btn" onclick="buyUpgrade('summoning_scroll', 1000000)">
-                            <div class="up-info">
-                                <span class="up-title">Pergaminho de Invocação</span>
-                                <span class="up-desc">Sannins e Kages ficam 2x mais eficientes</span>
-                                <span class="up-cost">Custo: 1M Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Selo Ceifador da Morte -->
-                        <button id="up-reaper_seal" class="upgrade-btn" onclick="buyUpgrade('reaper_seal', 10000000)">
-                            <div class="up-info">
-                                <span class="up-title">Selo Ceifador da Morte</span>
-                                <span class="up-desc">Cliques manuais ganham +2% do seu CPS total</span>
-                                <span class="up-cost">Custo: 10M Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Modo Kurama Completo -->
-                        <button id="up-kurama_mode" class="upgrade-btn" onclick="buyUpgrade('kurama_mode', 500000000)">
-                            <div class="up-info">
-                                <span class="up-title">Modo Kurama Completo</span>
-                                <span class="up-desc">Multiplica todo o CPS em 4x</span>
-                                <span class="up-cost">Custo: 500M Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Blade Storm -->
-                        <button id="up-blade_storm" class="upgrade-btn" onclick="buyUpgrade('blade_storm', 750)">
-                            <div class="up-info">
-                                <span class="up-title">🌀 Tempestade de Lâminas</span>
-                                <span class="up-desc">Clones +50% efic. | Cliques +30% poder</span>
-                                <span class="up-cost">Custo: 750 Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Rasengan Mastery -->
-                        <button id="up-rasengan_mastery" class="upgrade-btn" onclick="buyUpgrade('rasengan_mastery', 12000)">
-                            <div class="up-info">
-                                <span class="up-title">💠 Domínio do Rasengan</span>
-                                <span class="up-desc">Genins/Chunins +80% | Clique 2x</span>
-                                <span class="up-cost">Custo: 12k Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Perfect Susanoo -->
-                        <button id="up-perfect_susanoo" class="upgrade-btn" onclick="buyUpgrade('perfect_susanoo', 300000)">
-                            <div class="up-info">
-                                <span class="up-title">🔮 Susanoo Perfeito</span>
-                                <span class="up-desc">Jonins/ANBUs 2.5x | Clique +3% CPS</span>
-                                <span class="up-cost">Custo: 300k Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Edo Tensei -->
-                        <button id="up-edo_tensei" class="upgrade-btn" onclick="buyUpgrade('edo_tensei', 5000000)">
-                            <div class="up-info">
-                                <span class="up-title">💀 Invocação: Impureza Ressuscitante</span>
-                                <span class="up-desc">Sannins/Kages 3x mais eficientes</span>
-                                <span class="up-cost">Custo: 5M Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Truth-Seeking Orbs -->
-                        <button id="up-truth_seeking_orbs" class="upgrade-btn" onclick="buyUpgrade('truth_seeking_orbs', 50000000)">
-                            <div class="up-info">
-                                <span class="up-title">⚫ Esferas de Busca da Verdade</span>
-                                <span class="up-desc">Jinchuriki/Rikudou 4x | Clique 3x</span>
-                                <span class="up-cost">Custo: 50M Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Six Paths Sage Mode -->
-                        <button id="up-six_paths_sage" class="upgrade-btn" onclick="buyUpgrade('six_paths_sage', 200000000)">
-                            <div class="up-info">
-                                <span class="up-title">☯️ Modo Sábio dos Seis Caminhos</span>
-                                <span class="up-desc">Todo CPS global 5x</span>
-                                <span class="up-cost">Custo: 200M Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Infinite Tsukuyomi -->
-                        <button id="up-infinite_tsukuyomi" class="upgrade-btn" onclick="buyUpgrade('infinite_tsukuyomi', 800000000)">
-                            <div class="up-info">
-                                <span class="up-title">🌕 Tsukuyomi Infinito</span>
-                                <span class="up-desc">CPS global 2x extra</span>
-                                <span class="up-cost">Custo: 800M Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Otsutsuki Power -->
-                        <button id="up-otsutsuki_power" class="upgrade-btn" onclick="buyUpgrade('otsutsuki_power', 3000000000)">
-                            <div class="up-info">
-                                <span class="up-title">👁️ Poder Otsutsuki</span>
-                                <span class="up-desc">CPS 6x | Clique 4x</span>
-                                <span class="up-cost">Custo: 3B Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Divine Tree -->
-                        <button id="up-divine_tree" class="upgrade-btn" onclick="buyUpgrade('divine_tree', 10000000000)">
-                            <div class="up-info">
-                                <span class="up-title">🌳 Árvore Divina do Chakra</span>
-                                <span class="up-desc">CPS global 8x multiplicador</span>
-                                <span class="up-cost">Custo: 10B Chakra</span>
-                            </div>
-                        </button>
-
-                        <!-- Creation of All Things -->
-                        <button id="up-creation_all_things" class="upgrade-btn" onclick="buyUpgrade('creation_all_things', 50000000000)">
-                            <div class="up-info">
-                                <span class="up-title">✨ Criação de Todas as Coisas</span>
-                                <span class="up-desc">CPS 10x | Clique 5x — Poder Absoluto</span>
-                                <span class="up-cost">Custo: 50B Chakra</span>
-                            </div>
-                        </button>
-                    </div>
-            </div>
-        </aside>
-        
-        <aside class="right-panel">
-            <h2>Ninjas Aliados</h2>
-            
-            <div class="shop-controls">
-                <div class="mode-toggle">
-                    <button id="btn-mode-buy" class="control-btn active" onclick="setShopMode('buy')">Comprar</button>
-                    <button id="btn-mode-sell" class="control-btn" onclick="setShopMode('sell')">Vender (-20%)</button>
-                </div>
-                <div class="qty-toggle">
-                    <button id="btn-qty-1" class="control-btn active" onclick="setShopQty(1)">x1</button>
-                    <button id="btn-qty-10" class="control-btn" onclick="setShopQty(10)">x10</button>
-                    <button id="btn-qty-100" class="control-btn" onclick="setShopQty(100)">x100</button>
                 </div>
             </div>
 
-            <div class="generators-list">
-                <!-- Estudante da Academia -->
+            <!-- Painel Compacto de Upgrades Rápidos -->
+            <div class="quick-upgrades-bar">
+                <span class="section-label">Melhorias Rápidas</span>
+                <div class="quick-upgrades-scroll">
+                    <button id="up-sealing_scroll" class="mini-upgrade-chip" onclick="buyUpgrade('sealing_scroll', 500)" title="Selo de Armazenamento (500)">📜 500</button>
+                    <button id="up-tactical_kunai" class="mini-upgrade-chip" onclick="buyUpgrade('tactical_kunai', 1000)" title="Kunai Tática (1.000)">🗡️ 1K</button>
+                    <button id="up-tree_climbing" class="mini-upgrade-chip" onclick="buyUpgrade('tree_climbing', 1800)" title="Escalada em Árvores (1.8K)">🌳 1.8K</button>
+                    <button id="up-ninja_sandals" class="mini-upgrade-chip" onclick="buyUpgrade('ninja_sandals', 3000)" title="Sandálias Ninja (3K)">🥾 3K</button>
+                    <button id="up-chakra_concentration" class="mini-upgrade-chip" onclick="buyUpgrade('chakra_concentration', 4500)" title="Concentração de Chakra (4.5K)">🧘 4.5K</button>
+                    <button id="up-shadow_clone_scroll" class="mini-upgrade-chip" onclick="buyUpgrade('shadow_clone_scroll', 7500)" title="Pergaminho de Clones (7.5K)">🌀 7.5K</button>
+                    <button id="up-ninja_food_pill" class="mini-upgrade-chip" onclick="buyUpgrade('ninja_food_pill', 12000)" title="Pílula de Comida (12K)">💊 12K</button>
+                    <button id="up-bandana_genin" class="mini-upgrade-chip" onclick="buyUpgrade('bandana_genin', 25000)" title="Bandana Gennin (25K)">🍃 25K</button>
+                    <button id="up-sharingan" class="mini-upgrade-chip" onclick="buyUpgrade('sharingan', 60000)" title="Sharingan (60K)">👁️ 60K</button>
+                    <button id="up-gravity_training" class="mini-upgrade-chip" onclick="buyUpgrade('gravity_training', 150000)" title="Treino Gravitacional (150K)">🏋️ 150K</button>
+                    <button id="up-summoning_scroll" class="mini-upgrade-chip" onclick="buyUpgrade('summoning_scroll', 400000)" title="Invocação Sannin (400K)">🐸 400K</button>
+                    <button id="up-choku_tomoe" class="mini-upgrade-chip" onclick="buyUpgrade('choku_tomoe', 1200000)" title="Choku Tomoe (1.2M)">🔴 1.2M</button>
+                    <button id="up-reaper_seal" class="mini-upgrade-chip" onclick="buyUpgrade('reaper_seal', 3500000)" title="Selo Ceifador (3.5M)">👻 3.5M</button>
+                    <button id="up-sage_mode" class="mini-upgrade-chip" onclick="buyUpgrade('sage_mode', 10000000)" title="Modo Sábio (10M)">🧘 10M</button>
+                    <button id="up-blade_storm" class="mini-upgrade-chip" onclick="buyUpgrade('blade_storm', 30000000)" title="Tempestade de Lâminas (30M)">⚔️ 30M</button>
+                    <button id="up-rasengan_mastery" class="mini-upgrade-chip" onclick="buyUpgrade('rasengan_mastery', 90000000)" title="Mestria do Rasengan (90M)">🌀 90M</button>
+                    <button id="up-kyuubi_cloak" class="mini-upgrade-chip" onclick="buyUpgrade('kyuubi_cloak', 250000000)" title="Manto da Kyuubi (250M)">🦊 250M</button>
+                    <button id="up-kurama_mode" class="mini-upgrade-chip" onclick="buyUpgrade('kurama_mode', 800000000)" title="Modo Kurama (800M)">🔥 800M</button>
+                    <button id="up-edo_tensei" class="mini-upgrade-chip" onclick="buyUpgrade('edo_tensei', 2500000000)" title="Edo Tensei (2.5B)">💀 2.5B</button>
+                    <button id="up-perfect_susanoo" class="mini-upgrade-chip" onclick="buyUpgrade('perfect_susanoo', 8000000000)" title="Susano'o Perfeito (8B)">🛡️ 8B</button>
+                    <button id="up-truth_seeking_orbs" class="mini-upgrade-chip" onclick="buyUpgrade('truth_seeking_orbs', 25000000000)" title="Esferas da Verdade (25B)">⚫ 25B</button>
+                    <button id="up-six_paths_sage" class="mini-upgrade-chip" onclick="buyUpgrade('six_paths_sage', 80000000000)" title="Sábio dos Seis Caminhos (80B)">☀️ 80B</button>
+                    <button id="up-infinite_tsukuyomi" class="mini-upgrade-chip" onclick="buyUpgrade('infinite_tsukuyomi', 250000000000)" title="Tsukuyomi Infinito (250B)">🌙 250B</button>
+                    <button id="up-otsutsuki_power" class="mini-upgrade-chip" onclick="buyUpgrade('otsutsuki_power', 800000000000)" title="Poder Otsutsuki (800B)">👑 800B</button>
+                    <button id="up-divine_tree" class="mini-upgrade-chip" onclick="buyUpgrade('divine_tree', 2500000000000)" title="Árvore Divina (2.5T)">🌳 2.5T</button>
+                    <button id="up-creation_all_things" class="mini-upgrade-chip" onclick="buyUpgrade('creation_all_things', 10000000000000)" title="Criação de Todas as Coisas (10T)">🌌 10T</button>
+                </div>
+            </div>
+
+            <!-- Lista Rolável de Geradores Shinobi -->
+            <div class="generators-scroll-container">
+                <!-- 1. Estudante -->
                 <div class="generator-card" onclick="buyGenerator('academy_student')">
-                    <div class="gen-image">🎒</div>
+                    <div class="gen-avatar">🎒</div>
                     <div class="gen-details">
                         <span class="gen-name">Estudante da Academia</span>
                         <span class="gen-cps">+0.5 CPS</span>
@@ -1068,339 +131,561 @@
                     <div id="qty-academy_student" class="gen-qty">0</div>
                 </div>
 
-                <!-- Clone das Sombras -->
+                <!-- 2. Clone das Sombras -->
                 <div class="generator-card" onclick="buyGenerator('shadow_clone')">
-                    <div class="gen-image">👥</div>
+                    <div class="gen-avatar">👥</div>
                     <div class="gen-details">
                         <span class="gen-name">Clone das Sombras</span>
-                        <span class="gen-cps">+0.5 CPS</span>
+                        <span class="gen-cps">+2.0 CPS</span>
                         <span id="cost-shadow_clone" class="gen-cost">Custo: 650 Chakra</span>
                     </div>
                     <div id="qty-shadow_clone" class="gen-qty">0</div>
                 </div>
 
-                <!-- Genin -->
+                <!-- 3. Gennin -->
                 <div class="generator-card" onclick="buyGenerator('genin')">
-                    <div class="gen-image">🍃</div>
+                    <div class="gen-avatar">🍃</div>
                     <div class="gen-details">
-                        <span class="gen-name">Genin (Konohamaru)</span>
-                        <span class="gen-cps">+2 CPS</span>
-                        <span id="cost-genin" class="gen-cost">Custo: 3.9k Chakra</span>
+                        <span class="gen-name">Gennin de Konoha</span>
+                        <span class="gen-cps">+8.0 CPS</span>
+                        <span id="cost-genin" class="gen-cost">Custo: 3.9K Chakra</span>
                     </div>
                     <div id="qty-genin" class="gen-qty">0</div>
                 </div>
 
-                <!-- Chunin -->
+                <!-- 4. Chūnin -->
                 <div class="generator-card" onclick="buyGenerator('chunin')">
-                    <div class="gen-image">📜</div>
+                    <div class="gen-avatar">⚔️</div>
                     <div class="gen-details">
-                        <span class="gen-name">Chunin (Iruka)</span>
-                        <span class="gen-cps">+10 CPS</span>
-                        <span id="cost-chunin" class="gen-cost">Custo: 22.8k Chakra</span>
+                        <span class="gen-name">Chūnin da Vila</span>
+                        <span class="gen-cps">+35.0 CPS</span>
+                        <span id="cost-chunin" class="gen-cost">Custo: 22.7K Chakra</span>
                     </div>
                     <div id="qty-chunin" class="gen-qty">0</div>
                 </div>
 
-                <!-- Jonin -->
+                <!-- 5. Jōnin -->
                 <div class="generator-card" onclick="buyGenerator('jonin')">
-                    <div class="gen-image">⚡</div>
+                    <div class="gen-avatar">🗡️</div>
                     <div class="gen-details">
-                        <span class="gen-name">Jonin (Kakashi)</span>
-                        <span class="gen-cps">+50 CPS</span>
-                        <span id="cost-jonin" class="gen-cost">Custo: 130k Chakra</span>
+                        <span class="gen-name">Jōnin de Elite</span>
+                        <span class="gen-cps">+150 CPS</span>
+                        <span id="cost-jonin" class="gen-cost">Custo: 130K Chakra</span>
                     </div>
                     <div id="qty-jonin" class="gen-qty">0</div>
                 </div>
 
-                <!-- ANBU -->
+                <!-- 6. ANBU -->
                 <div class="generator-card" onclick="buyGenerator('anbu')">
-                    <div class="gen-image">🎭</div>
+                    <div class="gen-avatar">👺</div>
                     <div class="gen-details">
-                        <span class="gen-name">ANBU (Itachi)</span>
-                        <span class="gen-cps">+200 CPS</span>
-                        <span id="cost-anbu" class="gen-cost">Custo: 780k Chakra</span>
+                        <span class="gen-name">Esquadrão ANBU</span>
+                        <span class="gen-cps">+600 CPS</span>
+                        <span id="cost-anbu" class="gen-cost">Custo: 780K Chakra</span>
                     </div>
                     <div id="qty-anbu" class="gen-qty">0</div>
                 </div>
 
-                <!-- Sannin Lenda -->
+                <!-- 7. Sannin -->
                 <div class="generator-card" onclick="buyGenerator('sannin')">
-                    <div class="gen-image">🐸</div>
+                    <div class="gen-avatar">🐸</div>
                     <div class="gen-details">
-                        <span class="gen-name">Sannin Lendário (Jiraiya)</span>
-                        <span class="gen-cps">+1k CPS</span>
+                        <span class="gen-name">Sannin Lendário</span>
+                        <span class="gen-cps">+2.5K CPS</span>
                         <span id="cost-sannin" class="gen-cost">Custo: 4.5M Chakra</span>
                     </div>
                     <div id="qty-sannin" class="gen-qty">0</div>
                 </div>
 
-                <!-- Kage -->
+                <!-- 8. Kage -->
                 <div class="generator-card" onclick="buyGenerator('kage')">
-                    <div class="gen-image">🔥</div>
+                    <div class="gen-avatar">👑</div>
                     <div class="gen-details">
-                        <span class="gen-name">Kage (Minato)</span>
-                        <span class="gen-cps">+5k CPS</span>
+                        <span class="gen-name">Kage da Vila</span>
+                        <span class="gen-cps">+12K CPS</span>
                         <span id="cost-kage" class="gen-cost">Custo: 29.2M Chakra</span>
                     </div>
                     <div id="qty-kage" class="gen-qty">0</div>
                 </div>
 
-                <!-- Jinchuriki -->
+                <!-- 9. Jinchūriki -->
                 <div class="generator-card" onclick="buyGenerator('jinchuriki')">
-                    <div class="gen-image">🐙</div>
+                    <div class="gen-avatar">🦊</div>
                     <div class="gen-details">
-                        <span class="gen-name">Jinchuriki (Killer Bee)</span>
-                        <span class="gen-cps">+25k CPS</span>
+                        <span class="gen-name">Jinchūriki Desperto</span>
+                        <span class="gen-cps">+65K CPS</span>
                         <span id="cost-jinchuriki" class="gen-cost">Custo: 195M Chakra</span>
                     </div>
                     <div id="qty-jinchuriki" class="gen-qty">0</div>
                 </div>
 
-                <!-- Rikudou Sennin -->
+                <!-- 10. Rikudou -->
                 <div class="generator-card" onclick="buyGenerator('rikudou')">
-                    <div class="gen-image">☯️</div>
+                    <div class="gen-avatar">👁️</div>
                     <div class="gen-details">
-                        <span class="gen-name">Deus Shinobi (Rikudou)</span>
-                        <span class="gen-cps">+150k CPS</span>
+                        <span class="gen-name">Deus Shinobi</span>
+                        <span class="gen-cps">+350K CPS</span>
                         <span id="cost-rikudou" class="gen-cost">Custo: 1.3B Chakra</span>
                     </div>
                     <div id="qty-rikudou" class="gen-qty">0</div>
                 </div>
 
-                <!-- Toad Summon -->
+                <!-- 11. Invocação dos Sapos -->
                 <div class="generator-card" onclick="buyGenerator('toad_summon')">
-                    <div class="gen-image">🗡️</div>
+                    <div class="gen-avatar">🏯</div>
                     <div class="gen-details">
-                        <span class="gen-name">Invocação: Gamabunta</span>
-                        <span class="gen-cps">+500k CPS</span>
-                        <span id="cost-toad_summon" class="gen-cost">Custo: 9.8B Chakra</span>
+                        <span class="gen-name">Exército de Sapos</span>
+                        <span class="gen-cps">+1.8M CPS</span>
+                        <span id="cost-toad_summon" class="gen-cost">Custo: 9.7B Chakra</span>
                     </div>
                     <div id="qty-toad_summon" class="gen-qty">0</div>
                 </div>
 
-                <!-- Slug Summon -->
+                <!-- 12. Lesmas -->
                 <div class="generator-card" onclick="buyGenerator('slug_summon')">
-                    <div class="gen-image">🐌</div>
+                    <div class="gen-avatar">🐌</div>
                     <div class="gen-details">
-                        <span class="gen-name">Invocação: Katsuyu</span>
-                        <span class="gen-cps">+1.5M CPS</span>
+                        <span class="gen-name">Lesmas de Katsuyu</span>
+                        <span class="gen-cps">+8.5M CPS</span>
                         <span id="cost-slug_summon" class="gen-cost">Custo: 65B Chakra</span>
                     </div>
                     <div id="qty-slug_summon" class="gen-qty">0</div>
                 </div>
 
-                <!-- Snake Summon -->
+                <!-- 13. Cobras -->
                 <div class="generator-card" onclick="buyGenerator('snake_summon')">
-                    <div class="gen-image">🐍</div>
+                    <div class="gen-avatar">🐍</div>
                     <div class="gen-details">
-                        <span class="gen-name">Invocação: Manda</span>
-                        <span class="gen-cps">+4M CPS</span>
-                        <span id="cost-snake_summon" class="gen-cost">Custo: 487.5B Chakra</span>
+                        <span class="gen-name">Cobras da Caverna Ryuchi</span>
+                        <span class="gen-cps">+40M CPS</span>
+                        <span id="cost-snake_summon" class="gen-cost">Custo: 487B Chakra</span>
                     </div>
                     <div id="qty-snake_summon" class="gen-qty">0</div>
                 </div>
 
-                <!-- Sound Five -->
+                <!-- 14. Quarteto do Som -->
                 <div class="generator-card" onclick="buyGenerator('sound_five')">
-                    <div class="gen-image">🥁</div>
+                    <div class="gen-avatar">🎺</div>
                     <div class="gen-details">
                         <span class="gen-name">Quarteto do Som</span>
-                        <span class="gen-cps">+12M CPS</span>
+                        <span class="gen-cps">+180M CPS</span>
                         <span id="cost-sound_five" class="gen-cost">Custo: 3.2T Chakra</span>
                     </div>
                     <div id="qty-sound_five" class="gen-qty">0</div>
                 </div>
 
-                <!-- Seven Swordsmen -->
+                <!-- 15. Sete Espadachins -->
                 <div class="generator-card" onclick="buyGenerator('seven_swordsmen')">
-                    <div class="gen-image">⚔️</div>
+                    <div class="gen-avatar">⚔️</div>
                     <div class="gen-details">
                         <span class="gen-name">7 Espadachins da Névoa</span>
-                        <span class="gen-cps">+35M CPS</span>
-                        <span id="cost-seven_swordsmen" class="gen-cost">Custo: 22.8T Chakra</span>
+                        <span class="gen-cps">+800M CPS</span>
+                        <span id="cost-seven_swordsmen" class="gen-cost">Custo: 22.7T Chakra</span>
                     </div>
                     <div id="qty-seven_swordsmen" class="gen-qty">0</div>
                 </div>
 
-                <!-- Akatsuki Member -->
+                <!-- 16. Membro da Akatsuki -->
                 <div class="generator-card" onclick="buyGenerator('akatsuki_member')">
-                    <div class="gen-image">☁️</div>
+                    <div class="gen-avatar">☁️</div>
                     <div class="gen-details">
                         <span class="gen-name">Membro da Akatsuki</span>
-                        <span class="gen-cps">+100M CPS</span>
-                        <span id="cost-akatsuki_member" class="gen-cost">Custo: 162.5T Chakra</span>
+                        <span class="gen-cps">+3.5B CPS</span>
+                        <span id="cost-akatsuki_member" class="gen-cost">Custo: 162T Chakra</span>
                     </div>
                     <div id="qty-akatsuki_member" class="gen-qty">0</div>
                 </div>
 
-                <!-- Taka Member -->
+                <!-- 17. Esquadrão Taka -->
                 <div class="generator-card" onclick="buyGenerator('taka_member')">
-                    <div class="gen-image">🦅</div>
+                    <div class="gen-avatar">🦅</div>
                     <div class="gen-details">
-                        <span class="gen-name">Membro do Time Taka</span>
-                        <span class="gen-cps">+300M CPS</span>
-                        <span id="cost-taka_member" class="gen-cost">Custo: 1.2Qa Chakra</span>
+                        <span class="gen-name">Esquadrão Taka</span>
+                        <span class="gen-cps">+15B CPS</span>
+                        <span id="cost-taka_member" class="gen-cost">Custo: 1.1Qa Chakra</span>
                     </div>
                     <div id="qty-taka_member" class="gen-qty">0</div>
                 </div>
 
-                <!-- Edo Tensei Warrior -->
+                <!-- 18. Guerreiro Edo Tensei -->
                 <div class="generator-card" onclick="buyGenerator('edo_tensei_warrior')">
-                    <div class="gen-image">⚰️</div>
+                    <div class="gen-avatar">💀</div>
                     <div class="gen-details">
-                        <span class="gen-name">Guerreiro Edo Tensei</span>
-                        <span class="gen-cps">+1B CPS</span>
+                        <span class="gen-name">Guerreiro Reanimado</span>
+                        <span class="gen-cps">+65B CPS</span>
                         <span id="cost-edo_tensei_warrior" class="gen-cost">Custo: 7.8Qa Chakra</span>
                     </div>
                     <div id="qty-edo_tensei_warrior" class="gen-qty">0</div>
                 </div>
 
-                <!-- Hyuga Elite -->
+                <!-- 19. Elite Hyuga -->
                 <div class="generator-card" onclick="buyGenerator('hyuga_elite')">
-                    <div class="gen-image">⚪</div>
+                    <div class="gen-avatar">⚪</div>
                     <div class="gen-details">
-                        <span class="gen-name">Elite do Clã Hyuga</span>
-                        <span class="gen-cps">+3.5B CPS</span>
+                        <span class="gen-name">Elite do Clã Hyūga</span>
+                        <span class="gen-cps">+280B CPS</span>
                         <span id="cost-hyuga_elite" class="gen-cost">Custo: 55.2Qa Chakra</span>
                     </div>
                     <div id="qty-hyuga_elite" class="gen-qty">0</div>
                 </div>
 
-                <!-- Uchiha Elite -->
+                <!-- 20. Elite Uchiha -->
                 <div class="generator-card" onclick="buyGenerator('uchiha_elite')">
-                    <div class="gen-image">🔴</div>
+                    <div class="gen-avatar">🔥</div>
                     <div class="gen-details">
                         <span class="gen-name">Elite do Clã Uchiha</span>
-                        <span class="gen-cps">+12B CPS</span>
+                        <span class="gen-cps">+1.2T CPS</span>
                         <span id="cost-uchiha_elite" class="gen-cost">Custo: 390Qa Chakra</span>
                     </div>
                     <div id="qty-uchiha_elite" class="gen-qty">0</div>
                 </div>
 
-                <!-- Senju Elite -->
+                <!-- 21. Elite Senju -->
                 <div class="generator-card" onclick="buyGenerator('senju_elite')">
-                    <div class="gen-image">🌳</div>
+                    <div class="gen-avatar">🌲</div>
                     <div class="gen-details">
                         <span class="gen-name">Elite do Clã Senju</span>
-                        <span class="gen-cps">+40B CPS</span>
+                        <span class="gen-cps">+5T CPS</span>
                         <span id="cost-senju_elite" class="gen-cost">Custo: 2.9Qi Chakra</span>
                     </div>
                     <div id="qty-senju_elite" class="gen-qty">0</div>
                 </div>
 
-                <!-- Otsutsuki Spirit -->
+                <!-- 22. Espírito Otsutsuki -->
                 <div class="generator-card" onclick="buyGenerator('otsutsuki_spirit')">
-                    <div class="gen-image">👁️</div>
+                    <div class="gen-avatar">👻</div>
                     <div class="gen-details">
                         <span class="gen-name">Espírito Otsutsuki</span>
-                        <span class="gen-cps">+150B CPS</span>
-                        <span id="cost-otsutsuki_spirit" class="gen-cost">Custo: 22.8Qi Chakra</span>
+                        <span class="gen-cps">+25T CPS</span>
+                        <span id="cost-otsutsuki_spirit" class="gen-cost">Custo: 22.7Qi Chakra</span>
                     </div>
                     <div id="qty-otsutsuki_spirit" class="gen-qty">0</div>
                 </div>
 
-                <!-- Bijuu Manifestation -->
+                <!-- 23. Manifestação Bijuu -->
                 <div class="generator-card" onclick="buyGenerator('bijuu_manifestation')">
-                    <div class="gen-image">🦊</div>
+                    <div class="gen-avatar">🐾</div>
                     <div class="gen-details">
                         <span class="gen-name">Manifestação Bijuu</span>
-                        <span class="gen-cps">+600B CPS</span>
+                        <span class="gen-cps">+120T CPS</span>
                         <span id="cost-bijuu_manifestation" class="gen-cost">Custo: 182Qi Chakra</span>
                     </div>
                     <div id="qty-bijuu_manifestation" class="gen-qty">0</div>
                 </div>
 
-                <!-- Six Paths Clone -->
+                <!-- 24. Clones dos Seis Caminhos -->
                 <div class="generator-card" onclick="buyGenerator('six_paths_clone')">
-                    <div class="gen-image">✨</div>
+                    <div class="gen-avatar">☀️</div>
                     <div class="gen-details">
-                        <span class="gen-name">Clone dos Seis Caminhos</span>
-                        <span class="gen-cps">+2.5T CPS</span>
+                        <span class="gen-name">Clone de Rikudou</span>
+                        <span class="gen-cps">+600T CPS</span>
                         <span id="cost-six_paths_clone" class="gen-cost">Custo: 1.4Sx Chakra</span>
                     </div>
                     <div id="qty-six_paths_clone" class="gen-qty">0</div>
                 </div>
 
-                <!-- Shinobi Alliance Division -->
+                <!-- 25. Divisão da Aliança -->
                 <div class="generator-card" onclick="buyGenerator('shinobi_alliance_division')">
-                    <div class="gen-image">🛡️</div>
+                    <div class="gen-avatar">🛡️</div>
                     <div class="gen-details">
-                        <span class="gen-name">Divisão Aliança Ninja</span>
-                        <span class="gen-cps">+10T CPS</span>
+                        <span class="gen-name">Divisão da Aliança</span>
+                        <span class="gen-cps">+3Qa CPS</span>
                         <span id="cost-shinobi_alliance_division" class="gen-cost">Custo: 11.7Sx Chakra</span>
                     </div>
                     <div id="qty-shinobi_alliance_division" class="gen-qty">0</div>
                 </div>
 
-                <!-- Kaguya Creation -->
+                <!-- 26. Criação de Kaguya -->
                 <div class="generator-card" onclick="buyGenerator('kaguya_creation')">
-                    <div class="gen-image">🖤</div>
+                    <div class="gen-avatar">👸</div>
                     <div class="gen-details">
                         <span class="gen-name">Criação de Kaguya</span>
-                        <span class="gen-cps">+50T CPS</span>
+                        <span class="gen-cps">+15Qa CPS</span>
                         <span id="cost-kaguya_creation" class="gen-cost">Custo: 97.5Sx Chakra</span>
                     </div>
                     <div id="qty-kaguya_creation" class="gen-qty">0</div>
                 </div>
 
-                <!-- Hamura Guardian -->
+                <!-- 27. Guardião de Hamura -->
                 <div class="generator-card" onclick="buyGenerator('hamura_guardian')">
-                    <div class="gen-image">🌙</div>
+                    <div class="gen-avatar">🌕</div>
                     <div class="gen-details">
                         <span class="gen-name">Guardião de Hamura</span>
-                        <span class="gen-cps">+250T CPS</span>
+                        <span class="gen-cps">+80Qa CPS</span>
                         <span id="cost-hamura_guardian" class="gen-cost">Custo: 780Sx Chakra</span>
                     </div>
                     <div id="qty-hamura_guardian" class="gen-qty">0</div>
                 </div>
 
-                <!-- Indra's Reincarnation -->
+                <!-- 28. Reencarnação de Indra -->
                 <div class="generator-card" onclick="buyGenerator('indras_reincarnation')">
-                    <div class="gen-image">⚡</div>
+                    <div class="gen-avatar">⚡</div>
                     <div class="gen-details">
                         <span class="gen-name">Reencarnação de Indra</span>
-                        <span class="gen-cps">+1.2Qa CPS</span>
+                        <span class="gen-cps">+400Qa CPS</span>
                         <span id="cost-indras_reincarnation" class="gen-cost">Custo: 6.5Sp Chakra</span>
                     </div>
                     <div id="qty-indras_reincarnation" class="gen-qty">0</div>
                 </div>
 
-                <!-- Asura's Reincarnation -->
+                <!-- 29. Reencarnação de Asura -->
                 <div class="generator-card" onclick="buyGenerator('asuras_reincarnation')">
-                    <div class="gen-image">🌀</div>
+                    <div class="gen-avatar">🌿</div>
                     <div class="gen-details">
-                        <span class="gen-name">Reencarnação de Ashura</span>
-                        <span class="gen-cps">+6Qa CPS</span>
-                        <span id="cost-asuras_reincarnation" class="gen-cost">Custo: 55.3Sp Chakra</span>
+                        <span class="gen-name">Reencarnação de Asura</span>
+                        <span class="gen-cps">+2Qi CPS</span>
+                        <span id="cost-asuras_reincarnation" class="gen-cost">Custo: 55.2Sp Chakra</span>
                     </div>
                     <div id="qty-asuras_reincarnation" class="gen-qty">0</div>
                 </div>
 
-                <!-- Otsutsuki God -->
+                <!-- 30. Deus Otsutsuki -->
                 <div class="generator-card" onclick="buyGenerator('otsutsuki_god')">
-                    <div class="gen-image">👑</div>
+                    <div class="gen-avatar">🌌</div>
                     <div class="gen-details">
                         <span class="gen-name">Deus Otsutsuki</span>
-                        <span class="gen-cps">+30Qa CPS</span>
+                        <span class="gen-cps">+10Qi CPS</span>
                         <span id="cost-otsutsuki_god" class="gen-cost">Custo: 487.5Sp Chakra</span>
                     </div>
                     <div id="qty-otsutsuki_god" class="gen-qty">0</div>
                 </div>
             </div>
         </aside>
+
+        <!-- ========================================================
+             COLUNA CENTRAL: PALCO DE AÇÃO HEROICA (GAME JUICE)
+             ======================================================== -->
+        <main class="cockpit-col cockpit-center">
+            <!-- Palco do Selo Reativo com Anéis Concêntricos & Aura -->
+            <div id="click-stage" class="action-stage">
+                <!-- Anéis Concêntricos Giratórios -->
+                <div class="chakra-spin-ring ring-outer"></div>
+                <div class="chakra-spin-ring ring-inner"></div>
+
+                <!-- Aura Viva em Chamas de Chakra -->
+                <div class="chakra-flame-aura"></div>
+
+                <!-- Botão Central Reativo (Squash & Stretch) -->
+                <div id="click-btn" class="reactive-hand-seal">
+                    <span class="seal-emoji">🤚</span>
+                </div>
+
+                <div class="stage-click-stats">
+                    <div id="click-power-display" class="click-power-badge">Clique: +1.0</div>
+                    <div id="click-crit-display" class="click-crit-badge">Crítico: 5% (2.0x)</div>
+                </div>
+            </div>
+
+            <!-- Painel Integrado dos 8 Portões Internos -->
+            <div class="center-gates-panel">
+                <div class="gates-header">
+                    <h4>🔥 Oito Portões Internos</h4>
+                    <span id="gate-timer-display" class="gate-status-text">Abra o 1º portão</span>
+                </div>
+
+                <!-- Indicadores Circulares dos 8 Portões -->
+                <div class="gates-track">
+                    <div id="gate-1" class="gate-slot" title="1º: Abertura">1</div>
+                    <div id="gate-2" class="gate-slot" title="2º: Cura">2</div>
+                    <div id="gate-3" class="gate-slot" title="3º: Vida">3</div>
+                    <div id="gate-4" class="gate-slot" title="4º: Dor">4</div>
+                    <div id="gate-5" class="gate-slot" title="5º: Limite">5</div>
+                    <div id="gate-6" class="gate-slot" title="6º: Visão">6</div>
+                    <div id="gate-7" class="gate-slot" title="7º: Maravilha">7</div>
+                    <div id="gate-8" class="gate-slot gate-death" title="8º: Morte">8</div>
+                </div>
+
+                <div class="gates-actions-row">
+                    <button id="gate-upgrade-btn" class="gate-btn" onclick="buyGate()">Abrir Portão 🔓</button>
+                    <button id="gate-release-btn" class="gate-release-btn" onclick="triggerGateRelease()">Liberar Fúria 💥</button>
+                </div>
+            </div>
+
+            <!-- Log Dinâmico de Ação & Combate -->
+            <div id="action-feedback-log" class="action-feedback-box">
+                <span class="feedback-icon">⚡</span>
+                <span id="action-feedback-text">Canalize seu chakra com selos de mão para despertar novas técnicas...</span>
+            </div>
+        </main>
+
+        <!-- ========================================================
+             COLUNA DIREITA: CENTRAL DE OPERAÇÕES E MÓDULOS
+             ======================================================== -->
+        <aside class="cockpit-col cockpit-right">
+            <!-- Barra Deslizante de Abas de Operações -->
+            <nav class="cockpit-tabs-nav">
+                <button id="tab-btn-gauntlet" class="tab-chip active" onclick="switchTab('gauntlet')">⚔️ 100 Chefes</button>
+                <button id="tab-btn-exam" class="tab-chip" onclick="switchTab('exam')">📜 Exame</button>
+                <button id="tab-btn-clans" class="tab-chip" onclick="switchTab('clans')">🌀 Clãs</button>
+                <button id="tab-btn-rankings" class="tab-chip" onclick="switchTab('rankings')">👑 Ranks</button>
+                <button id="tab-btn-rewards" class="tab-chip" onclick="switchTab('rewards')">⏳ Presença</button>
+                <button id="tab-btn-missions" class="tab-chip" onclick="switchTab('missions')">🎯 Missões</button>
+                <button id="tab-btn-bijuu" class="tab-chip" onclick="switchTab('bijuu')">🦊 Bijuus</button>
+                <button id="tab-btn-gacha" class="tab-chip" onclick="switchTab('gacha')">🗡️ Forja</button>
+            </nav>
+
+            <div class="cockpit-right-content">
+                <!-- 1. Aba Gauntlet 100+ -->
+                <div id="tab-content-gauntlet" class="tab-panel">
+                    <div id="gauntlet-container"></div>
+                </div>
+
+                <!-- 2. Aba Exame Chūnin -->
+                <div id="tab-content-exam" class="tab-panel hidden">
+                    <section class="exam-hub-card">
+                        <h2>📜 Exame Chūnin Oficial de Konoha</h2>
+                        <p>Prove seu valor como shinobi em 3 fases canônicas e rigorosas!</p>
+                        <div class="exam-phases-preview">
+                            <div class="exam-phase-badge">
+                                <span class="badge-icon">📝</span>
+                                <h4>1ª Fase: Prova Escrita</h4>
+                                <p>Trapaça furtiva sem ser flagrado por Ibiki e fiscais ANBU.</p>
+                            </div>
+                            <div class="exam-phase-badge">
+                                <span class="badge-icon">🌳</span>
+                                <h4>2ª Fase: Floresta da Morte</h4>
+                                <p>Sobrevivência em 3 minutos para saquear o pergaminho oposto.</p>
+                            </div>
+                            <div class="exam-phase-badge">
+                                <span class="badge-icon">⚔️</span>
+                                <h4>3ª Fase: Torneio 1v1</h4>
+                                <p>Duelos na arena contra Shikamaru, Temari, Neji e Gaara com QTE.</p>
+                            </div>
+                        </div>
+                        <button class="exam-launch-btn" onclick="window.openChuninExam()">
+                            🔥 INICIAR EXAME CHŪNIN AGORA!
+                        </button>
+                    </section>
+                </div>
+
+                <!-- 3. Aba Árvore de Clãs -->
+                <div id="tab-content-clans" class="tab-panel hidden">
+                    <div id="clan-tree-container"></div>
+                </div>
+
+                <!-- 4. Aba Rankings -->
+                <div id="tab-content-rankings" class="tab-panel hidden">
+                    <div id="rankings-container"></div>
+                </div>
+
+                <!-- 5. Aba Presença Shinobi -->
+                <div id="tab-content-rewards" class="tab-panel hidden">
+                    <div id="presence-rewards-container"></div>
+                </div>
+
+                <!-- 6. Aba Missões & Treinos -->
+                <div id="tab-content-missions" class="tab-panel hidden">
+                    <div class="missions-tab-wrapper">
+                        <h4>🎯 Missões Oficiais da Vila</h4>
+                        <div class="missions-scroll-list">
+                            <!-- Missão 1 -->
+                            <div class="mission-card" id="mis-protect_village">
+                                <div class="mission-header">
+                                    <span class="mission-name">Proteger o Portão de Konoha</span>
+                                    <span class="mission-req">Requer: 1 Chūnin</span>
+                                </div>
+                                <p class="mission-desc">Bandidos tentam invadir a periferia da vila da Folha. Impeça o avanço inimigo.</p>
+                                <div class="mission-rewards">Custo: 10K | Recompensa: +15K Chakra</div>
+                                <div id="log-protect_village" class="mission-log hidden">Aguardando início...</div>
+                                <div class="meter-track"><div id="bar-protect_village" class="meter-fill fill-green" style="width: 0%;"></div></div>
+                                <div class="mission-actions-row">
+                                    <button id="btn-speed-protect_village" class="mission-speed-btn hidden" onclick="speedUpMission('protect_village', event)">⚡ -1s</button>
+                                    <button id="btn-mission-protect_village" class="mission-btn" onclick="handleMissionClick('protect_village')">Iniciar Missão (60s)</button>
+                                </div>
+                            </div>
+
+                            <!-- Missão 2 -->
+                            <div class="mission-card" id="mis-infiltrate_akatsuki">
+                                <div class="mission-header">
+                                    <span class="mission-name">Infiltrar Esconderijo Akatsuki</span>
+                                    <span class="mission-req">Requer: 1 Jōnin</span>
+                                </div>
+                                <p class="mission-desc">Localize a base da organização e recupere informações confidenciais.</p>
+                                <div class="mission-rewards">Custo: 50K | Recompensa: +100K Chakra & +1 Ancestral</div>
+                                <div id="log-infiltrate_akatsuki" class="mission-log hidden">Aguardando início...</div>
+                                <div class="meter-track"><div id="bar-infiltrate_akatsuki" class="meter-fill fill-green" style="width: 0%;"></div></div>
+                                <div class="mission-actions-row">
+                                    <button id="btn-speed-infiltrate_akatsuki" class="mission-speed-btn hidden" onclick="speedUpMission('infiltrate_akatsuki', event)">⚡ -1s</button>
+                                    <button id="btn-mission-infiltrate_akatsuki" class="mission-btn" onclick="handleMissionClick('infiltrate_akatsuki')">Iniciar Missão (5 min)</button>
+                                </div>
+                            </div>
+
+                            <!-- Missão 3 -->
+                            <div class="mission-card" id="mis-kyuubi_battle">
+                                <div class="mission-header">
+                                    <span class="mission-name">Conter a Fúria da Kyuubi</span>
+                                    <span class="mission-req">Requer: 1 Kage</span>
+                                </div>
+                                <p class="mission-desc">O selo da Raposa de Nove Caudas enfraqueceu. Restaure a barreira com selamento!</p>
+                                <div class="mission-rewards">Custo: 250K | Recompensa: +2.5M Chakra & +2 Ancestral</div>
+                                <div id="log-kyuubi_battle" class="mission-log hidden">Aguardando início...</div>
+                                <div class="meter-track"><div id="bar-kyuubi_battle" class="meter-fill fill-green" style="width: 0%;"></div></div>
+                                <div class="mission-actions-row">
+                                    <button id="btn-speed-kyuubi_battle" class="mission-speed-btn hidden" onclick="speedUpMission('kyuubi_battle', event)">⚡ -1s</button>
+                                    <button id="btn-mission-kyuubi_battle" class="mission-btn" onclick="handleMissionClick('kyuubi_battle')">Iniciar Missão (15 min)</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. Aba Bijuu -->
+                <div id="tab-content-bijuu" class="tab-panel hidden">
+                    <div class="bijuu-tab-wrapper">
+                        <h4>🦊 Bestas com Cauda (Bijuu)</h4>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">Selecione e evolua sua Besta de Cauda para receber multiplicadores massivos.</p>
+                        <div id="bijuu-selector-screen" class="bijuu-selector-grid">
+                            <div class="bijuu-select-card" onclick="selectBijuu('1')"><span class="bijuu-select-avatar">🦝</span><span class="bijuu-select-name">Shukaku (1)</span></div>
+                            <div class="bijuu-select-card" onclick="selectBijuu('2')"><span class="bijuu-select-avatar">🐱</span><span class="bijuu-select-name">Matatabi (2)</span></div>
+                            <div class="bijuu-select-card" onclick="selectBijuu('3')"><span class="bijuu-select-avatar">🐢</span><span class="bijuu-select-name">Isobu (3)</span></div>
+                            <div class="bijuu-select-card" onclick="selectBijuu('4')"><span class="bijuu-select-avatar">🦍</span><span class="bijuu-select-name">Son Gokū (4)</span></div>
+                            <div class="bijuu-select-card" onclick="selectBijuu('5')"><span class="bijuu-select-avatar">🐴</span><span class="bijuu-select-name">Kokuō (5)</span></div>
+                            <div class="bijuu-select-card" onclick="selectBijuu('6')"><span class="bijuu-select-avatar">🐌</span><span class="bijuu-select-name">Saiken (6)</span></div>
+                            <div class="bijuu-select-card" onclick="selectBijuu('7')"><span class="bijuu-select-avatar">🪲</span><span class="bijuu-select-name">Chōmei (7)</span></div>
+                            <div class="bijuu-select-card" onclick="selectBijuu('8')"><span class="bijuu-select-avatar">🐙</span><span class="bijuu-select-name">Gyūki (8)</span></div>
+                            <div class="bijuu-select-card" onclick="selectBijuu('9')"><span class="bijuu-select-avatar">🦊</span><span class="bijuu-select-name">Kurama (9)</span></div>
+                            <div class="bijuu-select-card" onclick="selectBijuu('10')"><span class="bijuu-select-avatar">👁️</span><span class="bijuu-select-name">Jūbi (10)</span></div>
+                        </div>
+
+                        <div id="bijuu-active-screen" class="bijuu-active-container hidden">
+                            <div class="bijuu-profile-card">
+                                <span id="bijuu-avatar-display" class="bijuu-avatar">🦊</span>
+                                <div class="bijuu-details">
+                                    <h3 id="bijuu-name-display">Kurama</h3>
+                                    <span id="bijuu-stage-display" class="bijuu-badge">Estágio 1</span>
+                                    <span id="bijuu-mult-display">1.0x</span>
+                                </div>
+                            </div>
+                            <button id="bijuu-evolve-btn" class="bijuu-evolve-btn" onclick="evolveBijuu()">Evoluir Bijuu</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 8. Aba Forja Gacha -->
+                <div id="tab-content-gacha" class="tab-panel hidden">
+                    <div class="gacha-tab-wrapper">
+                        <h4>🗡️ Forja Gacha de Armas Lendárias</h4>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">Forje espadas míticas com efeitos passivos exclusivos!</p>
+                        <div class="gacha-display-card">
+                            <div id="gacha-sword-anim" class="gacha-sword-placeholder">🗡️</div>
+                            <div id="gacha-result-name" class="gacha-sword-name">Arsenal Shinobi</div>
+                            <div id="gacha-result-desc" class="gacha-sword-desc">Custo: 50.000 Chakra ou 1 Bilhete</div>
+                        </div>
+                        <button id="gacha-roll-btn" class="gacha-btn" onclick="rollGacha()">Forjar Espada</button>
+
+                        <div class="swords-inventory-box">
+                            <span class="section-label">Seu Arsenal</span>
+                            <div id="swords-list" class="swords-grid-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
     </div>
 
-    <!-- Mensagem de Offline -->
-    <div id="offline-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2>Chakra de Treinamento Offline!</h2>
-            <p>Você ficou fora por <span id="offline-time-val">0</span> segundos.</p>
-            <p>Seus ninjas geraram: <span id="offline-chakra-val">0</span> Chakra!</p>
-            <button onclick="closeModal()">Coletar Chakra</button>
-        </div>
-    </div>
-
-    <!-- Modal do Exame Chūnin -->
+    <!-- MODAL DO EXAME CHŪNIN -->
     <div id="chunin-exam-modal" class="modal hidden">
         <div class="modal-content exam-modal-content">
             <div class="exam-modal-header">

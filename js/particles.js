@@ -44,23 +44,25 @@ class ParticleEngine {
             lightning: ["#d500f9", "#651fff", "#00e5ff", "#f50057"],
             wind: ["#00e676", "#1de9b6", "#a7ffeb", "#69f0ae"],
             kyuubi: ["#ff1744", "#d50000", "#ff5252", "#ff9100"],
-            crit: ["#ffd700", "#ffab00", "#ff6d00", "#ffffff"]
+            crit: ["#ffd700", "#ffab00", "#ff6d00", "#ffffff"],
+            smoke: ["#f5f5f5", "#e0e0e0", "#bdbdbd", "#9e9e9e", "#ffffff"]
         };
 
         const colors = palettes[type] || palettes.chakra;
+        const isSmoke = type === "smoke";
 
         for (let i = 0; i < count; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 5 + 2;
+            const speed = isSmoke ? (Math.random() * 4 + 1.5) : (Math.random() * 5 + 2);
             this.particles.push({
                 x,
                 y,
                 vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed - 1,
-                size: Math.random() * 4 + 2,
+                vy: Math.sin(angle) * speed - (isSmoke ? 0.8 : 1),
+                size: isSmoke ? (Math.random() * 8 + 5) : (Math.random() * 4 + 2),
                 color: colors[Math.floor(Math.random() * colors.length)],
                 alpha: 1,
-                decay: Math.random() * 0.03 + 0.02,
+                decay: isSmoke ? (Math.random() * 0.02 + 0.015) : (Math.random() * 0.03 + 0.02),
                 spin: (Math.random() - 0.5) * 0.2,
                 rotation: Math.random() * Math.PI * 2
             });
