@@ -4,7 +4,8 @@ import { formatBigNumber, toggleNotationMode, getNotationMode } from '../../engi
 import { calculateTotalCPS } from '../../engine/formulas';
 import { usePlaytime } from '../../hooks/usePlaytime';
 import { audio } from '../../engine/audio';
-import { Volume2, VolumeX, Sparkles, Hash, Flame } from 'lucide-react';
+import { Volume2, VolumeX, Sparkles, Hash, Flame, Clock, SunMedium } from 'lucide-react';
+import { Badge } from '../common/Badge';
 
 export const Navbar: React.FC = () => {
   const chakra = useGameStore((s) => s.chakra);
@@ -44,65 +45,79 @@ export const Navbar: React.FC = () => {
     setNotation(next);
   };
 
+  const rankName = gatesUnlocked >= 8 ? 'Rikudou' : gatesUnlocked >= 4 ? 'Jōnin' : 'Gennin';
+
   return (
-    <header className="h-16 px-4 bg-shinobi-card/95 backdrop-blur-md border-b border-shinobi-border hover:border-shinobi-border-orange/30 transition-colors flex items-center justify-between z-30 select-none shadow-lg">
-      {/* Logo & Marca */}
+    <header className="h-16 px-4 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/80 flex items-center justify-between z-30 select-none shadow-sm">
+      {/* Logo & Marca Minimalista */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-chakra-fire via-chakra-orange to-chakra-amber flex items-center justify-center shadow-orange-glow text-lg">
-          🌀
+        <div className="w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-orange-400">
+          <SunMedium className="w-5 h-5 stroke-[1.75]" />
         </div>
         <div>
-          <h1 className="text-base font-black tracking-wider text-white">CHAKRA CLICKER</h1>
-          <span className="text-[10px] font-bold tracking-widest text-chakra-orange uppercase block -mt-1">
-            Cockpit Shinobi • Estilo Kurama
+          <h1 className="text-xs font-semibold tracking-wider text-zinc-100 uppercase">
+            Chakra Clicker
+          </h1>
+          <span className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase block">
+            Cockpit Shinobi • v2.0
           </span>
         </div>
       </div>
 
-      {/* Métricas Principais (HUD Central) */}
-      <div className="hidden md:flex items-center gap-4">
+      {/* Métricas Principais (HUD Central de Precisão) */}
+      <div className="hidden md:flex items-center gap-3">
         {/* Chakra Acumulado */}
-        <div className="bg-glass-card border border-shinobi-border hover:border-chakra-orange/40 transition-colors px-3.5 py-1.5 rounded-lg text-center min-w-[130px]">
-          <span className="text-[10px] font-bold text-shinobi-muted tracking-wider block">CHAKRA TOTAL</span>
-          <span className="text-sm font-black text-chakra-orange tracking-tight drop-shadow-[0_0_8px_rgba(255,107,0,0.5)]">
+        <div className="bg-zinc-900/40 border border-zinc-800/80 px-3.5 py-1.5 rounded-lg text-center min-w-[130px]">
+          <span className="text-[10px] font-semibold tracking-widest text-zinc-400 uppercase block">
+            Chakra Total
+          </span>
+          <span className="text-sm font-mono tracking-tight text-orange-400 font-medium">
             {formatBigNumber(chakra)}
           </span>
         </div>
 
         {/* Produção Passiva (CPS) */}
-        <div className="bg-glass-card border border-shinobi-border hover:border-chakra-amber/40 transition-colors px-3.5 py-1.5 rounded-lg text-center min-w-[130px]">
-          <span className="text-[10px] font-bold text-shinobi-muted tracking-wider block">PRODUÇÃO PASSIVA</span>
-          <span className="text-sm font-black text-chakra-amber tracking-tight">
-            +{formatBigNumber(currentCPS)} CPS
+        <div className="bg-zinc-900/40 border border-zinc-800/80 px-3.5 py-1.5 rounded-lg text-center min-w-[130px]">
+          <span className="text-[10px] font-semibold tracking-widest text-zinc-400 uppercase block">
+            Produção / Seg
+          </span>
+          <span className="text-sm font-mono tracking-tight text-emerald-400 font-medium">
+            +{formatBigNumber(currentCPS)}
           </span>
         </div>
 
         {/* Chakra Ancestral */}
-        <div className="bg-glass-card border border-shinobi-border px-3.5 py-1.5 rounded-lg text-center min-w-[120px]">
-          <span className="text-[10px] font-bold text-shinobi-muted tracking-wider block">ANCESTRAL</span>
-          <span className="text-sm font-black text-chakra-gold tracking-tight">
+        <div className="bg-zinc-900/40 border border-zinc-800/80 px-3.5 py-1.5 rounded-lg text-center min-w-[120px]">
+          <span className="text-[10px] font-semibold tracking-widest text-zinc-400 uppercase block">
+            Ancestral
+          </span>
+          <span className="text-sm font-mono tracking-tight text-amber-300 font-medium">
             {chakraAncestral.toString()}
           </span>
         </div>
 
         {/* Patamar Shinobi */}
-        <div className="bg-glass-card border border-shinobi-border px-3.5 py-1.5 rounded-lg text-center min-w-[110px]">
-          <span className="text-[10px] font-bold text-shinobi-muted tracking-wider block">PATAMAR</span>
-          <span className="text-sm font-black text-chakra-gold tracking-tight flex items-center justify-center gap-1">
-            <Flame className="w-3.5 h-3.5 text-chakra-orange inline" />
-            {gatesUnlocked >= 8 ? 'Rikudou' : gatesUnlocked >= 4 ? 'Jōnin' : 'Gennin'}
+        <div className="bg-zinc-900/40 border border-zinc-800/80 px-3 py-1.5 rounded-lg text-center min-w-[110px] flex flex-col items-center justify-center">
+          <span className="text-[10px] font-semibold tracking-widest text-zinc-400 uppercase block mb-0.5">
+            Patamar
           </span>
+          <Badge
+            variant={gatesUnlocked >= 8 ? 'danger' : gatesUnlocked >= 4 ? 'cyan' : 'neutral'}
+            icon={<Flame className="w-3 h-3 stroke-[1.75]" />}
+          >
+            {rankName}
+          </Badge>
         </div>
       </div>
 
       {/* Controles Rápidos do Cockpit */}
       <div className="flex items-center gap-2">
-        {/* Cronômetro de Presença */}
+        {/* Temporizador de Presença */}
         <div
           title="Recompensa de Presença Online"
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-glass-card border border-chakra-orange/40 rounded-full text-xs font-bold text-chakra-orange"
+          className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/60 border border-zinc-800 text-[11px] font-mono text-zinc-400 rounded-md"
         >
-          <span>⏳</span>
+          <Clock className="w-3.5 h-3.5 stroke-[1.75] text-zinc-500" />
           <span>{rewardCountdown}</span>
         </div>
 
@@ -110,31 +125,31 @@ export const Navbar: React.FC = () => {
         <button
           onClick={handleToggleMute}
           title={isMuted ? 'Ativar Som' : 'Desativar Som'}
-          className="p-2 rounded-lg bg-glass-card border border-shinobi-border hover:border-chakra-orange/60 text-shinobi-muted hover:text-white transition"
+          className="p-2 rounded-lg bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 transition"
         >
-          {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-chakra-orange" />}
+          {isMuted ? <VolumeX className="w-4 h-4 text-rose-400 stroke-[1.75]" /> : <Volume2 className="w-4 h-4 text-zinc-300 stroke-[1.75]" />}
         </button>
 
         {/* Alternador de Notação Numérica */}
         <button
           onClick={handleToggleNotation}
           title={`Notação atual: ${notation === 'suffix' ? 'Sufixos (K, M, B)' : 'Científica (1e15)'}`}
-          className="p-2 rounded-lg bg-glass-card border border-shinobi-border hover:border-chakra-orange/60 text-shinobi-muted hover:text-white transition flex items-center gap-1 text-xs font-bold"
+          className="p-2 rounded-lg bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 transition flex items-center gap-1 text-xs font-mono font-medium"
         >
-          <Hash className="w-4 h-4 text-chakra-gold" />
+          <Hash className="w-4 h-4 stroke-[1.75] text-zinc-400" />
         </button>
 
-        {/* Alternador de Modo Cinético (60 FPS) */}
+        {/* Alternador de Modo Cinético */}
         <button
           onClick={toggleKinetic}
           title={kineticMode ? 'Modo Cinético Total (60 FPS)' : 'Modo Econômico'}
           className={`p-2 rounded-lg border transition ${
             kineticMode
-              ? 'bg-chakra-orange/20 border-chakra-orange text-chakra-orange shadow-orange-glow'
-              : 'bg-glass-card border-shinobi-border text-shinobi-muted'
+              ? 'bg-zinc-800 text-orange-400 border-zinc-700'
+              : 'bg-zinc-900/60 border-zinc-800 text-zinc-500'
           }`}
         >
-          <Sparkles className="w-4 h-4" />
+          <Sparkles className="w-4 h-4 stroke-[1.75]" />
         </button>
       </div>
     </header>

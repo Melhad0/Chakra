@@ -3,7 +3,10 @@ import { useGameStore } from '../../store/useGameStore';
 import { formatBigNumber } from '../../engine/BigNumber';
 import { getBulkCost, getBulkSellRefund, getMaxBuyable } from '../../engine/formulas';
 import { INITIAL_UPGRADES } from '../../engine/data';
-import { ShopQty } from '../../types/economy';
+import { QuantitySelector } from '../common/QuantitySelector';
+import { IconRenderer } from '../common/IconRenderer';
+import { Users, Sparkles } from 'lucide-react';
+import { Badge } from '../common/Badge';
 
 export const EconomyPanel: React.FC = () => {
   const chakra = useGameStore((s) => s.chakra);
@@ -20,63 +23,29 @@ export const EconomyPanel: React.FC = () => {
   const upgradeKeys = React.useMemo(() => Object.keys(INITIAL_UPGRADES), []);
 
   return (
-    <aside className="h-full bg-shinobi-card/90 backdrop-blur-md border border-shinobi-border hover:border-shinobi-border-orange/30 transition-colors rounded-xl p-3 flex flex-col overflow-hidden shadow-2xl">
+    <aside className="h-full bg-zinc-900/40 backdrop-blur-md border border-zinc-800/80 hover:border-zinc-700/80 transition-colors rounded-xl p-4 flex flex-col overflow-hidden shadow-sm">
       {/* Cabeçalho da Base & Controles de Compra em Lote */}
-      <div className="pb-3 border-b border-shinobi-border flex-shrink-0">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xs font-black tracking-wider uppercase text-white flex items-center gap-1.5">
-            <span>📜</span> Base & Recrutamento
+      <div className="pb-3 border-b border-zinc-800/80 flex-shrink-0">
+        <div className="flex items-center justify-between mb-2.5">
+          <h2 className="text-xs font-semibold tracking-wider uppercase text-zinc-200 flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" /> Base & Recrutamento
           </h2>
-          <span className="text-[10px] text-chakra-orange font-bold">30 Tropas</span>
+          <Badge variant="neutral">30 Tropas</Badge>
         </div>
 
-        {/* Modo de Compra/Venda e Seleção de Quantidade */}
-        <div className="flex items-center justify-between gap-1.5 bg-black/60 p-1 rounded-lg border border-shinobi-border">
-          <div className="flex gap-1">
-            <button
-              onClick={() => setShopMode('buy')}
-              className={`px-2.5 py-1 rounded text-[11px] font-black transition ${
-                shopMode === 'buy'
-                  ? 'bg-gradient-to-r from-chakra-orange to-chakra-amber text-black shadow-orange-glow'
-                  : 'text-shinobi-muted hover:text-white'
-              }`}
-            >
-              Comprar
-            </button>
-            <button
-              onClick={() => setShopMode('sell')}
-              className={`px-2.5 py-1 rounded text-[11px] font-bold transition ${
-                shopMode === 'sell'
-                  ? 'bg-zinc-700 text-white shadow-sm border border-zinc-600'
-                  : 'text-shinobi-muted hover:text-white'
-              }`}
-            >
-              Vender
-            </button>
-          </div>
-
-          <div className="flex gap-1">
-            {([1, 10, 100, 'max'] as ShopQty[]).map((qty) => (
-              <button
-                key={qty}
-                onClick={() => setShopQty(qty)}
-                className={`px-2 py-0.5 rounded text-[11px] font-bold transition ${
-                  shopQty === qty
-                    ? 'bg-chakra-orange/20 text-chakra-orange border border-chakra-orange/50'
-                    : 'text-shinobi-muted hover:text-white'
-                }`}
-              >
-                {qty === 'max' ? 'Max' : `x${qty}`}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Componente Reutilizável de Seleção de Lote */}
+        <QuantitySelector
+          mode={shopMode}
+          qty={shopQty}
+          onModeChange={setShopMode}
+          onQtyChange={setShopQty}
+        />
       </div>
 
       {/* Carrossel Compacto de Upgrades Rápidos */}
-      <div className="py-2 flex-shrink-0">
-        <span className="text-[10px] font-bold text-shinobi-muted uppercase tracking-wider block mb-1">
-          Melhorias Rápidas
+      <div className="py-2.5 flex-shrink-0">
+        <span className="text-[10px] font-semibold tracking-widest text-zinc-400 uppercase block mb-1.5 flex items-center gap-1">
+          <Sparkles className="w-3 h-3 text-zinc-500 stroke-[1.75]" /> Melhorias Rápidas
         </span>
         <div className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
           {upgradeKeys.map((upgId) => {
@@ -92,14 +61,14 @@ export const EconomyPanel: React.FC = () => {
                 disabled={!canAfford}
                 onClick={() => buyUpgrade(upgId)}
                 title={`${upg.name} (${formatBigNumber(upg.cost)} Chakra) - ${upg.description}`}
-                className={`flex-shrink-0 px-2.5 py-1 rounded-md text-[11px] font-bold border transition flex items-center gap-1 ${
+                className={`flex-shrink-0 px-2.5 py-1.5 rounded-md text-[11px] font-medium border transition flex items-center gap-1.5 ${
                   canAfford
-                    ? 'bg-chakra-orange/15 border-chakra-orange/60 text-white hover:bg-chakra-orange/25 shadow-sm'
-                    : 'bg-white/5 border-shinobi-border text-shinobi-muted/60 opacity-60 cursor-not-allowed'
+                    ? 'bg-zinc-850 hover:bg-zinc-800 border-zinc-700 text-zinc-200 shadow-sm'
+                    : 'bg-zinc-900/40 border-zinc-800/80 text-zinc-600 opacity-60 cursor-not-allowed'
                 }`}
               >
-                <span>{upg.icon}</span>
-                <span>{formatBigNumber(upg.cost)}</span>
+                <IconRenderer name={upg.icon} className="w-3.5 h-3.5 text-zinc-400 stroke-[1.75]" />
+                <span className="font-mono text-zinc-300">{formatBigNumber(upg.cost)}</span>
               </button>
             );
           })}
@@ -127,25 +96,25 @@ export const EconomyPanel: React.FC = () => {
             <div
               key={key}
               onClick={() => buyGenerator(key)}
-              className={`p-2 rounded-lg border transition flex items-center justify-between cursor-pointer ${
+              className={`p-2.5 rounded-lg border transition-all flex items-center justify-between cursor-pointer ${
                 canAfford
-                  ? 'bg-glass-card hover:bg-glass-hover border-shinobi-border hover:border-chakra-orange/50 hover:shadow-[0_0_15px_rgba(255,107,0,0.12)]'
-                  : 'bg-black/40 border-shinobi-border/40 opacity-60'
+                  ? 'bg-zinc-900/60 hover:bg-zinc-850 border-zinc-800/80 hover:border-zinc-700 text-zinc-200'
+                  : 'bg-zinc-950/40 border-zinc-850/60 opacity-60 text-zinc-500'
               }`}
             >
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-md bg-white/5 border border-white/10 flex items-center justify-center text-xl flex-shrink-0">
-                  {gen.avatar}
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-zinc-800/60 border border-zinc-700/60 flex items-center justify-center text-zinc-300 flex-shrink-0">
+                  <IconRenderer name={gen.avatar} className="w-4 h-4 stroke-[1.75]" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-white leading-tight">{gen.name}</h3>
+                  <h3 className="text-xs font-medium text-zinc-200 leading-tight">{gen.name}</h3>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] text-chakra-amber font-bold">
+                    <span className="text-[10px] font-mono text-emerald-400 font-medium">
                       +{formatBigNumber(gen.baseCPS)} CPS
                     </span>
-                    <span className="text-[10px] text-shinobi-muted">
+                    <span className="text-[10px] font-mono text-zinc-500">
                       {shopMode === 'buy' ? 'Custo:' : 'Reembolso:'}{' '}
-                      <span className={canAfford ? 'text-chakra-gold font-bold' : 'text-red-400 font-bold'}>
+                      <span className={canAfford ? 'text-zinc-300 font-semibold' : 'text-rose-400 font-semibold'}>
                         {formatBigNumber(cost)}
                       </span>
                     </span>
@@ -154,7 +123,7 @@ export const EconomyPanel: React.FC = () => {
               </div>
 
               <div className="text-right">
-                <span className="text-sm font-black text-chakra-orange px-2 py-0.5 rounded bg-black/50 border border-chakra-orange/30">
+                <span className="text-xs font-mono font-medium text-zinc-300 px-2 py-0.5 rounded bg-zinc-800/80 border border-zinc-700/80">
                   {gen.level}
                 </span>
               </div>

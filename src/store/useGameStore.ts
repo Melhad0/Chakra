@@ -3,6 +3,7 @@ import Decimal from 'break_infinity.js';
 import { D, formatBigNumber } from '../engine/BigNumber';
 import { ElementalAffinity, PlayerStats } from '../types/game';
 import { GeneratorItem, ShopMode, ShopQty } from '../types/economy';
+import { BossNavigationState } from '../types/combat';
 import { INITIAL_GENERATORS, INITIAL_UPGRADES, GATE_DATA, CLAN_NODES } from '../engine/data';
 import {
   calculateTotalCPS,
@@ -58,6 +59,13 @@ export interface GameStoreState {
   floatingNumbers: FloatingNumber[];
   shockwaves: Shockwave[];
 
+  // Gauntlet Roguelike (1-N)
+  gauntlet: BossNavigationState;
+  setGauntletBossIndex: (index: number) => void;
+  setGauntletCombatMode: (mode: 'PUSH' | 'FARM') => void;
+  recordGauntletVictory: (defeatedBossId: number) => void;
+  handleGauntletDefeat: () => void;
+
   // Ações
   clickChakra: (coords?: { x: number; y: number }) => void;
   buyGenerator: (id: string) => void;
@@ -110,6 +118,58 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   floatingNumbers: [],
   shockwaves: [],
+
+  // Gauntlet Roguelike (1-N)
+  gauntlet: {
+    currentBossIndex: 0,
+    maxUnlockedBoss: 0,
+    combatMode: 'PUSH',
+  },
+
+  setGauntletBossIndex: (index: number) => {
+    set((state) => ({
+      gauntlet: { ...state.gauntlet, currentBossIndex: Math.max(0, Math.min(39, index)) },
+    }));
+  },
+
+  setGauntletCombatMode: (mode: 'PUSH' | 'FARM') => {
+    set((state) => ({
+      gauntlet: { ...state.gauntlet, combatMode: mode },
+    }));
+  },
+
+  recordGauntletVictory: (defeatedBossId: number) => {
+    set((state) => {
+      const nextMax = Math.max(state.gauntlet.maxUnlockedBoss, defeatedBossId);
+      const nextIndex =
+        state.gauntlet.combatMode === 'PUSH'
+          ? Math.min(state.gauntlet.currentBossIndex + 1, 39)
+          : state.gauntlet.currentBossIndex;
+
+      return {
+        gauntlet: {
+          ...state.gauntlet,
+          maxUnlockedBoss: nextMax,
+          currentBossIndex: nextIndex,
+        },
+      };
+    });
+  },
+
+  handleGauntletDefeat: () => {
+    set((state) => {
+      if (state.gauntlet.combatMode === 'PUSH') {
+        // Ciclo Punitivo Roguelike: Retorno Compulsório ao Chefe 1
+        return {
+          gauntlet: {
+            ...state.gauntlet,
+            currentBossIndex: 0,
+          },
+        };
+      }
+      return state;
+    });
+  },
 
   clickChakra: (coords) => {
     const s = get();
@@ -364,6 +424,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         upgrades: s.upgrades,
         clanNodes: s.clanNodes,
         gatesUnlocked: s.gatesUnlocked,
+        gauntlet: s.gauntlet,
         stats: {
           manualClicksAllTime: s.stats.manualClicksAllTime,
           highestCPSRecord: s.stats.highestCPSRecord.toString(),
@@ -407,6 +468,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           upgrades: { ...state.upgrades, ...(data.upgrades || {}) },
           clanNodes: data.clanNodes || {},
           gatesUnlocked: data.gatesUnlocked || 0,
+          gauntlet: data.gauntlet
+            ? {
+                currentBossIndex: data.gauntlet.currentBossIndex || 0,
+                maxUnlockedBoss: data.gauntlet.maxUnlockedBoss || 0,
+                combatMode: data.gauntlet.combatMode || 'PUSH',
+              }
+            : state.gauntlet,
           stats: {
             ...state.stats,
             manualClicksAllTime: data.stats?.manualClicksAllTime || 0,
