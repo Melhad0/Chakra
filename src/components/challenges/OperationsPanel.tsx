@@ -1,21 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { formatBigNumber, D } from '../../engine/BigNumber';
+import Decimal from 'break_infinity.js';
 import { CLAN_NODES } from '../../engine/data';
 import { calculateTotalCPS, calculateClickPower } from '../../engine/formulas';
 import { audio } from '../../engine/audio';
-import { Swords, Scroll, GitFork, Trophy, Zap } from 'lucide-react';
-
-const MOCK_BOSSES = [
-  { id: 1, name: 'Mizuki', arc: 'Clássico', title: 'Instrutor Traidor', avatar: '🗡️', hp: 150 },
-  { id: 2, name: 'Haku (Espelhos de Gelo)', arc: 'Clássico', title: 'Portador do Hyōton', avatar: '❄️', hp: 1200 },
-  { id: 3, name: 'Zabuza Momochi', arc: 'Clássico', title: 'Demônio da Névoa Oculta', avatar: '🗡️', hp: 2400 },
-  { id: 4, name: 'Gaara do Deserto', arc: 'Clássico', title: 'A Besta de Areia de Suna', avatar: '🏺', hp: 45000 },
-  { id: 5, name: 'Itachi Uchiha', arc: 'Shippuden', title: 'Chamas Negras do Amaterasu', avatar: '🦅', hp: 5000000 },
-  { id: 6, name: 'Pain (Caminho Deva)', arc: 'Shippuden', title: 'Shinra Tensei Absoluto', avatar: '🌌', hp: 85000000 },
-  { id: 7, name: 'Madara Rikudou', arc: 'Guerra', title: 'Tsukuyomi Infinito Planetário', avatar: '🌙', hp: 4800000000 },
-  { id: 8, name: 'Kaguya Otsutsuki', arc: 'Guerra & Otsutsuki', title: 'Deusa Progenitora do Chakra', avatar: '👸', hp: 95000000000 },
-];
+import { GAUNTLET_BOSSES } from '../../data/gauntletBosses';
+import { Swords, Scroll, GitFork, Trophy, Zap, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 
 export const OperationsPanel: React.FC = () => {
   const activeTab = useGameStore((s) => s.activeTab);
@@ -45,17 +36,23 @@ export const OperationsPanel: React.FC = () => {
     return calculateClickPower(currentCPS, upgrades, clanNodes);
   }, [currentCPS, upgrades, clanNodes]);
 
-  // Estado Local de Combate do Gauntlet
+  // Estado de Combate do Gauntlet (25 Chefes Fases 101 a 125)
   const [bossIndex, setBossIndex] = useState<number>(0);
-  const [bossHp, setBossHp] = useState<number>(MOCK_BOSSES[0].hp);
+  const [bossHp, setBossHp] = useState<Decimal>(GAUNTLET_BOSSES[0].hp);
   const [isHit, setIsHit] = useState<boolean>(false);
   const [lastDmgInfo, setLastDmgInfo] = useState<{ amount: number; isCrit: boolean } | null>(null);
+  const [tierFilter, setTierFilter] = useState<string>('Todos');
 
-  const currentBoss = MOCK_BOSSES[bossIndex];
-  const hpPercent = Math.max(0, Math.min(100, (bossHp / currentBoss.hp) * 100));
+  const currentBoss = GAUNTLET_BOSSES[bossIndex] || GAUNTLET_BOSSES[0];
+  const hpPercent = Math.max(0, Math.min(100, bossHp.div(currentBoss.hp).mul(100).toNumber()));
 
-  // Dano real baseado no Poder de Ataque do Jogador
+  // Dano real do clique do shinobi
   const playerBaseDamage = Math.max(5, Math.floor(clickPower.toNumber()));
+
+  const handleSelectBoss = (idx: number) => {
+    setBossIndex(idx);
+    setBossHp(GAUNTLET_BOSSES[idx].hp);
+  };
 
   const handleAttackBoss = () => {
     setIsHit(true);
@@ -75,30 +72,37 @@ export const OperationsPanel: React.FC = () => {
     }
 
     const calculatedDmg = isCrit ? Math.floor(playerBaseDamage * critMult) : playerBaseDamage;
-    const dmg = Math.max(1, calculatedDmg);
+    const dmg = D(Math.max(1, calculatedDmg));
 
-    setLastDmgInfo({ amount: dmg, isCrit });
+    setLastDmgInfo({ amount: dmg.toNumber(), isCrit });
     setTimeout(() => setLastDmgInfo(null), 600);
 
-    setBossHp((prev: number) => {
-      const next = prev - dmg;
-      if (next <= 0) {
+    setBossHp((prev) => {
+      const next = prev.sub(dmg);
+      if (next.lte(0)) {
         audio.playLevelUp();
-        // Recompensa em chakra proporcional ao chefe abatido
-        const bounty = D(currentBoss.hp).mul(2);
+        // Concede Recompensa de Chakra e Chakra Ancestral
         useGameStore.setState((state) => ({
-          chakra: state.chakra.add(bounty),
+          chakra: state.chakra.add(currentBoss.bountyChakra),
+          chakraAncestral: state.chakraAncestral.add(currentBoss.bountyAncestral),
         }));
 
-        if (bossIndex + 1 < MOCK_BOSSES.length) {
-          setBossIndex((idx: number) => idx + 1);
-          return MOCK_BOSSES[bossIndex + 1].hp;
+        if (bossIndex + 1 < GAUNTLET_BOSSES.length) {
+          const nextIdx = bossIndex + 1;
+          setBossIndex(nextIdx);
+          return GAUNTLET_BOSSES[nextIdx].hp;
         }
-        return 0;
+        return D(0);
       }
       return next;
     });
   };
+
+  // Filtragem dos 25 chefes
+  const filteredBosses = useMemo(() => {
+    if (tierFilter === 'Todos') return GAUNTLET_BOSSES;
+    return GAUNTLET_BOSSES.filter((b) => b.tier === tierFilter);
+  }, [tierFilter]);
 
   return (
     <aside className="h-full bg-shinobi-card/90 backdrop-blur-md border border-shinobi-border hover:border-shinobi-border-orange/30 transition-colors rounded-xl p-3 flex flex-col overflow-hidden shadow-2xl">
@@ -112,7 +116,7 @@ export const OperationsPanel: React.FC = () => {
               : 'bg-glass-card text-shinobi-muted hover:text-white hover:border-chakra-orange/30'
           }`}
         >
-          <Swords className="w-3.5 h-3.5" /> 100 Chefes
+          <Swords className="w-3.5 h-3.5" /> 25 Chefes (101-125)
         </button>
 
         <button
@@ -151,25 +155,31 @@ export const OperationsPanel: React.FC = () => {
 
       {/* Conteúdo Dinâmico das Abas */}
       <div className="flex-1 overflow-y-auto mt-2 pr-1 custom-scrollbar">
-        {/* 1. ABA GAUNTLET (100 CHEFES) */}
+        {/* 1. ABA GAUNTLET (25 CHEFES: FASES 101 A 125) */}
         {activeTab === 'gauntlet' && (
           <div className="space-y-3">
             {/* Arena de Duelo Ativo com Efeito de Flutuação e Barra Fluida */}
-            <div className="p-3 bg-black/60 border border-chakra-orange/40 rounded-xl relative overflow-hidden">
-              <div className="flex items-center gap-3">
+            <div className="p-3 bg-black/60 border border-chakra-orange/40 rounded-xl relative overflow-hidden shadow-xl">
+              <div className="flex items-start gap-3">
                 <div
-                  className={`w-16 h-16 rounded-full bg-white/5 border-2 border-chakra-orange/60 flex items-center justify-center text-3xl animate-hover-bob transition filter ${
+                  className={`w-16 h-16 rounded-full bg-white/5 border-2 border-chakra-orange/60 flex items-center justify-center text-3xl animate-hover-bob transition filter flex-shrink-0 ${
                     isHit ? 'brightness-200 contrast-150 scale-95' : ''
                   }`}
                 >
                   {currentBoss.avatar}
                 </div>
 
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-chakra-orange uppercase tracking-wider">
-                      #{currentBoss.id} [{currentBoss.arc}]
-                    </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1 flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-black text-chakra-orange uppercase tracking-wider bg-chakra-orange/15 px-1.5 py-0.5 rounded border border-chakra-orange/30">
+                        Fase #{currentBoss.id}
+                      </span>
+                      <span className="text-[10px] font-bold text-gray-300 bg-white/10 px-1.5 py-0.5 rounded">
+                        {currentBoss.level}
+                      </span>
+                    </div>
+
                     <div className="flex items-center gap-2">
                       {lastDmgInfo && (
                         <span className={`text-[11px] font-black animate-pulse ${lastDmgInfo.isCrit ? 'text-chakra-gold' : 'text-chakra-orange'}`}>
@@ -181,8 +191,15 @@ export const OperationsPanel: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                  <h4 className="text-sm font-black text-white">{currentBoss.name}</h4>
-                  <p className="text-[11px] text-shinobi-muted truncate">{currentBoss.title}</p>
+
+                  <h4 className="text-sm font-black text-white mt-1 leading-tight">{currentBoss.name}</h4>
+                  <p className="text-[11px] text-chakra-amber font-semibold truncate">{currentBoss.title}</p>
+
+                  {/* Justificativa Canônica / Lore Estratégico */}
+                  <div className="mt-1.5 p-1.5 rounded bg-black/50 border border-white/5 text-[11px] text-zinc-300 leading-snug flex items-start gap-1.5">
+                    <Info className="w-3.5 h-3.5 text-chakra-orange flex-shrink-0 mt-0.5" />
+                    <span>{currentBoss.justification}</span>
+                  </div>
 
                   {/* Barra de Vida Fluida Dinâmica em Fogo Laranja */}
                   <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden mt-2 relative">
@@ -191,44 +208,117 @@ export const OperationsPanel: React.FC = () => {
                       className="h-full bg-gradient-to-r from-red-600 via-chakra-orange to-chakra-amber fluid-bar rounded-full transition-all duration-300"
                     />
                   </div>
+
+                  {/* Recompensas ao Abater */}
+                  <div className="mt-1.5 flex items-center justify-between text-[10px] font-bold">
+                    <span className="text-chakra-gold">
+                      Recompensa: +{formatBigNumber(currentBoss.bountyChakra)} Chakra
+                    </span>
+                    <span className="text-chakra-orange">
+                      +{currentBoss.bountyAncestral} Ancestral
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="mt-3 flex gap-2">
+              {/* Botões de Ação e Navegação */}
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  disabled={bossIndex === 0}
+                  onClick={() => handleSelectBoss(bossIndex - 1)}
+                  title="Chefe Anterior"
+                  className="p-2 rounded-lg bg-white/5 border border-shinobi-border text-shinobi-muted hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
                 <button
                   onClick={handleAttackBoss}
                   className="flex-1 py-2 bg-gradient-to-r from-chakra-orange via-chakra-fire to-red-600 text-white text-xs font-black rounded-lg shadow-orange-glow hover:scale-[1.02] active:scale-95 transition flex items-center justify-center gap-1.5"
                 >
                   <Zap className="w-4 h-4" /> ATACAR COM CHAKRA! (-{formatBigNumber(playerBaseDamage)} Dano)
                 </button>
+
+                <button
+                  disabled={bossIndex === GAUNTLET_BOSSES.length - 1}
+                  onClick={() => handleSelectBoss(bossIndex + 1)}
+                  title="Próximo Chefe"
+                  className="p-2 rounded-lg bg-white/5 border border-shinobi-border text-shinobi-muted hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
 
-            {/* Lista Cronológica de Oponentes */}
+            {/* Filtros de Tier de Poder (Fases 101 a 125) */}
             <div>
-              <h5 className="text-[11px] font-black uppercase text-shinobi-muted tracking-wider mb-2">
-                Oponentes Cronológicos
-              </h5>
-              <div className="grid grid-cols-2 gap-1.5">
-                {MOCK_BOSSES.map((boss, idx) => (
-                  <div
-                    key={boss.id}
-                    onClick={() => {
-                      setBossIndex(idx);
-                      setBossHp(boss.hp);
-                    }}
-                    className={`p-2 rounded-lg border text-xs cursor-pointer transition ${
-                      bossIndex === idx
-                        ? 'bg-chakra-orange/20 border-chakra-orange text-white'
-                        : 'bg-glass-card border-shinobi-border text-shinobi-muted hover:text-white hover:border-chakra-orange/30'
+              <div className="flex items-center justify-between mb-1.5">
+                <h5 className="text-[11px] font-black uppercase text-shinobi-muted tracking-wider">
+                  Escala de Progressão (25 Chefes)
+                </h5>
+                <span className="text-[10px] font-bold text-chakra-orange">
+                  Fase #{currentBoss.id} / 125
+                </span>
+              </div>
+
+              {/* Filtro Rápido de Tiers */}
+              <div className="flex gap-1 overflow-x-auto pb-1.5 custom-scrollbar text-[10px] font-bold">
+                {[
+                  { label: 'Todos (25)', val: 'Todos' },
+                  { label: 'Chūnin/Jōnin (101-105)', val: 'Chūnin / Jōnin Básico' },
+                  { label: 'Elite/Pré-Kage (106-113)', val: 'Jōnin de Elite / Pré-Kage' },
+                  { label: 'Kage/Lendário (114-120)', val: 'Kage / Lendário' },
+                  { label: 'Divino (121-125)', val: 'Continental / Divino' },
+                ].map((tier) => (
+                  <button
+                    key={tier.val}
+                    onClick={() => setTierFilter(tier.val)}
+                    className={`px-2 py-1 rounded-md whitespace-nowrap border transition ${
+                      tierFilter === tier.val
+                        ? 'bg-chakra-orange/20 border-chakra-orange text-chakra-orange font-black'
+                        : 'bg-glass-card border-shinobi-border text-shinobi-muted hover:text-white'
                     }`}
                   >
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-lg">{boss.avatar}</span>
-                      <span className="font-bold truncate">{boss.name}</span>
-                    </div>
-                  </div>
+                    {tier.label}
+                  </button>
                 ))}
+              </div>
+
+              {/* Grid dos Chefes com Identificação de Fase e Nível */}
+              <div className="grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
+                {filteredBosses.map((boss) => {
+                  const originalIndex = GAUNTLET_BOSSES.findIndex((b) => b.id === boss.id);
+                  const isSelected = bossIndex === originalIndex;
+
+                  return (
+                    <div
+                      key={boss.id}
+                      onClick={() => handleSelectBoss(originalIndex)}
+                      className={`p-2 rounded-lg border text-xs cursor-pointer transition flex items-center justify-between ${
+                        isSelected
+                          ? 'bg-chakra-orange/20 border-chakra-orange text-white shadow-sm'
+                          : 'bg-glass-card border-shinobi-border text-shinobi-muted hover:text-white hover:border-chakra-orange/30'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xl flex-shrink-0">{boss.avatar}</span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] font-black text-chakra-orange">#{boss.id}</span>
+                            <span className="font-bold truncate text-[11px] text-white">{boss.name}</span>
+                          </div>
+                          <span className="text-[9px] text-zinc-400 block truncate">{boss.level}</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right flex-shrink-0 ml-1">
+                        <span className="text-[10px] font-mono text-chakra-amber font-semibold block">
+                          {formatBigNumber(boss.hp)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
