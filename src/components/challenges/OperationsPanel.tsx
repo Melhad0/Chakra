@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useGameStore } from '../../store/useGameStore';
-import { formatBigNumber } from '../../engine/BigNumber';
+import { formatBigNumber, D } from '../../engine/BigNumber';
 import { CLAN_NODES } from '../../engine/data';
+import { calculateTotalCPS, calculateClickPower } from '../../engine/formulas';
 import { audio } from '../../engine/audio';
 import { Swords, Scroll, GitFork, Trophy, Zap } from 'lucide-react';
 
@@ -23,25 +24,72 @@ export const OperationsPanel: React.FC = () => {
   const chakraAncestral = useGameStore((s) => s.chakraAncestral);
   const clanNodes = useGameStore((s) => s.clanNodes);
   const buyClanNode = useGameStore((s) => s.buyClanNode);
+  const generators = useGameStore((s) => s.generators);
+  const upgrades = useGameStore((s) => s.upgrades);
+  const gatesUnlocked = useGameStore((s) => s.gatesUnlocked);
+  const gatesActiveTimer = useGameStore((s) => s.gatesActiveTimer);
+  const exhaustionTimer = useGameStore((s) => s.exhaustionTimer);
+
+  const currentCPS = useMemo(() => {
+    return calculateTotalCPS(
+      generators,
+      upgrades,
+      clanNodes,
+      gatesUnlocked,
+      gatesActiveTimer > 0,
+      exhaustionTimer > 0
+    );
+  }, [generators, upgrades, clanNodes, gatesUnlocked, gatesActiveTimer, exhaustionTimer]);
+
+  const clickPower = useMemo(() => {
+    return calculateClickPower(currentCPS, upgrades, clanNodes);
+  }, [currentCPS, upgrades, clanNodes]);
 
   // Estado Local de Combate do Gauntlet
   const [bossIndex, setBossIndex] = useState<number>(0);
   const [bossHp, setBossHp] = useState<number>(MOCK_BOSSES[0].hp);
   const [isHit, setIsHit] = useState<boolean>(false);
+  const [lastDmgInfo, setLastDmgInfo] = useState<{ amount: number; isCrit: boolean } | null>(null);
 
   const currentBoss = MOCK_BOSSES[bossIndex];
   const hpPercent = Math.max(0, Math.min(100, (bossHp / currentBoss.hp) * 100));
 
+  // Dano real baseado no Poder de Ataque do Jogador
+  const playerBaseDamage = Math.max(5, Math.floor(clickPower.toNumber()));
+
   const handleAttackBoss = () => {
-    audio.playCrit();
     setIsHit(true);
     setTimeout(() => setIsHit(false), 120);
 
-    const dmg = Math.max(10, Math.floor(currentBoss.hp * 0.15));
+    // Chance de crítico baseada nos nós de clã (Sharingan)
+    let critChance = 0.05;
+    let critMult = 2.0;
+    if (clanNodes['sharingan_awakening']) critChance += 0.10;
+    if (clanNodes['mangekyo_sharingan_lineage']) critMult = 3.0;
+
+    const isCrit = Math.random() < critChance;
+    if (isCrit) {
+      audio.playCrit();
+    } else {
+      audio.playClick();
+    }
+
+    const calculatedDmg = isCrit ? Math.floor(playerBaseDamage * critMult) : playerBaseDamage;
+    const dmg = Math.max(1, calculatedDmg);
+
+    setLastDmgInfo({ amount: dmg, isCrit });
+    setTimeout(() => setLastDmgInfo(null), 600);
+
     setBossHp((prev: number) => {
       const next = prev - dmg;
       if (next <= 0) {
         audio.playLevelUp();
+        // Recompensa em chakra proporcional ao chefe abatido
+        const bounty = D(currentBoss.hp).mul(2);
+        useGameStore.setState((state) => ({
+          chakra: state.chakra.add(bounty),
+        }));
+
         if (bossIndex + 1 < MOCK_BOSSES.length) {
           setBossIndex((idx: number) => idx + 1);
           return MOCK_BOSSES[bossIndex + 1].hp;
@@ -122,9 +170,16 @@ export const OperationsPanel: React.FC = () => {
                     <span className="text-[10px] font-bold text-chakra-orange uppercase tracking-wider">
                       #{currentBoss.id} [{currentBoss.arc}]
                     </span>
-                    <span className="text-xs font-bold text-shinobi-muted">
-                      {bossHp} / {currentBoss.hp} HP
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {lastDmgInfo && (
+                        <span className={`text-[11px] font-black animate-pulse ${lastDmgInfo.isCrit ? 'text-chakra-gold' : 'text-chakra-orange'}`}>
+                          -{formatBigNumber(lastDmgInfo.amount)} {lastDmgInfo.isCrit ? '🔥 CRÍTICO!' : '💥'}
+                        </span>
+                      )}
+                      <span className="text-xs font-bold text-shinobi-muted">
+                        {formatBigNumber(bossHp)} / {formatBigNumber(currentBoss.hp)} HP
+                      </span>
+                    </div>
                   </div>
                   <h4 className="text-sm font-black text-white">{currentBoss.name}</h4>
                   <p className="text-[11px] text-shinobi-muted truncate">{currentBoss.title}</p>
@@ -144,7 +199,7 @@ export const OperationsPanel: React.FC = () => {
                   onClick={handleAttackBoss}
                   className="flex-1 py-2 bg-gradient-to-r from-chakra-orange via-chakra-fire to-red-600 text-white text-xs font-black rounded-lg shadow-orange-glow hover:scale-[1.02] active:scale-95 transition flex items-center justify-center gap-1.5"
                 >
-                  <Zap className="w-4 h-4" /> ATACAR COM CHAKRA!
+                  <Zap className="w-4 h-4" /> ATACAR COM CHAKRA! (-{formatBigNumber(playerBaseDamage)} Dano)
                 </button>
               </div>
             </div>
