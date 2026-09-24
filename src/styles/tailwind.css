@@ -5,6 +5,11 @@
 @layer base {
   body {
     @apply bg-shinobi-bg text-shinobi-text font-sans antialiased select-none overflow-hidden m-0 p-0;
+    background-color: #050507;
+    background-image: 
+      radial-gradient(circle at 50% 35%, rgba(255, 107, 0, 0.09) 0%, transparent 60%),
+      radial-gradient(circle at 10% 90%, rgba(255, 69, 0, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 90% 10%, rgba(255, 145, 0, 0.05) 0%, transparent 40%);
   }
 }
 
@@ -16,7 +21,7 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.25);
+    background: rgba(0, 0, 0, 0.4);
     border-radius: 4px;
   }
 
@@ -26,10 +31,10 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 229, 255, 0.4);
+    background: rgba(255, 107, 0, 0.5);
   }
 
-  /* Efeito de fluido com crista ondulada animada */
+  /* Efeito de fluido com crista ondulada animada em fogo/laranja */
   .fluid-bar {
     background-size: 200% 100%;
     animation: fluidFlow 3s linear infinite;

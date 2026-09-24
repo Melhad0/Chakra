@@ -34,8 +34,8 @@ const FloatingNumberItem: React.FC<FloatingItemProps> = ({ id, x, y, text, isCri
       }}
       className={`absolute pointer-events-none font-ninja font-black animate-float-fade z-30 select-none ${
         isCrit
-          ? 'text-2xl text-chakra-gold drop-shadow-[0_0_15px_#ffd700]'
-          : 'text-base text-white drop-shadow-[0_0_8px_#00e5ff]'
+          ? 'text-3xl text-chakra-gold drop-shadow-[0_0_18px_#ffb300]'
+          : 'text-lg text-chakra-orange drop-shadow-[0_0_12px_#ff6b00]'
       }`}
     >
       {text}
@@ -66,7 +66,7 @@ const ShockwaveItem: React.FC<ShockwaveProps> = ({ id, x, y, isCrit, onRemove })
       className={`absolute pointer-events-none rounded-full border animate-shockwave-pulse z-20 ${
         isCrit
           ? 'w-24 h-24 border-chakra-gold bg-chakra-gold/25 shadow-gold-glow'
-          : 'w-20 h-20 border-chakra-water bg-chakra-water/20 shadow-chakra-glow'
+          : 'w-20 h-20 border-chakra-orange bg-chakra-orange/20 shadow-orange-glow'
       }`}
     />
   );
@@ -120,8 +120,8 @@ export const ActionStage: React.FC = () => {
   const canUnlockGate = nextGate && chakra.gte(nextGate.cost);
 
   return (
-    <main className="h-full bg-shinobi-card/80 backdrop-blur-md border border-shinobi-border rounded-xl p-4 flex flex-col items-center justify-between relative overflow-hidden select-none">
-      {/* 1. PALCO FOCAL DO SELO REATIVO COM ANÉIS CONCÊNTRICOS & AURA */}
+    <main className="h-full bg-shinobi-card/90 backdrop-blur-md border border-shinobi-border hover:border-shinobi-border-orange/50 transition-colors rounded-xl p-4 flex flex-col items-center justify-between relative overflow-hidden select-none shadow-2xl">
+      {/* 1. PALCO FOCAL DO SELO REATIVO COM ANÉIS CONCÊNTRICOS & AURA EM FOGO LARANJA */}
       <div
         ref={stageRef}
         onClick={handleClick}
@@ -129,19 +129,19 @@ export const ActionStage: React.FC = () => {
           stageShaking ? 'animate-[bounce_0.2s_ease-in-out_2]' : ''
         }`}
       >
-        {/* Anéis Concêntricos Giratórios em Velocidades Alternadas */}
-        <div className="absolute w-[290px] h-[290px] rounded-full border-2 border-dashed border-chakra-water/25 animate-spin-slow pointer-events-none" />
-        <div className="absolute w-[230px] h-[230px] rounded-full border-2 border-dotted border-chakra-fire/35 animate-spin-reverse pointer-events-none" />
+        {/* Anéis Concêntricos Giratórios em Fogo Shinobi e Âmbar */}
+        <div className="absolute w-[290px] h-[290px] rounded-full border-2 border-dashed border-chakra-orange/30 animate-spin-slow pointer-events-none" />
+        <div className="absolute w-[230px] h-[230px] rounded-full border-2 border-dotted border-chakra-amber/40 animate-spin-reverse pointer-events-none" />
 
-        {/* Aura Viva em Chamas de Chakra */}
-        <div className="absolute w-[190px] h-[190px] rounded-full bg-radial from-chakra-water/30 via-chakra-fire/20 to-transparent blur-xl animate-pulse-slow pointer-events-none" />
+        {/* Aura Viva em Chamas de Chakra Laranja / Kurama */}
+        <div className="absolute w-[200px] h-[200px] rounded-full bg-radial from-chakra-orange/35 via-chakra-fire/20 to-transparent blur-2xl animate-pulse-slow pointer-events-none" />
 
-        {/* Botão Central Reativo (Squash & Stretch) */}
+        {/* Botão Central Reativo Preto Obsidiana com Borda e Brilho Laranja */}
         <div
           id="click-btn"
-          className="relative z-10 w-36 h-36 rounded-full bg-gradient-to-br from-white/15 to-black/60 border-2 border-chakra-water/70 flex items-center justify-center shadow-chakra-glow active:scale-90 transition-transform duration-100 ease-out"
+          className="relative z-10 w-36 h-36 rounded-full bg-gradient-to-br from-neutral-900 via-black to-neutral-950 border-2 border-chakra-orange flex items-center justify-center shadow-orange-glow hover:border-amber-400 hover:shadow-[0_0_40px_rgba(255,107,0,0.8)] active:scale-90 transition-all duration-150 ease-out"
         >
-          <span className="text-6xl filter drop-shadow-[0_0_12px_rgba(255,255,255,0.4)] pointer-events-none">
+          <span className="text-6xl filter drop-shadow-[0_0_16px_rgba(255,107,0,0.8)] pointer-events-none">
             🤚
           </span>
         </div>
@@ -171,12 +171,12 @@ export const ActionStage: React.FC = () => {
           />
         ))}
 
-        {/* Badges de Status do Clique */}
+        {/* Badges de Status do Clique em Laranja e Ouro */}
         <div className="flex gap-2.5 mt-5 z-10 pointer-events-none">
-          <div className="px-3 py-1 rounded-full bg-chakra-water/10 border border-chakra-water text-chakra-water text-xs font-black">
+          <div className="px-3 py-1 rounded-full bg-chakra-orange/15 border border-chakra-orange/70 text-chakra-orange text-xs font-black shadow-sm">
             Clique: +{formatBigNumber(clickPower)}
           </div>
-          <div className="px-3 py-1 rounded-full bg-chakra-earth/10 border border-chakra-earth text-chakra-earth text-xs font-black">
+          <div className="px-3 py-1 rounded-full bg-chakra-amber/15 border border-chakra-amber/70 text-chakra-amber text-xs font-black shadow-sm">
             Crítico: {clanNodes['sharingan_awakening'] ? '15%' : '5%'} ({clanNodes['mangekyo_sharingan_lineage'] ? '3.0x' : '2.0x'})
           </div>
         </div>
@@ -257,7 +257,7 @@ export const ActionStage: React.FC = () => {
 
       {/* 3. LOG DINÂMICO DE AÇÃO */}
       <div className="w-full mt-2 py-1.5 px-3 bg-black/50 border border-shinobi-border rounded-lg text-[11px] text-shinobi-muted flex items-center gap-2 flex-shrink-0">
-        <ShieldAlert className="w-3.5 h-3.5 text-chakra-water" />
+        <ShieldAlert className="w-3.5 h-3.5 text-chakra-orange" />
         <span className="truncate">
           {exhaustionTimer > 0
             ? 'O corpo entrou em colapso devido à liberação do Portão da Morte!'

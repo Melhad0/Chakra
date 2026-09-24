@@ -53,15 +53,15 @@ export const OperationsPanel: React.FC = () => {
   };
 
   return (
-    <aside className="h-full bg-shinobi-card/80 backdrop-blur-md border border-shinobi-border rounded-xl p-3 flex flex-col overflow-hidden">
+    <aside className="h-full bg-shinobi-card/90 backdrop-blur-md border border-shinobi-border hover:border-shinobi-border-orange/30 transition-colors rounded-xl p-3 flex flex-col overflow-hidden shadow-2xl">
       {/* Abas Deslizantes com Microinterações */}
-      <nav className="flex items-center gap-1 pb-2 border-b border-shinobi-border overflow-x-auto custom-scrollbar flex-shrink-0">
+      <nav className="flex items-center gap-1.5 pb-2 border-b border-shinobi-border overflow-x-auto custom-scrollbar flex-shrink-0">
         <button
           onClick={() => setActiveTab('gauntlet')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${
             activeTab === 'gauntlet'
-              ? 'bg-chakra-fire text-white shadow-fire-glow'
-              : 'bg-glass-card text-shinobi-muted hover:text-white'
+              ? 'bg-gradient-to-r from-chakra-orange to-chakra-amber text-black font-black shadow-orange-glow'
+              : 'bg-glass-card text-shinobi-muted hover:text-white hover:border-chakra-orange/30'
           }`}
         >
           <Swords className="w-3.5 h-3.5" /> 100 Chefes
@@ -71,8 +71,8 @@ export const OperationsPanel: React.FC = () => {
           onClick={() => setActiveTab('clans')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${
             activeTab === 'clans'
-              ? 'bg-chakra-water text-black shadow-chakra-glow font-black'
-              : 'bg-glass-card text-shinobi-muted hover:text-white'
+              ? 'bg-gradient-to-r from-chakra-orange to-chakra-amber text-black font-black shadow-orange-glow'
+              : 'bg-glass-card text-shinobi-muted hover:text-white hover:border-chakra-orange/30'
           }`}
         >
           <GitFork className="w-3.5 h-3.5" /> Árvore de Clãs
@@ -82,8 +82,8 @@ export const OperationsPanel: React.FC = () => {
           onClick={() => setActiveTab('exam')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${
             activeTab === 'exam'
-              ? 'bg-chakra-wind text-black font-black'
-              : 'bg-glass-card text-shinobi-muted hover:text-white'
+              ? 'bg-gradient-to-r from-chakra-orange to-chakra-amber text-black font-black shadow-orange-glow'
+              : 'bg-glass-card text-shinobi-muted hover:text-white hover:border-chakra-orange/30'
           }`}
         >
           <Scroll className="w-3.5 h-3.5" /> Exame Chūnin
@@ -93,8 +93,8 @@ export const OperationsPanel: React.FC = () => {
           onClick={() => setActiveTab('rankings')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${
             activeTab === 'rankings'
-              ? 'bg-chakra-gold text-black font-black'
-              : 'bg-glass-card text-shinobi-muted hover:text-white'
+              ? 'bg-gradient-to-r from-chakra-orange to-chakra-amber text-black font-black shadow-orange-glow'
+              : 'bg-glass-card text-shinobi-muted hover:text-white hover:border-chakra-orange/30'
           }`}
         >
           <Trophy className="w-3.5 h-3.5" /> Ranks
@@ -107,10 +107,10 @@ export const OperationsPanel: React.FC = () => {
         {activeTab === 'gauntlet' && (
           <div className="space-y-3">
             {/* Arena de Duelo Ativo com Efeito de Flutuação e Barra Fluida */}
-            <div className="p-3 bg-black/40 border border-chakra-fire/30 rounded-xl relative overflow-hidden">
+            <div className="p-3 bg-black/60 border border-chakra-orange/40 rounded-xl relative overflow-hidden">
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-16 h-16 rounded-full bg-white/5 border-2 border-chakra-fire/50 flex items-center justify-center text-3xl animate-hover-bob transition filter ${
+                  className={`w-16 h-16 rounded-full bg-white/5 border-2 border-chakra-orange/60 flex items-center justify-center text-3xl animate-hover-bob transition filter ${
                     isHit ? 'brightness-200 contrast-150 scale-95' : ''
                   }`}
                 >
@@ -119,7 +119,7 @@ export const OperationsPanel: React.FC = () => {
 
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-chakra-fire uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-chakra-orange uppercase tracking-wider">
                       #{currentBoss.id} [{currentBoss.arc}]
                     </span>
                     <span className="text-xs font-bold text-shinobi-muted">
@@ -129,11 +129,11 @@ export const OperationsPanel: React.FC = () => {
                   <h4 className="text-sm font-black text-white">{currentBoss.name}</h4>
                   <p className="text-[11px] text-shinobi-muted truncate">{currentBoss.title}</p>
 
-                  {/* Barra de Vida Fluida Dinâmica com Rastro Fantasma */}
+                  {/* Barra de Vida Fluida Dinâmica em Fogo Laranja */}
                   <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden mt-2 relative">
                     <div
                       style={{ width: `${hpPercent}%` }}
-                      className="h-full bg-gradient-to-r from-red-600 via-orange-500 to-red-600 fluid-bar rounded-full transition-all duration-300"
+                      className="h-full bg-gradient-to-r from-red-600 via-chakra-orange to-chakra-amber fluid-bar rounded-full transition-all duration-300"
                     />
                   </div>
                 </div>
@@ -142,7 +142,7 @@ export const OperationsPanel: React.FC = () => {
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={handleAttackBoss}
-                  className="flex-1 py-2 bg-gradient-to-r from-chakra-fire to-red-600 text-white text-xs font-black rounded-lg shadow-fire-glow hover:scale-[1.02] active:scale-95 transition flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2 bg-gradient-to-r from-chakra-orange via-chakra-fire to-red-600 text-white text-xs font-black rounded-lg shadow-orange-glow hover:scale-[1.02] active:scale-95 transition flex items-center justify-center gap-1.5"
                 >
                   <Zap className="w-4 h-4" /> ATACAR COM CHAKRA!
                 </button>
@@ -164,8 +164,8 @@ export const OperationsPanel: React.FC = () => {
                     }}
                     className={`p-2 rounded-lg border text-xs cursor-pointer transition ${
                       bossIndex === idx
-                        ? 'bg-chakra-fire/20 border-chakra-fire text-white'
-                        : 'bg-glass-card border-shinobi-border text-shinobi-muted hover:text-white'
+                        ? 'bg-chakra-orange/20 border-chakra-orange text-white'
+                        : 'bg-glass-card border-shinobi-border text-shinobi-muted hover:text-white hover:border-chakra-orange/30'
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
@@ -182,9 +182,9 @@ export const OperationsPanel: React.FC = () => {
         {/* 2. ABA ÁRVORE DE CLÃS COM NÉVOA DA GUERRA */}
         {activeTab === 'clans' && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between bg-black/40 p-2.5 rounded-lg border border-shinobi-border">
+            <div className="flex items-center justify-between bg-black/60 p-2.5 rounded-lg border border-shinobi-border">
               <span className="text-xs font-bold text-shinobi-muted">Chakra Ancestral:</span>
-              <span className="text-sm font-black text-chakra-ancestral">{chakraAncestral.toString()}</span>
+              <span className="text-sm font-black text-chakra-orange">{chakraAncestral.toString()}</span>
             </div>
 
             <div className="space-y-2">
@@ -213,9 +213,9 @@ export const OperationsPanel: React.FC = () => {
                     key={node.id}
                     className={`p-3 rounded-lg border transition ${
                       isUnlocked
-                        ? 'bg-chakra-wind/10 border-chakra-wind/60'
+                        ? 'bg-chakra-orange/15 border-chakra-orange/60'
                         : canAfford
-                        ? 'bg-glass-card border-chakra-water/50'
+                        ? 'bg-glass-card border-chakra-orange/50 hover:border-chakra-orange'
                         : 'bg-glass-card border-shinobi-border opacity-70'
                     }`}
                   >
@@ -230,7 +230,7 @@ export const OperationsPanel: React.FC = () => {
                     </div>
 
                     <div className="mt-2.5 flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-chakra-ancestral">
+                      <span className="text-[10px] font-bold text-chakra-orange">
                         {isUnlocked ? '✓ Desperto' : `Custo: ${node.cost} Ancestral`}
                       </span>
 
@@ -240,7 +240,7 @@ export const OperationsPanel: React.FC = () => {
                           onClick={() => buyClanNode(node.id)}
                           className={`px-3 py-1 rounded text-[11px] font-black transition ${
                             canAfford
-                              ? 'bg-chakra-water text-black shadow-chakra-glow hover:scale-105'
+                              ? 'bg-gradient-to-r from-chakra-orange to-chakra-amber text-black shadow-orange-glow hover:scale-105'
                               : 'bg-white/10 text-shinobi-muted cursor-not-allowed'
                           }`}
                         >
@@ -258,7 +258,7 @@ export const OperationsPanel: React.FC = () => {
         {/* 3. ABA EXAME CHŪNIN */}
         {activeTab === 'exam' && (
           <div className="space-y-3 p-1 text-center">
-            <div className="p-4 bg-glass-card border border-chakra-wind/40 rounded-xl">
+            <div className="p-4 bg-glass-card border border-chakra-orange/40 rounded-xl">
               <h4 className="text-sm font-black text-white mb-1">📜 Exame Chūnin Oficial</h4>
               <p className="text-xs text-shinobi-muted mb-4">
                 Supere as 3 fases de teste (Prova Escrita, Floresta da Morte e Torneio 1v1 com QTE).
@@ -266,10 +266,10 @@ export const OperationsPanel: React.FC = () => {
 
               <div className="space-y-2 text-left text-xs mb-4">
                 <div className="p-2 bg-white/5 rounded border border-shinobi-border">
-                  <span className="font-bold text-chakra-wind">1ª Fase:</span> Prova Escrita & Trapaça Furtiva
+                  <span className="font-bold text-chakra-orange">1ª Fase:</span> Prova Escrita & Trapaça Furtiva
                 </div>
                 <div className="p-2 bg-white/5 rounded border border-shinobi-border">
-                  <span className="font-bold text-chakra-water">2ª Fase:</span> Floresta da Morte (180 segundos)
+                  <span className="font-bold text-chakra-amber">2ª Fase:</span> Floresta da Morte (180 segundos)
                 </div>
                 <div className="p-2 bg-white/5 rounded border border-shinobi-border">
                   <span className="font-bold text-chakra-fire">3ª Fase:</span> Torneio na Arena & Reflexos de Parry
@@ -278,7 +278,7 @@ export const OperationsPanel: React.FC = () => {
 
               <button
                 onClick={() => alert('O Exame Chūnin começará! Bônus de 2x permanente em todo o CPS!')}
-                className="w-full py-2.5 bg-gradient-to-r from-chakra-wind to-emerald-500 text-black font-black text-xs rounded-lg shadow-md hover:scale-[1.02] transition"
+                className="w-full py-2.5 bg-gradient-to-r from-chakra-orange to-chakra-amber text-black font-black text-xs rounded-lg shadow-orange-glow hover:scale-[1.02] transition"
               >
                 INICIAR DESAFIO DO EXAME
               </button>
@@ -304,9 +304,9 @@ export const OperationsPanel: React.FC = () => {
               <span className="font-bold text-amber-600">🥉 3º Naruto Uzumaki</span>
               <span className="font-mono text-shinobi-muted">5.00 Qi</span>
             </div>
-            <div className="p-2.5 bg-chakra-fire/10 border border-chakra-fire/50 rounded-lg flex items-center justify-between text-xs font-bold text-white">
-              <span>🌟 Você (Shinobi)</span>
-              <span className="font-mono text-chakra-water">{formatBigNumber(chakra)}</span>
+            <div className="p-2.5 bg-chakra-orange/15 border border-chakra-orange/60 rounded-lg flex items-center justify-between text-xs font-bold text-white">
+              <span className="text-chakra-orange">🌟 Você (Shinobi)</span>
+              <span className="font-mono text-chakra-orange font-black">{formatBigNumber(chakra)}</span>
             </div>
           </div>
         )}

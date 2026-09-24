@@ -20,24 +20,24 @@ export const EconomyPanel: React.FC = () => {
   const upgradeKeys = React.useMemo(() => Object.keys(INITIAL_UPGRADES), []);
 
   return (
-    <aside className="h-full bg-shinobi-card/80 backdrop-blur-md border border-shinobi-border rounded-xl p-3 flex flex-col overflow-hidden">
+    <aside className="h-full bg-shinobi-card/90 backdrop-blur-md border border-shinobi-border hover:border-shinobi-border-orange/30 transition-colors rounded-xl p-3 flex flex-col overflow-hidden shadow-2xl">
       {/* Cabeçalho da Base & Controles de Compra em Lote */}
       <div className="pb-3 border-b border-shinobi-border flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xs font-black tracking-wider uppercase text-white flex items-center gap-1.5">
             <span>📜</span> Base & Recrutamento
           </h2>
-          <span className="text-[10px] text-shinobi-muted font-bold">30 Tropas</span>
+          <span className="text-[10px] text-chakra-orange font-bold">30 Tropas</span>
         </div>
 
         {/* Modo de Compra/Venda e Seleção de Quantidade */}
-        <div className="flex items-center justify-between gap-1.5 bg-black/40 p-1 rounded-lg border border-shinobi-border">
+        <div className="flex items-center justify-between gap-1.5 bg-black/60 p-1 rounded-lg border border-shinobi-border">
           <div className="flex gap-1">
             <button
               onClick={() => setShopMode('buy')}
-              className={`px-2.5 py-1 rounded text-[11px] font-bold transition ${
+              className={`px-2.5 py-1 rounded text-[11px] font-black transition ${
                 shopMode === 'buy'
-                  ? 'bg-chakra-fire text-white shadow-sm'
+                  ? 'bg-gradient-to-r from-chakra-orange to-chakra-amber text-black shadow-orange-glow'
                   : 'text-shinobi-muted hover:text-white'
               }`}
             >
@@ -47,7 +47,7 @@ export const EconomyPanel: React.FC = () => {
               onClick={() => setShopMode('sell')}
               className={`px-2.5 py-1 rounded text-[11px] font-bold transition ${
                 shopMode === 'sell'
-                  ? 'bg-chakra-water text-black shadow-sm'
+                  ? 'bg-zinc-700 text-white shadow-sm border border-zinc-600'
                   : 'text-shinobi-muted hover:text-white'
               }`}
             >
@@ -62,7 +62,7 @@ export const EconomyPanel: React.FC = () => {
                 onClick={() => setShopQty(qty)}
                 className={`px-2 py-0.5 rounded text-[11px] font-bold transition ${
                   shopQty === qty
-                    ? 'bg-white/20 text-white border border-white/30'
+                    ? 'bg-chakra-orange/20 text-chakra-orange border border-chakra-orange/50'
                     : 'text-shinobi-muted hover:text-white'
                 }`}
               >
@@ -94,7 +94,7 @@ export const EconomyPanel: React.FC = () => {
                 title={`${upg.name} (${formatBigNumber(upg.cost)} Chakra) - ${upg.description}`}
                 className={`flex-shrink-0 px-2.5 py-1 rounded-md text-[11px] font-bold border transition flex items-center gap-1 ${
                   canAfford
-                    ? 'bg-chakra-fire/20 border-chakra-fire/60 text-white hover:bg-chakra-fire/30 shadow-sm'
+                    ? 'bg-chakra-orange/15 border-chakra-orange/60 text-white hover:bg-chakra-orange/25 shadow-sm'
                     : 'bg-white/5 border-shinobi-border text-shinobi-muted/60 opacity-60 cursor-not-allowed'
                 }`}
               >
@@ -129,8 +129,8 @@ export const EconomyPanel: React.FC = () => {
               onClick={() => buyGenerator(key)}
               className={`p-2 rounded-lg border transition flex items-center justify-between cursor-pointer ${
                 canAfford
-                  ? 'bg-glass-card hover:bg-glass-hover border-shinobi-border hover:border-chakra-water/40'
-                  : 'bg-black/20 border-shinobi-border/40 opacity-60'
+                  ? 'bg-glass-card hover:bg-glass-hover border-shinobi-border hover:border-chakra-orange/50 hover:shadow-[0_0_15px_rgba(255,107,0,0.12)]'
+                  : 'bg-black/40 border-shinobi-border/40 opacity-60'
               }`}
             >
               <div className="flex items-center gap-2.5">
@@ -140,7 +140,7 @@ export const EconomyPanel: React.FC = () => {
                 <div>
                   <h3 className="text-xs font-bold text-white leading-tight">{gen.name}</h3>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] text-chakra-wind font-bold">
+                    <span className="text-[10px] text-chakra-amber font-bold">
                       +{formatBigNumber(gen.baseCPS)} CPS
                     </span>
                     <span className="text-[10px] text-shinobi-muted">
@@ -154,7 +154,7 @@ export const EconomyPanel: React.FC = () => {
               </div>
 
               <div className="text-right">
-                <span className="text-sm font-black text-white px-2 py-0.5 rounded bg-white/5 border border-white/10">
+                <span className="text-sm font-black text-chakra-orange px-2 py-0.5 rounded bg-black/50 border border-chakra-orange/30">
                   {gen.level}
                 </span>
               </div>
