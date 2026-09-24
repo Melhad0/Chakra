@@ -1,20 +1,27 @@
+/**
+ * game.js - Motor Central do Chakra Clicker (Arquitetura Refatorada)
+ * Stack: BreakInfinity (BigNumber), Web Audio API, Canvas Particles,
+ * Game Loop Desacoplado com rAF + Delta Time, Fórmulas de Balanceamento Canônicas.
+ */
+
+import { Decimal, D, formatBigNumber, setNotationMode, getNotationMode } from './BigNumber.js';
+import { sound } from './audio.js';
+import { particles } from './particles.js';
+import { CLAN_TREE, buyClanNode, renderClanTree } from './clans.js';
+import { chuninExamManager } from './exam.js';
+import { gauntletManager } from './gauntlet.js';
+import { rankingsManager } from './rankings.js';
+import { presenceRewardManager } from './rewards.js';
 import { startMission, speedUpMission, claimMission, updateMissionsProgress, handleMissionClick, startParryGame, triggerParry, switchTrainingGame, startJutsuGame, startBalanceGame, balanceClick } from './missions.js';
 import { performPrestige, buyPrestigeUpgrade, getPendingPrestigePoints } from './prestige.js';
 import { rollGacha, equipSword } from './gacha.js';
 
-// Configuration constants
 export function formatNumber(num) {
-    if (num === null || num === undefined || isNaN(num)) return "0";
-    if (num === 0) return "0";
-    if (num < 1000 && num >= -1000) {
-        return num % 1 === 0 ? num.toString() : num.toFixed(1);
-    }
-    const suffixes = ["", "k", "m", "b", "t", "qa", "qi", "sx", "sp", "oc", "no", "dc"];
-    const i = Math.floor(Math.log10(Math.abs(num)) / 3);
-    if (i >= suffixes.length) return num.toExponential(2);
-    const formatted = (num / Math.pow(10, i * 3));
-    return formatted.toFixed(1).replace(/\.0$/, "") + suffixes[i];
+    return formatBigNumber(num);
 }
+
+// Curva de custo clássica solicitada: Custo = Base * 1.15^Qtd
+export const COST_MULTIPLIER = 1.15;
 
 export const BASE_COSTS = {
     academy_student: 98,
@@ -37,16 +44,49 @@ export const BASE_COSTS = {
     edo_tensei_warrior: 7800000000000000,
     hyuga_elite: 55250000000000000,
     uchiha_elite: 390000000000000000,
-    senju_elite: 2925000000000000000,
-    otsutsuki_spirit: 22750000000000000000,
-    bijuu_manifestation: 182000000000000000000,
-    six_paths_clone: 1430000000000000000000,
-    shinobi_alliance_division: 11700000000000001048576,
-    kaguya_creation: 97500000000000001048576,
-    hamura_guardian: 780000000000000008388608,
-    indras_reincarnation: 6500000000000000696254464,
-    asuras_reincarnation: 55250000000000004307550208,
-    otsutsuki_god: 487499999999999982425866240
+    senju_elite: "2925000000000000000",
+    otsutsuki_spirit: "22750000000000000000",
+    bijuu_manifestation: "182000000000000000000",
+    six_paths_clone: "1430000000000000000000",
+    shinobi_alliance_division: "11700000000000000000000",
+    kaguya_creation: "97500000000000000000000",
+    hamura_guardian: "780000000000000000000000",
+    indras_reincarnation: "6500000000000000000000000",
+    asuras_reincarnation: "55250000000000000000000000",
+    otsutsuki_god: "487500000000000000000000000"
+};
+
+export const BASE_CPS_MAP = {
+    academy_student: 0.5,
+    shadow_clone: 2,
+    genin: 8,
+    chunin: 35.0,
+    jonin: 150.0,
+    anbu: 600.0,
+    sannin: 2500.0,
+    kage: 12000.0,
+    jinchuriki: 65000,
+    rikudou: 350000.0,
+    toad_summon: 1800000.0,
+    slug_summon: 8500000.0,
+    snake_summon: 40000000.0,
+    sound_five: 180000000.0,
+    seven_swordsmen: 800000000.0,
+    akatsuki_member: 3500000000.0,
+    taka_member: 15000000000.0,
+    edo_tensei_warrior: 65000000000.0,
+    hyuga_elite: 280000000000.0,
+    uchiha_elite: 1200000000000.0,
+    senju_elite: 5000000000000.0,
+    otsutsuki_spirit: 25000000000000.0,
+    bijuu_manifestation: 120000000000000.0,
+    six_paths_clone: 600000000000000.0,
+    shinobi_alliance_division: "3000000000000000",
+    kaguya_creation: "15000000000000000",
+    hamura_guardian: "80000000000000000",
+    indras_reincarnation: "400000000000000000",
+    asuras_reincarnation: "2000000000000000000",
+    otsutsuki_god: "10000000000000000000"
 };
 
 export const GATE_NAMES = [
@@ -75,8 +115,6 @@ export const MISSION_INFO = {
     protect_village: { duration: 60, reqs: [{ gen: "chunin", qty: 1 }], rewardChakra: 15000, rewardPrestige: 0, price: 10000 },
     infiltrate_akatsuki: { duration: 300, reqs: [{ gen: "jonin", qty: 1 }], rewardChakra: 100000, rewardPrestige: 1, price: 50000 },
     kyuubi_battle: { duration: 900, reqs: [{ gen: "kage", qty: 1 }], rewardChakra: 2500000, rewardPrestige: 2, price: 250000 },
-    
-    // Campanha Naruto Clássico
     camp_zabuza: { duration: 120, reqs: [{ gen: "jonin", qty: 1 }, { gen: "genin", qty: 2 }], rewardChakra: 50000, rewardPrestige: 1, price: 25000, next: "camp_forest_death" },
     camp_forest_death: { duration: 300, reqs: [{ gen: "chunin", qty: 1 }, { gen: "genin", qty: 3 }], rewardChakra: 250000, rewardPrestige: 2, price: 100000, next: "camp_orochimaru" },
     camp_orochimaru: { duration: 600, reqs: [{ gen: "sannin", qty: 1 }, { gen: "chunin", qty: 2 }], rewardChakra: 1200000, rewardPrestige: 3, price: 500000, next: "camp_final_valley" },
@@ -89,22 +127,51 @@ export const SWORDS_INFO = {
     kusanagi: { name: "Kusanagi", icon: "🐍", desc: "A Espada de Sasuke. Duplica o poder do seu clique manual." },
     totsuka: { name: "Totsuka", icon: "🍶", desc: "A Lâmina de Itachi. Multiplica o seu CPS global em 1.2x." },
     hiramekarei: { name: "Hiramekarei", icon: "🐟", desc: "A Espada de Chojuro. Reduz o tempo de missões em 15%." },
-    kiba: { name: "Presas Kiba", icon: "⚡", desc: "As Lâmina de Trovão. Cliques têm 15% de chance de Crítico (5x)." }
+    kiba: { name: "Presas Kiba", icon: "⚡", desc: "As Lâminas de Trovão. Cliques têm 15% de chance de Crítico (5x)." }
 };
 
-// State variables
-export let currentUsername = "";
-export let authMode = "login";
+export const BIJUUS = {
+    "1": { name: "Shukaku (1 Cauda)", avatar: "🦝", stat: "Foco: Defesa Sand" },
+    "2": { name: "Matatabi (2 Caudas)", avatar: "🐱", stat: "Foco: Chamas Azuis" },
+    "3": { name: "Isobu (3 Caudas)", avatar: "🐢", stat: "Foco: Coral de Água" },
+    "4": { name: "Son Gokū (4 Caudas)", avatar: "🦍", stat: "Foco: Estilo Lava" },
+    "5": { name: "Kokuō (5 Caudas)", avatar: "🐴", stat: "Foco: Estilo Vapor" },
+    "6": { name: "Saiken (6 Caudas)", avatar: "🐌", stat: "Foco: Ácido Corrosivo" },
+    "7": { name: "Chōmei (7 Caudas)", avatar: "🪲", stat: "Foco: Voo de Inseto" },
+    "8": { name: "Gyūki (8 Caudas)", avatar: "🐙", stat: "Foco: Tinta de Polvo" },
+    "9": { name: "Kurama (9 Caudas)", avatar: "🦊", stat: "Foco: Chakra da Raposa" },
+    "10": { name: "Jūbi (10 Caudas)", avatar: "👁️", stat: "Foco: Chakra Divino" }
+};
 
-export function setUsername(val) { currentUsername = val; }
-export function setAuthMode(val) { authMode = val; }
+export const BIJUU_STAGES = {
+    1: "Estágio 1: Selo Inicial",
+    2: "Estágio 2: Manifestação Parcial",
+    3: "Estágio 3: Manto de Chakra",
+    4: "Estágio 4: Besta Desperta",
+    5: "Estágio 5: Fusão Lendária (Máximo)"
+};
+
+// Global Game State
+export let currentUsername = "";
+export let sessionClicks = 0;
 
 export let gameState = {
-    chakra: 0.0,
-    total_chakra_earned: 0.0,
+    chakra: D(0),
+    total_chakra_earned: D(0),
     clicks: 0,
+    peak_cps: D(0),
     prestige_points: 0,
     total_prestige_points: 0,
+    total_prestiges: 0,
+    is_chunin: false,
+    chunin_exam: { passed: false, current_phase: 1, high_score: 0 },
+    clan_tree: {},
+    gauntlet: { defeated_ids: {}, highest_defeated: 0 },
+    presence_rewards: {},
+    gacha_tickets: 0,
+    sword_fragments: 0,
+    crit_buff_timer: 0,
+    presence_buff_timer: 0,
     prestige_upgrades: {
         clan_heritage: false,
         forbidden_scroll: false,
@@ -132,6 +199,7 @@ export let gameState = {
         heaven_star: false
     },
     generators: {
+        academy_student: 0,
         shadow_clone: 0,
         genin: 0,
         chunin: 0,
@@ -140,7 +208,27 @@ export let gameState = {
         sannin: 0,
         kage: 0,
         jinchuriki: 0,
-        rikudou: 0
+        rikudou: 0,
+        toad_summon: 0,
+        slug_summon: 0,
+        snake_summon: 0,
+        sound_five: 0,
+        seven_swordsmen: 0,
+        akatsuki_member: 0,
+        taka_member: 0,
+        edo_tensei_warrior: 0,
+        hyuga_elite: 0,
+        uchiha_elite: 0,
+        senju_elite: 0,
+        otsutsuki_spirit: 0,
+        bijuu_manifestation: 0,
+        six_paths_clone: 0,
+        shinobi_alliance_division: 0,
+        kaguya_creation: 0,
+        hamura_guardian: 0,
+        indras_reincarnation: 0,
+        asuras_reincarnation: 0,
+        otsutsuki_god: 0
     },
     upgrades: {
         bandana_genin: false,
@@ -201,11 +289,28 @@ export let gameState = {
         hiramekarei: false,
         kiba: false
     },
-    equipped_sword: ""
+    swords_levels: {
+        kubikiribocho: 1,
+        samehada: 1,
+        kusanagi: 1,
+        totsuka: 1,
+        hiramekarei: 1,
+        kiba: 1
+    },
+    equipped_sword: "",
+    bijuu: {
+        chosen: "",
+        level: 1,
+        completed_goals: []
+    },
+    gates_unlocked: 0
 };
 
-export let calculatedCps = 0.0;
-export let calculatedClickPower = 1.0;
+export let calculatedCps = D(0);
+export let calculatedClickPower = D(1);
+export let calculatedCritChance = 0.05;
+export let calculatedCritMult = D(2);
+
 export let shopMode = 'buy';
 export let shopQty = 1;
 
@@ -214,11 +319,9 @@ export let gatesCooldown = 0.0;
 export let exhaustionTime = 0.0;
 export let trainingBuffTimer = 0.0;
 
-let lastRenderedSwordsState = "";
-let lastRenderedBijuuState = "";
-let lastRenderedBuffsState = "";
+export function setUsername(val) { currentUsername = val; }
 
-// Theme controls
+// --- THEME & NOTATION CONTROLS ---
 export function toggleTheme() {
     const body = document.body;
     body.classList.toggle('light-theme');
@@ -234,62 +337,89 @@ function updateThemeUI(isLight) {
     if (text) text.innerText = isLight ? 'Tema Claro' : 'Tema Escuro';
 }
 
-// Navigation Tabs
-export function switchTab(tabId) {
-    const tabs = ['upgrades', 'missions', 'bijuu', 'prestige', 'gacha'];
-    if (document.startViewTransition) {
-        document.startViewTransition(() => {
-            tabs.forEach(t => {
-                document.getElementById(`tab-btn-${t}`).classList.toggle('active', t === tabId);
-                document.getElementById(`tab-content-${t}`).classList.toggle('hidden', t !== tabId);
-            });
-        });
-    } else {
-        tabs.forEach(t => {
-            document.getElementById(`tab-btn-${t}`).classList.toggle('active', t === tabId);
-            document.getElementById(`tab-content-${t}`).classList.toggle('hidden', t !== tabId);
-        });
-    }
-}
-
-// Shop controls
-export function setShopMode(mode) {
-    shopMode = mode;
-    document.getElementById('btn-mode-buy').classList.toggle('active', mode === 'buy');
-    document.getElementById('btn-mode-sell').classList.toggle('active', mode === 'sell');
+export function toggleNotation() {
+    const current = getNotationMode();
+    const next = current === "suffix" ? "scientific" : "suffix";
+    setNotationMode(next);
+    const btn = document.getElementById('notation-toggle-btn');
+    if (btn) btn.innerText = next === "scientific" ? "Notação: 1.00e15" : "Notação: Sufixos (K, M, B)";
     updateDOM();
 }
+window.toggleNotation = toggleNotation;
+
+// --- NAVIGATION TABS ---
+export function switchTab(tabId) {
+    const tabs = ['upgrades', 'clans', 'exam', 'gauntlet', 'rankings', 'rewards', 'missions', 'bijuu', 'gacha'];
+    tabs.forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        const panel = document.getElementById(`tab-content-${t}`);
+        if (btn) btn.classList.toggle('active', t === tabId);
+        if (panel) panel.classList.toggle('hidden', t !== tabId);
+    });
+
+    sound.playBuy();
+
+    if (tabId === 'clans') {
+        renderClanTree(gameState, saveGame, updateDOM);
+    } else if (tabId === 'gauntlet') {
+        gauntletManager.renderUI();
+    } else if (tabId === 'rankings') {
+        rankingsManager.renderUI(gameState, sessionClicks);
+    } else if (tabId === 'rewards') {
+        presenceRewardManager.renderUI(gameState, calculatedCps);
+    }
+}
+window.switchTab = switchTab;
+
+// --- SHOP CONTROLS (BUY / SELL & QUANTITY) ---
+export function setShopMode(mode) {
+    shopMode = mode;
+    const btnBuy = document.getElementById('btn-mode-buy');
+    const btnSell = document.getElementById('btn-mode-sell');
+    if (btnBuy) btnBuy.classList.toggle('active', mode === 'buy');
+    if (btnSell) btnSell.classList.toggle('active', mode === 'sell');
+    updateDOM();
+}
+window.setShopMode = setShopMode;
 
 export function setShopQty(qty) {
     shopQty = qty;
-    document.getElementById('btn-qty-1').classList.toggle('active', qty === 1);
-    document.getElementById('btn-qty-10').classList.toggle('active', qty === 10);
-    document.getElementById('btn-qty-100').classList.toggle('active', qty === 100);
+    const b1 = document.getElementById('btn-qty-1');
+    const b10 = document.getElementById('btn-qty-10');
+    const b100 = document.getElementById('btn-qty-100');
+    if (b1) b1.classList.toggle('active', qty === 1);
+    if (b10) b10.classList.toggle('active', qty === 10);
+    if (b100) b100.classList.toggle('active', qty === 100);
     updateDOM();
 }
+window.setShopQty = setShopQty;
 
 export function getGeneratorCostRange(key, mode, qty) {
     const count = gameState.generators[key] || 0;
-    let base = BASE_COSTS[key];
+    let base = D(BASE_COSTS[key] || 100);
+
     if (gameState.upgrades.chakra_concentration) {
-        base = Math.floor(base * 0.95);
+        base = base.mul(0.95);
     }
-    const multiplier = 1.25;
-    
+
+    const r = COST_MULTIPLIER; // 1.15
+
     if (mode === 'buy') {
-        let totalCost = 0;
-        for (let i = 0; i < qty; i++) {
-            totalCost += Math.floor(base * Math.pow(multiplier, count + i));
+        // Geometric series formula: Base * r^count * (r^qty - 1) / (r - 1)
+        if (qty === 1) {
+            return base.mul(D(r).pow(count));
         }
-        return totalCost;
+        const initial = base.mul(D(r).pow(count));
+        const sumMultiplier = D(r).pow(qty).sub(1).div(r - 1);
+        return initial.mul(sumMultiplier);
     } else {
         const sellQty = Math.min(qty, count);
-        if (sellQty <= 0) return 0;
-        let totalCostVal = 0;
+        if (sellQty <= 0) return D(0);
+        let refund = D(0);
         for (let i = 0; i < sellQty; i++) {
-            totalCostVal += Math.floor(base * Math.pow(multiplier, count - 1 - i));
+            refund = refund.add(base.mul(D(r).pow(count - 1 - i)));
         }
-        return Math.floor(totalCostVal * 0.8);
+        return refund.mul(0.8); // 80% refund
     }
 }
 
@@ -297,216 +427,197 @@ export function buyGenerator(key) {
     const count = gameState.generators[key] || 0;
     if (shopMode === 'buy') {
         const cost = getGeneratorCostRange(key, 'buy', shopQty);
-        if (gameState.chakra >= cost) {
-            gameState.chakra -= cost;
+        if (D(gameState.chakra).gte(cost)) {
+            gameState.chakra = D(gameState.chakra).sub(cost);
             gameState.generators[key] = count + shopQty;
+            sound.playBuy();
             recalculateStats();
             updateDOM();
             saveGame();
+        } else {
+            sound.playAlert();
         }
     } else {
         const sellQty = Math.min(shopQty, count);
         if (sellQty > 0) {
             const refund = getGeneratorCostRange(key, 'sell', shopQty);
-            gameState.chakra += refund;
+            gameState.chakra = D(gameState.chakra).add(refund);
             gameState.generators[key] = count - sellQty;
+            sound.playBuy();
             recalculateStats();
             updateDOM();
             saveGame();
         }
     }
 }
+window.buyGenerator = buyGenerator;
 
-export function buyUpgrade(key, cost) {
-    if (!gameState.upgrades[key] && gameState.chakra >= cost) {
-        gameState.chakra -= cost;
+export function buyUpgrade(key, costVal) {
+    const cost = D(costVal);
+    if (!gameState.upgrades[key] && D(gameState.chakra).gte(cost)) {
+        gameState.chakra = D(gameState.chakra).sub(cost);
         gameState.upgrades[key] = true;
+        sound.playLevelUp();
         recalculateStats();
         updateDOM();
         saveGame();
     }
 }
+window.buyUpgrade = buyUpgrade;
 
+// --- RECALCULATE STATS (MATH BALANCING WITH BIGNUMBER) ---
 export function recalculateStats() {
-    const baseCpsMap = {
-        academy_student: 0.3,
-        shadow_clone: 1,
-        genin: 5,
-        chunin: 10.0,
-        jonin: 30.0,
-        anbu: 100.0,
-        sannin: 500.0,
-        kage: 1000.0,
-        jinchuriki: 5000,
-        rikudou: 150000.0,
-        toad_summon: 500000.0,
-        slug_summon: 1500000.0,
-        snake_summon: 4000000.0,
-        sound_five: 12000000.0,
-        seven_swordsmen: 35000000.0,
-        akatsuki_member: 100000000.0,
-        taka_member: 300000000.0,
-        edo_tensei_warrior: 1000000000.0,
-        hyuga_elite: 3500000000.0,
-        uchiha_elite: 12000000000.0,
-        senju_elite: 40000000000.0,
-        otsutsuki_spirit: 150000000000.0,
-        bijuu_manifestation: 600000000000.0,
-        six_paths_clone: 2500000000000.0,
-        shinobi_alliance_division: 10000000000000.0,
-        kaguya_creation: 50000000000000.0,
-        hamura_guardian: 250000000000000.0,
-        indras_reincarnation: 1200000000000000.0,
-        asuras_reincarnation: 6000000000000000.0,
-        otsutsuki_god: 30000000000000000.0
-    };
+    let cps = D(0);
 
-    let cps = 0.0;
     for (let key in gameState.generators) {
-        let base = baseCpsMap[key] || 0;
+        let base = D(BASE_CPS_MAP[key] || 0);
         let count = gameState.generators[key] || 0;
-        let mult = 1.0;
-        if (key === 'shadow_clone' && gameState.upgrades.ninja_food_pill) {
-            mult *= 2.0;
-        }
-        if (key === 'academy_student' && gameState.upgrades.tree_climbing) {
-            mult *= 2.0;
-        }
-        if (key === 'shadow_clone' && gameState.upgrades.shadow_clone_scroll) {
-            mult *= 1.5;
-        }
-        if ((key === 'genin' || key === 'chunin') && gameState.upgrades.gravity_training) {
-            mult *= 2.0;
-        }
-        if (key === 'jonin' || key === 'anbu') {
-            if (gameState.upgrades.sharingan) mult *= 2.0;
-            if (gameState.upgrades.choku_tomoe) mult *= 2.0;
-        }
-        if ((key === 'sannin' || key === 'kage' || key === 'jinchuriki' || key === 'rikudou') && gameState.upgrades.summoning_scroll) {
-            mult *= 2.0;
-        }
-        if (key === 'shadow_clone' && gameState.upgrades.blade_storm) mult *= 1.5;
-        if ((key === 'genin' || key === 'chunin') && gameState.upgrades.rasengan_mastery) mult *= 1.8;
-        if ((key === 'jonin' || key === 'anbu') && gameState.upgrades.perfect_susanoo) mult *= 2.5;
-        if ((key === 'sannin' || key === 'kage') && gameState.upgrades.edo_tensei) mult *= 3.0;
-        if ((key === 'jinchuriki' || key === 'rikudou') && gameState.upgrades.truth_seeking_orbs) mult *= 4.0;
-        cps += count * base * mult;
+        if (count <= 0) continue;
+
+        let mult = D(1.0);
+        if (key === 'shadow_clone' && gameState.upgrades.ninja_food_pill) mult = mult.mul(2.0);
+        if (key === 'academy_student' && gameState.upgrades.tree_climbing) mult = mult.mul(2.0);
+        if (key === 'shadow_clone' && gameState.upgrades.shadow_clone_scroll) mult = mult.mul(1.5);
+        if ((key === 'genin' || key === 'chunin') && gameState.upgrades.gravity_training) mult = mult.mul(2.0);
+        if ((key === 'jonin' || key === 'anbu') && gameState.upgrades.sharingan) mult = mult.mul(2.0);
+        if (key === 'sannin' && gameState.upgrades.summoning_scroll) mult = mult.mul(2.0);
+        if (key === 'kage' && gameState.upgrades.choku_tomoe) mult = mult.mul(2.0);
+        if (key === 'jinchuriki' && gameState.upgrades.edo_tensei) mult = mult.mul(2.0);
+
+        // Prestige upgrade bonuses
+        if (key === 'jonin' && gameState.prestige_upgrades.jonin_elite) mult = mult.mul(2.0);
+        if (key === 'anbu' && gameState.prestige_upgrades.anbu_shadow) mult = mult.mul(2.5);
+        if (key === 'jinchuriki' && gameState.prestige_upgrades.jinchuriki_bond) mult = mult.mul(3.0);
+        if (key === 'kage' && gameState.prestige_upgrades.kage_council) mult = mult.mul(3.0);
+        if (key === 'rikudou' && gameState.prestige_upgrades.rikudou_blessing) mult = mult.mul(4.0);
+
+        cps = cps.add(base.mul(count).mul(mult));
     }
 
-    if (gameState.upgrades.ninja_sandals) cps *= 1.1;
-    if (gameState.upgrades.sage_mode) cps *= 3.0;
-    if (gameState.upgrades.kurama_mode) cps *= 4.0;
-    if (gameState.upgrades.six_paths_sage) cps *= 5.0;
-    if (gameState.upgrades.infinite_tsukuyomi) cps *= 2.0;
-    if (gameState.upgrades.otsutsuki_power) cps *= 6.0;
-    if (gameState.upgrades.divine_tree) cps *= 8.0;
-    if (gameState.upgrades.creation_all_things) cps *= 10.0;
-    
-    if (gameState.prestige_upgrades.forbidden_scroll) cps *= 1.25;
-    if (gameState.prestige_upgrades.shadow_clone_mastery && gameState.generators.shadow_clone > 0) cps += gameState.generators.shadow_clone * 1.0; // extra 100%
-    if (gameState.prestige_upgrades.kage_council) {
-        cps *= 1.0; // handled per-generator below — placeholder
-    }
-    if (gameState.prestige_upgrades.ninja_alliance) cps *= 1.30;
-    if (gameState.prestige_upgrades.bijuu_resonance && gameState.bijuu && gameState.bijuu.chosen) {
-        const bMults = [1,1,1.5,2.5,5,10];
-        const bLvl = Math.min(gameState.bijuu.level || 1, bMults.length - 1);
-        cps *= (1 + (bMults[bLvl] - 1) * 0.5); // +50% of bijuu bonus on top
-    }
-    if (gameState.prestige_upgrades.will_of_fire) cps *= (1 + 0.20 * (gameState.total_prestige_points || 1));
-    if (gameState.prestige_upgrades.heaven_star) cps *= 3.0;
+    // Global CPS Multipliers
+    if (gameState.upgrades.sage_mode) cps = cps.mul(3.0);
+    if (gameState.upgrades.kurama_mode) cps = cps.mul(4.0);
+    if (gameState.upgrades.six_paths_sage) cps = cps.mul(5.0);
+    if (gameState.upgrades.infinite_tsukuyomi) cps = cps.mul(2.0);
+    if (gameState.upgrades.otsutsuki_power) cps = cps.mul(6.0);
+    if (gameState.upgrades.divine_tree) cps = cps.mul(8.0);
+    if (gameState.upgrades.creation_all_things) cps = cps.mul(10.0);
 
+    if (gameState.prestige_upgrades.forbidden_scroll) cps = cps.mul(1.25);
+    if (gameState.prestige_upgrades.ninja_alliance) cps = cps.mul(1.30);
+    if (gameState.prestige_upgrades.heaven_star) cps = cps.mul(3.0);
+
+    // Chunin Exam Completion Bonus (Canonical 2x CPS Global)
+    if (gameState.is_chunin || (gameState.chunin_exam && gameState.chunin_exam.passed)) {
+        cps = cps.mul(2.0);
+    }
+
+    // Presence Buff (2-hour online reward)
+    if (gameState.presence_buff_timer > 0) {
+        cps = cps.mul(1.20);
+    }
+
+    // Clan Geneology Tree Multipliers
+    if (gameState.clan_tree) {
+        const statsObj = {
+            cpsMultiplier: D(1.0),
+            clickMultiplier: D(1.0),
+            clickCpsRatio: 0,
+            critChance: 0.05,
+            critMultiplier: D(2.0),
+            missionRewardMult: 1.0,
+            offlineEfficiency: 0.75,
+            prestigeGainMultiplier: 1.0
+        };
+
+        for (let nodeId in gameState.clan_tree) {
+            if (gameState.clan_tree[nodeId] && CLAN_TREE[nodeId] && CLAN_TREE[nodeId].effect) {
+                CLAN_TREE[nodeId].effect(statsObj);
+            }
+        }
+
+        cps = cps.mul(statsObj.cpsMultiplier);
+        calculatedCritChance = statsObj.critChance;
+        calculatedCritMult = statsObj.critMultiplier;
+    }
+
+    // Equipped Sword Bonus
     const equipped = gameState.equipped_sword || "";
     const swordLvl = (gameState.swords_levels && gameState.swords_levels[equipped]) || 1;
     const swordMultVal = 1.0 + (swordLvl - 1) * 0.25;
 
-    if (equipped === 'samehada') cps *= (1.0 + 0.10 * swordMultVal);
-    if (equipped === 'totsuka') cps *= (1.0 + 0.20 * swordMultVal);
+    if (equipped === 'samehada') cps = cps.mul(1.0 + 0.10 * swordMultVal);
+    if (equipped === 'totsuka') cps = cps.mul(1.0 + 0.20 * swordMultVal);
 
-    let clickPower = 1.0;
-    if (gameState.upgrades.sealing_scroll) clickPower += 0.5 * (gameState.generators.shadow_clone || 0);
-    if (gameState.upgrades.tactical_kunai) clickPower *= 1.25;
-    if (gameState.upgrades.bandana_genin) clickPower *= 1.5;
-    if (gameState.upgrades.kyuubi_cloak) clickPower += 0.005 * cps;
-    if (gameState.upgrades.reaper_seal) clickPower += 0.02 * cps;
-    if (gameState.upgrades.blade_storm) clickPower *= 1.3;
-    if (gameState.upgrades.rasengan_mastery) clickPower *= 2.0;
-    if (gameState.upgrades.perfect_susanoo) clickPower += 0.03 * cps;
-    if (gameState.upgrades.truth_seeking_orbs) clickPower *= 3.0;
-    if (gameState.upgrades.otsutsuki_power) clickPower *= 4.0;
-    if (gameState.upgrades.creation_all_things) clickPower *= 5.0;
-    
-    if (gameState.prestige_upgrades.clan_heritage) clickPower *= 1.25;
-    if (gameState.prestige_upgrades.tailed_chakra_beast) clickPower += 0.01 * cps;
-    if (gameState.prestige_upgrades.fourth_hokage) clickPower += 2 * (gameState.total_prestige_points || 1);
-    if (gameState.prestige_upgrades.heaven_star) clickPower *= 3.0;
-    
-    if (equipped === 'kubikiribocho') clickPower += 0.01 * cps * swordMultVal;
-    if (equipped === 'kusanagi') clickPower *= (1.0 + 0.5 * swordMultVal);
-
-    // Bijuu multiplier
-    if (gameState.bijuu && gameState.bijuu.chosen) {
-        const multipliers = [1.0, 1.0, 1.5, 2.5, 5.0, 10.0];
-        const multVal = multipliers[Math.min(gameState.bijuu.level, multipliers.length - 1)] || 1.0;
-        cps *= multVal;
-        clickPower *= multVal;
+    // Eight Inner Gates (Portões Internos)
+    if (gatesActiveTime > 0 && gameState.gates_unlocked > 0) {
+        const mult = 1.0 + (gameState.gates_unlocked * 1.5);
+        cps = cps.mul(mult);
     }
 
-    // Eight Inner Gates passive
-    const gatesUnl = gameState.gates_unlocked || 0;
-    if (gatesUnl > 0) {
-        const gatesPassive = 1.0 + gatesUnl * 0.10;
-        cps *= gatesPassive;
-        clickPower *= gatesPassive;
-    }
-
-    // Eight Inner Gates release active
-    if (gatesActiveTime > 0 && gatesUnl > 0) {
-        const activeMult = 1.0 + gatesUnl * 1.5;
-        cps *= activeMult;
-        clickPower *= activeMult;
-    }
-
-    // Active training buff (+50% CPS)
-    if (trainingBuffTimer > 0) {
-        cps *= 1.5;
-    }
-
-    // Exhaustion debuff (0 CPS)
+    // Exhaustion Debuff
     if (exhaustionTime > 0) {
-        cps = 0;
+        cps = cps.mul(0.1); // -90% during collapse
+    }
+
+    // Training Buff
+    if (trainingBuffTimer > 0) {
+        cps = cps.mul(1.5);
+    }
+
+    // --- CLICK POWER CALCULATION ---
+    let clickPower = D(1.0);
+    if (gameState.upgrades.bandana_genin) clickPower = clickPower.mul(1.5);
+    if (gameState.upgrades.blade_storm) clickPower = clickPower.mul(1.3);
+    if (gameState.upgrades.rasengan_mastery) clickPower = clickPower.mul(2.0);
+    if (gameState.upgrades.truth_seeking_orbs) clickPower = clickPower.mul(3.0);
+    if (gameState.upgrades.otsutsuki_power) clickPower = clickPower.mul(4.0);
+    if (gameState.upgrades.creation_all_things) clickPower = clickPower.mul(5.0);
+
+    // Percentage of CPS converted to Click Power
+    let cpsToClickRatio = 0.0;
+    if (gameState.upgrades.kyuubi_cloak) cpsToClickRatio += 0.005;
+    if (gameState.upgrades.reaper_seal) cpsToClickRatio += 0.02;
+    if (gameState.upgrades.perfect_susanoo) cpsToClickRatio += 0.03;
+    if (gameState.clan_tree && gameState.clan_tree.mangekyo_sharingan_lineage) cpsToClickRatio += 0.03;
+    if (equipped === 'kubikiribocho') cpsToClickRatio += 0.02 * swordMultVal;
+
+    if (cpsToClickRatio > 0) {
+        clickPower = clickPower.add(cps.mul(cpsToClickRatio));
+    }
+
+    if (equipped === 'kusanagi') clickPower = clickPower.mul(2.0 * swordMultVal);
+
+    // Presence 10m buff
+    if (gameState.crit_buff_timer > 0) {
+        calculatedCritChance += 0.25;
     }
 
     calculatedCps = cps;
     calculatedClickPower = clickPower;
+
+    // Track peak CPS for rankings
+    if (!gameState.peak_cps) gameState.peak_cps = D(0);
+    if (calculatedCps.gt(gameState.peak_cps)) {
+        gameState.peak_cps = calculatedCps;
+    }
 }
 
+// --- DOM UPDATE & RENDERING ---
 export function updateDOM() {
-    document.getElementById('chakra-counter').innerText = Math.floor(gameState.chakra).toLocaleString();
-    document.getElementById('cps-counter').innerText = formatNumber(calculatedCps) + ' CPS';
-    document.getElementById('click-power-display').innerText = 'Clique: +' + formatNumber(calculatedClickPower);
-    document.getElementById('total-clicks').innerText = gameState.clicks;
-    document.getElementById('total-earned').innerText = formatNumber(gameState.total_chakra_earned);
+    const chakraEl = document.getElementById('chakra-counter');
+    const cpsEl = document.getElementById('cps-counter');
+    const clickPowerEl = document.getElementById('click-power-display');
+    const totalClicksEl = document.getElementById('total-clicks');
+    const totalEarnedEl = document.getElementById('total-earned');
 
-    const pendingPts = getPendingPrestigePoints();
-    document.getElementById('prestige-pending-points').innerText = formatNumber(pendingPts);
-    document.getElementById('prestige-action-btn').disabled = (pendingPts <= 0);
-    document.getElementById('prestige-points-counter').innerText = `Chakra Ancestral: ${formatNumber(gameState.prestige_points)} Pontos`;
-    
-    const prestMultDisplay = document.getElementById('prestige-multiplier-display');
-    if (gameState.total_prestige_points > 0) {
-        prestMultDisplay.innerText = `Renascido x${gameState.total_prestige_points}`;
-    } else {
-        prestMultDisplay.innerText = "";
-    }
+    if (chakraEl) chakraEl.innerText = formatBigNumber(gameState.chakra);
+    if (cpsEl) cpsEl.innerText = `${formatBigNumber(calculatedCps)} CPS`;
+    if (clickPowerEl) clickPowerEl.innerText = `Clique: +${formatBigNumber(calculatedClickPower)}`;
+    if (totalClicksEl) totalClicksEl.innerText = (gameState.clicks || 0).toLocaleString();
+    if (totalEarnedEl) totalEarnedEl.innerText = formatBigNumber(gameState.total_chakra_earned);
 
-    for (let key in gameState.prestige_upgrades) {
-        const card = document.getElementById(`pu-${key}`);
-        if (card) {
-            card.classList.toggle('purchased', gameState.prestige_upgrades[key]);
-        }
-    }
-
+    // Generator Cards
     const genKeys = Object.keys(BASE_COSTS);
     for (let i = 0; i < genKeys.length; i++) {
         const key = genKeys[i];
@@ -515,12 +626,12 @@ export function updateDOM() {
         if (costEl) {
             if (shopMode === 'buy') {
                 const cost = getGeneratorCostRange(key, 'buy', shopQty);
-                costEl.innerText = `Comprar x${shopQty}: ${formatNumber(cost)} Chakra`;
+                costEl.innerText = `Comprar x${shopQty}: ${formatBigNumber(cost)} Chakra`;
             } else {
                 const count = gameState.generators[key] || 0;
                 const sellQty = Math.min(shopQty, count);
                 const refund = getGeneratorCostRange(key, 'sell', shopQty);
-                costEl.innerText = `Vender x${sellQty}: +${formatNumber(refund)} Chakra`;
+                costEl.innerText = `Vender x${sellQty}: +${formatBigNumber(refund)} Chakra`;
             }
         }
         if (qtyEl) qtyEl.innerText = gameState.generators[key] || 0;
@@ -530,222 +641,57 @@ export function updateDOM() {
             let visible = true;
             if (i > 0) {
                 const prevKey = genKeys[i - 1];
-                visible = (gameState.generators[prevKey] || 0) > 0;
+                visible = (gameState.generators[prevKey] || 0) > 0 || (gameState.total_chakra_earned && D(gameState.total_chakra_earned).gte(BASE_COSTS[key] * 0.3));
             }
-            if (visible) {
-                cardEl.classList.remove('hidden');
-            } else {
-                cardEl.classList.add('hidden');
-            }
+            if (visible) cardEl.classList.remove('hidden');
+            else cardEl.classList.add('hidden');
         }
     }
 
+    // Upgrades UI
     for (let key in gameState.upgrades) {
-        const btn = document.getElementById(`up-${key}`);
-        if (btn) {
+        const el = document.getElementById(`upg-${key}`);
+        if (el) {
             if (gameState.upgrades[key]) {
-                btn.classList.add('purchased');
-                btn.disabled = true;
+                el.classList.add('bought');
+                el.classList.remove('hidden');
             } else {
-                btn.classList.remove('purchased');
-                btn.disabled = false;
+                el.classList.remove('bought');
             }
         }
     }
 
-    for (let key in gameState.achievements) {
-        const achEl = document.getElementById(`ach-${key}`);
-        if (achEl) {
-            achEl.classList.toggle('locked', !gameState.achievements[key]);
-            achEl.classList.toggle('unlocked', gameState.achievements[key]);
-        }
-    }
-
-    const rollBtn = document.getElementById('gacha-roll-btn');
-    if (rollBtn) {
-        const unobtained = [];
-        for (let key in gameState.swords) {
-            if (!gameState.swords[key]) {
-                unobtained.push(key);
-            }
-        }
-        if (unobtained.length === 0) {
-            rollBtn.disabled = true;
-            rollBtn.innerText = "Todas as Espadas Forjadas!";
-        } else {
-            rollBtn.disabled = gameState.chakra < 50000;
-            rollBtn.innerText = "Forjar Espada (50k Chakra)";
-        }
-    }
-
-    const listEl = document.getElementById('swords-list');
-    if (listEl) {
-        const stateSignature = JSON.stringify({
-            swords: gameState.swords,
-            swords_levels: gameState.swords_levels,
-            equipped: gameState.equipped_sword
-        });
-        
-        if (lastRenderedSwordsState !== stateSignature) {
-            lastRenderedSwordsState = stateSignature;
-            listEl.innerHTML = "";
-            for (let key in SWORDS_INFO) {
-                const info = SWORDS_INFO[key];
-                const hasIt = gameState.swords && gameState.swords[key];
-                const isEquipped = gameState.equipped_sword === key;
-                
-                const card = document.createElement('div');
-                card.className = `sword-item-card ${hasIt ? '' : 'locked'} ${isEquipped ? 'equipped' : ''}`;
-                
-                const lvl = (gameState.swords_levels && gameState.swords_levels[key]) || 1;
-                const descText = hasIt ? getDynamicSwordDesc(key, lvl) : info.desc;
-                
-                let buttonHtml = "";
-                if (hasIt) {
-                    const cost = Math.floor(25000 * Math.pow(2.2, lvl - 1));
-                    const costStr = formatNumber(cost);
-                    
-                    const equipBtn = isEquipped 
-                        ? `<button class="sword-equip-btn equipped" disabled>Empunhada</button>`
-                        : `<button class="sword-equip-btn" onclick="equipSword('${key}')">Empunhar</button>`;
-                    
-                    buttonHtml = `
-                        <div class="sword-actions-container">
-                            <div class="sword-level-tag" style="font-size: 0.8rem; color: var(--accent-color); font-weight: 800; margin-bottom: 0.25rem;">Nível ${lvl}</div>
-                            <div class="sword-buttons-row">
-                                ${equipBtn}
-                                <button class="sword-upgrade-btn" onclick="upgradeSword('${key}', ${cost})">Refinar (${costStr})</button>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    buttonHtml = `
-                        <div class="sword-actions-container">
-                            <span style="font-size: 0.8rem; color: var(--text-muted);">Bloqueada</span>
-                        </div>
-                    `;
-                }
-                
-                card.innerHTML = `
-                    <div class="sword-icon">${info.icon}</div>
-                    <div class="sword-details" style="width: 100%;">
-                        <span class="sword-name">${info.name}</span>
-                        <span class="sword-bonus">${descText}</span>
-                        ${buttonHtml}
-                    </div>
-                `;
-                listEl.appendChild(card);
-            }
-        }
-    }
-    
-    // Bijuu rendering
-    const bijuuSelector = document.getElementById('bijuu-selector-screen');
-    const bijuuActive = document.getElementById('bijuu-active-screen');
-    
-    if (bijuuSelector && bijuuActive) {
-        const level = (gameState.bijuu && gameState.bijuu.level) || 1;
-        const goals = getBijuuGoals(level);
-        const bijuuStateSig = JSON.stringify({
-            chosen: (gameState.bijuu && gameState.bijuu.chosen) || "",
-            level: level,
-            goals_met: goals.map(g => g.check())
-        });
-        
-        if (lastRenderedBijuuState !== bijuuStateSig) {
-            lastRenderedBijuuState = bijuuStateSig;
-            if (!gameState.bijuu || !gameState.bijuu.chosen) {
-                bijuuSelector.classList.remove('hidden');
-                bijuuActive.classList.add('hidden');
-            } else {
-                bijuuSelector.classList.add('hidden');
-                bijuuActive.classList.remove('hidden');
-                
-                const bijuuId = gameState.bijuu.chosen;
-                const bijuuInfo = BIJUUS[bijuuId];
-                
-                document.getElementById('bijuu-avatar-display').innerText = bijuuInfo.avatar;
-                document.getElementById('bijuu-name-display').innerText = bijuuInfo.name;
-                document.getElementById('bijuu-stage-display').innerText = BIJUU_STAGES[level] || `Estágio ${level}`;
-                
-                const multipliers = [1.0, 1.0, 1.5, 2.5, 5.0, 10.0];
-                const multVal = multipliers[Math.min(level, multipliers.length - 1)] || 1.0;
-                document.getElementById('bijuu-mult-display').innerText = `${multVal}x (CPS & Cliques)`;
-                
-                const nextLvl = level + 1;
-                const nextLvlEl = document.getElementById('bijuu-next-level-display');
-                const evolveBtn = document.getElementById('bijuu-evolve-btn');
-                
-                if (nextLvl > 5) {
-                    if (nextLvlEl) nextLvlEl.innerText = "Máximo";
-                    if (evolveBtn) {
-                        evolveBtn.disabled = true;
-                        evolveBtn.innerText = "Nível Máximo Alcançado!";
-                    }
-                    const goalsList = document.getElementById('bijuu-goals-list');
-                    if (goalsList) goalsList.innerHTML = `<li style="color: var(--secondary-color); font-weight: bold;">Sua Bijuu atingiu o ápice do seu poder!</li>`;
-                } else {
-                    if (nextLvlEl) nextLvlEl.innerText = nextLvl;
-                    
-                    const goalsList = document.getElementById('bijuu-goals-list');
-                    if (goalsList) {
-                        goalsList.innerHTML = "";
-                        let allMet = true;
-                        goals.forEach(goal => {
-                            const met = goal.check();
-                            if (!met) allMet = false;
-                            
-                            const li = document.createElement('li');
-                            li.className = met ? "goal-met" : "goal-pending";
-                            li.innerHTML = `${met ? "✅" : "❌"} ${goal.desc}`;
-                            goalsList.appendChild(li);
-                        });
-                        
-                        if (evolveBtn) {
-                            evolveBtn.disabled = !allMet;
-                            evolveBtn.innerText = allMet ? "Evoluir Bijuu! ⚡" : "Objetivos Pendentes";
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // Eight Inner Gates rendering
+    // Eight Inner Gates (8 Portões)
     const currentGates = gameState.gates_unlocked || 0;
     for (let i = 1; i <= 8; i++) {
         const el = document.getElementById(`gate-${i}`);
         if (el) {
-            el.className = `gate-node ${i <= currentGates ? 'unlocked' : 'locked'}`;
-            if (gatesActiveTime > 0 && i <= currentGates) {
-                el.classList.add('active-release');
-            }
+            el.classList.toggle('unlocked', i <= currentGates);
+            el.classList.toggle('active-release', gatesActiveTime > 0 && i <= currentGates);
         }
     }
-    
+
     const gateBtn = document.getElementById('gate-upgrade-btn');
     const gateTitle = document.getElementById('gate-upgrade-title');
     const gateCost = document.getElementById('gate-upgrade-cost');
-    
     if (gateBtn && gateTitle && gateCost) {
         if (currentGates >= 8) {
-            gateTitle.innerText = "Todos os Portões Abertos!";
+            gateTitle.innerText = "Todos os 8 Portões Abertos!";
             gateCost.innerText = "";
             gateBtn.disabled = true;
-            gateBtn.innerText = "Força Máxima Desbloqueada";
+            gateBtn.innerText = "Força Máxima Desbloqueada 🌟";
         } else {
             const nextName = GATE_NAMES[currentGates];
             const nextCost = GATE_COSTS[currentGates];
-            gateTitle.innerText = `Próximo Portão: ${nextName}`;
-            gateCost.innerText = `Custo: ${formatNumber(nextCost)} Chakra`;
-            gateBtn.disabled = gameState.chakra < nextCost;
+            gateTitle.innerText = `Próximo: ${nextName}`;
+            gateCost.innerText = `Custo: ${formatBigNumber(D(nextCost))} Chakra`;
+            gateBtn.disabled = D(gameState.chakra).lt(nextCost);
             gateBtn.innerText = `Abrir ${nextName} 🔓`;
         }
     }
-    
+
     const releaseBtn = document.getElementById('gate-release-btn');
     const timerLabel = document.getElementById('gate-timer-display');
-    
     if (releaseBtn && timerLabel) {
         if (currentGates === 0) {
             releaseBtn.disabled = true;
@@ -761,184 +707,88 @@ export function updateDOM() {
             timerLabel.innerText = `⏳ Recarga: ${gatesCooldown.toFixed(1)}s`;
         } else {
             releaseBtn.disabled = false;
-            timerLabel.innerText = `Pronto! Multiplicador: +${(currentGates * 150)}%`;
+            timerLabel.innerText = `Liberar Força (+${(currentGates * 150)}% CPS)`;
         }
     }
 
-    // Active buffs list rendering
-    const buffsContainer = document.getElementById('active-buffs-container');
-    if (buffsContainer) {
-        const buffsSig = `${Math.ceil(gatesActiveTime)}-${Math.ceil(exhaustionTime)}-${Math.ceil(trainingBuffTimer)}`;
-        if (lastRenderedBuffsState !== buffsSig) {
-            lastRenderedBuffsState = buffsSig;
-            buffsContainer.innerHTML = "";
-            
-            if (gatesActiveTime > 0) {
-                const div = document.createElement('div');
-                div.className = 'buff-badge red-pulse';
-                div.innerHTML = `🔴 8 Portões: +${((gameState.gates_unlocked || 0) * 150)}% (${gatesActiveTime.toFixed(0)}s)`;
-                buffsContainer.appendChild(div);
-            }
-            
-            if (exhaustionTime > 0) {
-                const div = document.createElement('div');
-                div.className = 'buff-badge black-exhaustion';
-                div.innerHTML = `💀 Exaustão: 0 CPS (${exhaustionTime.toFixed(0)}s)`;
-                buffsContainer.appendChild(div);
-            }
-            
-            if (trainingBuffTimer > 0) {
-                const div = document.createElement('div');
-                div.className = 'buff-badge green-pulse';
-                div.innerHTML = `🔥 Treino de Chakra: +50% CPS (${trainingBuffTimer.toFixed(0)}s)`;
-                buffsContainer.appendChild(div);
-            }
-        }
-    }
+    // Prestige UI
+    const pendingPts = getPendingPrestigePoints();
+    const pendEl = document.getElementById('prestige-pending-points');
+    const pActionBtn = document.getElementById('prestige-action-btn');
+    const pCounter = document.getElementById('prestige-points-counter');
 
-    const clicksVal = gameState.clicks || 0;
-    const tabJutsu = document.getElementById('train-tab-jutsu');
-    const tabChakra = document.getElementById('train-tab-chakra');
-    if (tabJutsu) {
-        if (clicksVal < 100) {
-            tabJutsu.classList.add('tab-locked');
-            tabJutsu.innerHTML = "🔒 Sequência de Jutsu (100)";
-        } else {
-            tabJutsu.classList.remove('tab-locked');
-            tabJutsu.innerHTML = "🔥 Sequência de Jutsu";
-        }
-    }
-    if (tabChakra) {
-        if (clicksVal < 300) {
-            tabChakra.classList.add('tab-locked');
-            tabChakra.innerHTML = "🔒 Controle de Chakra (300)";
-        } else {
-            tabChakra.classList.remove('tab-locked');
-            tabChakra.innerHTML = "☯️ Controle de Chakra";
-        }
-    }
-}export function loadGame() {
-    fetch(`/api/load?username=${currentUsername}`)
-        .then(res => res.json())
-        .then(data => {
-            gameState = data.state;
-            calculatedCps = data.cps;
-            calculatedClickPower = data.click_power;
-            
-            updateDOM();
-
-            if (data.offline_seconds > 5 && data.offline_chakra > 0) {
-                document.getElementById('offline-time-val').innerText = Math.floor(data.offline_seconds);
-                document.getElementById('offline-chakra-val').innerText = formatNumber(data.offline_chakra);
-                document.getElementById('offline-modal').classList.remove('hidden');
-            }
-        })
-        .catch(err => console.error("Erro ao carregar save:", err));
+    if (pendEl) pendEl.innerText = pendingPts.toLocaleString();
+    if (pActionBtn) pActionBtn.disabled = (pendingPts <= 0);
+    if (pCounter) pCounter.innerText = `Chakra Ancestral: ${(gameState.prestige_points || 0).toLocaleString()} Pontos`;
 }
 
-export function saveGame() {
-    fetch('/api/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: currentUsername, state: gameState })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.status === 'success') {
-            gameState.achievements = data.state.achievements;
-            gameState.last_saved_time = data.state.last_saved_time;
-            calculatedCps = data.cps;
-            calculatedClickPower = data.click_power;
-            updateDOM();
-            
-            if (data.new_achievements && data.new_achievements.length > 0) {
-                data.new_achievements.forEach(key => {
-                    const achEl = document.getElementById(`ach-${key}`);
-                    if (achEl) {
-                        achEl.classList.add('just-unlocked');
-                        setTimeout(() => achEl.classList.remove('just-unlocked'), 2500);
-                    }
-                });
-            }
-        }
-    })
-    .catch(err => console.error("Erro ao salvar progresso:", err));
-}
-
-function setupClickAnimation() {
+// --- SETUP CLICK ANIMATION & CANVAS FX ---
+export function setupClickAnimation() {
     const btn = document.getElementById('click-btn');
     if (!btn) return;
-    
+
+    particles.setAuraAnchor(btn);
+
     btn.addEventListener('click', (e) => {
-        if (!currentUsername) return;
-        
-        let clickPowerVal = calculatedClickPower;
-        let isCrit = false;
-        if (gameState.equipped_sword === 'kiba') {
-            const lvl = (gameState.swords_levels && gameState.swords_levels.kiba) || 1;
-            const mult = 1.0 + (lvl - 1) * 0.25;
-            if (Math.random() < Math.min(0.5, 0.15 * mult)) {
-                clickPowerVal *= (5 * mult);
-                isCrit = true;
-            }
-        }
-        
-        gameState.chakra += clickPowerVal;
-        gameState.total_chakra_earned += clickPowerVal;
-        gameState.clicks += 1;
-        
-        if (gameState.clicks % 10 === 0) {
-            saveGame();
+        sessionClicks++;
+        gameState.clicks = (gameState.clicks || 0) + 1;
+
+        let isCrit = Math.random() < calculatedCritChance;
+        let clickVal = calculatedClickPower;
+        if (isCrit) {
+            clickVal = clickVal.mul(calculatedCritMult);
+            sound.playCrit();
+        } else {
+            sound.playClick();
         }
 
-        updateDOM();
-        
-        // Click shockwave ring animation
-        const shockwave = document.createElement('div');
-        shockwave.className = 'click-shockwave';
-        btn.appendChild(shockwave);
-        setTimeout(() => shockwave.remove(), 600);
+        gameState.chakra = D(gameState.chakra).add(clickVal);
+        gameState.total_chakra_earned = D(gameState.total_chakra_earned).add(clickVal);
 
         const rect = btn.getBoundingClientRect();
-        const particle = document.createElement('div');
-        particle.className = 'click-particle';
-        if (isCrit) {
-            particle.innerText = `⚡ CRÍTICO! +${clickPowerVal.toFixed(1)}`;
-            particle.style.color = '#ffd700';
-            particle.style.fontSize = '1.75rem';
-            particle.style.textShadow = '0 0 10px #ffaa00';
-        } else {
-            particle.innerText = `+${clickPowerVal.toFixed(1)}`;
-        }
-        
         const x = e.clientX || (rect.left + rect.width / 2);
         const y = e.clientY || (rect.top + rect.height / 2);
-        
-        particle.style.left = `${x}px`;
-        particle.style.top = `${y}px`;
-        
-        document.body.appendChild(particle);
-        
-        setTimeout(() => {
-            particle.remove();
-        }, 1000);
+
+        particles.spawnBurst(x, y, isCrit ? 20 : 10, isCrit ? "crit" : "chakra");
+        particles.spawnFloatingText(x, y, `+${formatBigNumber(clickVal)}`, isCrit);
+
+        updateDOM();
     });
 }
 
+// Bridge for Clan Tree
+window.chakraGameBuyClanNode = (nodeId) => {
+    buyClanNode(nodeId, gameState, saveGame, updateDOM);
+    recalculateStats();
+    updateDOM();
+};
+
+window.chakraGauntletAttack = () => {
+    gauntletManager.attackManual(calculatedClickPower);
+};
+
+window.chakraGameUpdateRankings = () => {
+    rankingsManager.renderUI(gameState, sessionClicks);
+};
+
+// --- GATES HANDLERS ---
 export function buyGate() {
     const currentGates = gameState.gates_unlocked || 0;
     if (currentGates >= 8) return;
     const cost = GATE_COSTS[currentGates];
-    if (gameState.chakra >= cost) {
-        gameState.chakra -= cost;
+    if (D(gameState.chakra).gte(cost)) {
+        gameState.chakra = D(gameState.chakra).sub(cost);
         gameState.gates_unlocked = currentGates + 1;
+        sound.playLevelUp();
         recalculateStats();
         updateDOM();
         saveGame();
     } else {
+        sound.playAlert();
         alert("Chakra insuficiente para abrir este portão!");
     }
 }
+window.buyGate = buyGate;
 
 export function triggerGateRelease() {
     const currentGates = gameState.gates_unlocked || 0;
@@ -947,184 +797,189 @@ export function triggerGateRelease() {
 
     gatesActiveTime = 20.0;
     gatesCooldown = 60.0;
-    
+    sound.playJutsu();
     recalculateStats();
     updateDOM();
     saveGame();
 }
-
-export function closeModal() {
-    document.getElementById('offline-modal').classList.add('hidden');
-}
-
-// Bind to window for inline onclick hooks in HTML
-// Bind to window for inline onclick hooks in HTML
-window.startMission = startMission;
-window.speedUpMission = speedUpMission;
-window.claimMission = claimMission;
-window.handleMissionClick = handleMissionClick;
-window.performPrestige = performPrestige;
-window.buyPrestigeUpgrade = buyPrestigeUpgrade;
-window.rollGacha = rollGacha;
-window.equipSword = equipSword;
-window.toggleTheme = toggleTheme;
-window.switchTab = switchTab;
-window.buyGenerator = buyGenerator;
-window.buyUpgrade = buyUpgrade;
-window.setShopMode = setShopMode;
-window.setShopQty = setShopQty;
-window.closeModal = closeModal;
-window.startParryGame = startParryGame;
-window.triggerParry = triggerParry;
-window.selectBijuu = selectBijuu;
-window.evolveBijuu = evolveBijuu;
-window.upgradeSword = upgradeSword;
-window.setTrainingBuff = setTrainingBuff;
-window.switchTrainingGame = switchTrainingGame;
-window.startJutsuGame = startJutsuGame;
-window.startBalanceGame = startBalanceGame;
-window.balanceClick = balanceClick;
-window.buyGate = buyGate;
 window.triggerGateRelease = triggerGateRelease;
 
-export const BIJUUS = {
-    "1": { name: "Shukaku (1 Cauda)", avatar: "🦝", stat: "Foco: Defesa Sand" },
-    "2": { name: "Matatabi (2 Caudas)", avatar: "🐱", stat: "Foco: Chamas Azuis" },
-    "3": { name: "Isobu (3 Caudas)", avatar: "🐢", stat: "Foco: Coral de Água" },
-    "4": { name: "Son Gokū (4 Caudas)", avatar: "🦍", stat: "Foco: Estilo Lava" },
-    "5": { name: "Kokuō (5 Caudas)", avatar: "🐴", stat: "Foco: Estilo Vapor" },
-    "6": { name: "Saiken (6 Caudas)", avatar: "🐌", stat: "Foco: Ácido Corrosivo" },
-    "7": { name: "Chōmei (7 Caudas)", avatar: "🪲", stat: "Foco: Voo de Inseto" },
-    "8": { name: "Gyūki (8 Caudas)", avatar: "🐙", stat: "Foco: Tinta de Polvo" },
-    "9": { name: "Kurama (9 Caudas)", avatar: "🦊", stat: "Foco: Chakra da Raposa" },
-    "10": { name: "Jūbi (10 Caudas)", avatar: "👁️", stat: "Foco: Chakra Divino" }
-};
-
-export const BIJUU_STAGES = {
-    1: "Estágio 1: Selo Inicial",
-    2: "Estágio 2: Manifestação Parcial",
-    3: "Estágio 3: Manto de Chakra",
-    4: "Estágio 4: Besta Desperta",
-    5: "Estágio 5: Fusão Lendária (Máximo)"
-};
-
-export function getBijuuGoals(level) {
-    if (level === 1) {
-        return [
-            { id: "chakra_10k", desc: "Acumular 10.000 Chakra total", check: () => gameState.total_chakra_earned >= 10000 },
-            { id: "clicks_100", desc: "Realizar 100 Cliques manuais", check: () => gameState.clicks >= 100 }
-        ];
-    } else if (level === 2) {
-        return [
-            { id: "chakra_500k", desc: "Acumular 500.000 Chakra total", check: () => gameState.total_chakra_earned >= 500000 },
-            { id: "chunins_5", desc: "Ter pelo menos 5 Chunins aliados", check: () => (gameState.generators.chunin || 0) >= 5 }
-        ];
-    } else if (level === 3) {
-        return [
-            { id: "chakra_10m", desc: "Acumular 10.000.000 Chakra total", check: () => gameState.total_chakra_earned >= 10000000 },
-            { id: "swords_1", desc: "Ter pelo menos 1 Espada Lendária", check: () => Object.values(gameState.swords).some(x => x === true) }
-        ];
-    } else if (level === 4) {
-        return [
-            { id: "chakra_100m", desc: "Acumular 100.000.000 Chakra total", check: () => gameState.total_chakra_earned >= 100000000 },
-            { id: "final_valley", desc: "Concluir a batalha do Vale do Fim", check: () => gameState.missions.camp_final_valley && gameState.missions.camp_final_valley.completed }
-        ];
-    }
-    return [];
+// --- STATE PERSISTENCE (SERIALIZATION / DESERIALIZATION) ---
+export function serializeState(state) {
+    const serialized = JSON.parse(JSON.stringify(state));
+    serialized.chakra = D(state.chakra).toString();
+    serialized.total_chakra_earned = D(state.total_chakra_earned).toString();
+    serialized.peak_cps = D(state.peak_cps || 0).toString();
+    return serialized;
 }
 
-export function selectBijuu(id) {
-    if (gameState.bijuu && gameState.bijuu.chosen) return;
-    if (!gameState.bijuu) {
-        gameState.bijuu = { chosen: "", level: 1, completed_goals: [] };
+export function deserializeState(raw) {
+    if (!raw) return;
+    for (let key in raw) {
+        if (key === 'chakra' || key === 'total_chakra_earned' || key === 'peak_cps') {
+            gameState[key] = D(raw[key] || 0);
+        } else if (typeof raw[key] === 'object' && raw[key] !== null) {
+            if (!gameState[key]) gameState[key] = {};
+            Object.assign(gameState[key], raw[key]);
+        } else {
+            gameState[key] = raw[key];
+        }
     }
-    gameState.bijuu.chosen = id;
-    gameState.bijuu.level = 1;
-    gameState.bijuu.completed_goals = [];
-    
+}
+
+export function saveGame() {
+    if (!currentUsername) return;
+    const payload = serializeState(gameState);
+
+    // Save locally
+    try {
+        localStorage.setItem(`chakra_save_${currentUsername}`, JSON.stringify(payload));
+    } catch (_) {}
+
+    // Save to Flask API if reachable
+    fetch('/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUsername, state: payload })
+    }).catch(() => {
+        // Local-only mode fallback
+    });
+}
+
+export function loadGame() {
+    // Attempt local load first for zero-latency start
+    try {
+        const localSave = localStorage.getItem(`chakra_save_${currentUsername}`);
+        if (localSave) {
+            deserializeState(JSON.parse(localSave));
+        }
+    } catch (_) {}
+
+    // Synchronize with Flask API if available
+    fetch(`/api/load?username=${currentUsername}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data && data.state) {
+                deserializeState(data.state);
+                if (data.offline_seconds > 5 && data.offline_chakra > 0) {
+                    const offChakra = D(data.offline_chakra);
+                    gameState.chakra = D(gameState.chakra).add(offChakra);
+                    gameState.total_chakra_earned = D(gameState.total_chakra_earned).add(offChakra);
+                    alert(`⏱️ TREINAMENTO OFFLINE:\nVocê esteve fora por ${Math.floor(data.offline_seconds)} segundos.\nSeus ninjas geraram: +${formatBigNumber(offChakra)} Chakra!`);
+                }
+            }
+            recalculateStats();
+            updateDOM();
+        })
+        .catch(() => {
+            recalculateStats();
+            updateDOM();
+        });
+
     recalculateStats();
     updateDOM();
-    saveGame();
 }
 
-export function evolveBijuu() {
-    if (!gameState.bijuu || !gameState.bijuu.chosen) return;
-    const goals = getBijuuGoals(gameState.bijuu.level);
-    const allMet = goals.every(g => g.check());
-    
-    if (!allMet) {
-        alert("Você ainda não atendeu todos os objetivos para evoluir sua Bijuu!");
-        return;
+// --- DECOUPLED GAME LOOP (rAF + DELTA TIME ACCUMULATOR) ---
+let lastTime = performance.now();
+let accumulator = 0;
+const TICK_RATE = 1000 / 20; // 50ms = 20 logical ticks per second
+
+function updateGameState(dt) {
+    if (!currentUsername) return;
+
+    // Active Timers
+    if (gatesActiveTime > 0) {
+        gatesActiveTime -= dt;
+        if (gatesActiveTime <= 0) {
+            gatesActiveTime = 0;
+            if (gameState.gates_unlocked === 8) {
+                gameState.chakra = D(0); // Colapso do 8º Portão
+                exhaustionTime = 10.0;
+                alert("🔴 PORTÃO DA MORTE: Colapso corporal! Chakra zerado e 10s de exaustão.");
+            } else {
+                alert("Os Portões Internos se fecharam.");
+            }
+            recalculateStats();
+        }
     }
-    
-    gameState.bijuu.level += 1;
-    alert(`Sua Bijuu evoluiu para o ${BIJUU_STAGES[gameState.bijuu.level]}!`);
-    
-    recalculateStats();
+
+    if (gatesCooldown > 0) {
+        gatesCooldown = Math.max(0, gatesCooldown - dt);
+    }
+
+    if (exhaustionTime > 0) {
+        exhaustionTime = Math.max(0, exhaustionTime - dt);
+        if (exhaustionTime === 0) {
+            alert("Você se recuperou da exaustão.");
+            recalculateStats();
+        }
+    }
+
+    if (trainingBuffTimer > 0) {
+        trainingBuffTimer = Math.max(0, trainingBuffTimer - dt);
+        if (trainingBuffTimer === 0) recalculateStats();
+    }
+
+    if (gameState.crit_buff_timer > 0) {
+        gameState.crit_buff_timer = Math.max(0, gameState.crit_buff_timer - dt);
+    }
+
+    if (gameState.presence_buff_timer > 0) {
+        gameState.presence_buff_timer = Math.max(0, gameState.presence_buff_timer - dt);
+    }
+
+    // Passive Chakra Generation
+    if (calculatedCps.gt(0)) {
+        const deltaChakra = calculatedCps.mul(dt);
+        gameState.chakra = D(gameState.chakra).add(deltaChakra);
+        gameState.total_chakra_earned = D(gameState.total_chakra_earned).add(deltaChakra);
+    }
+
+    // Subsystem ticks
+    presenceRewardManager.tick(dt);
+    gauntletManager.tick(dt, calculatedCps);
+    updateMissionsProgress();
+}
+
+function gameLoop(currentTime) {
+    let deltaTime = currentTime - lastTime;
+    lastTime = currentTime;
+    accumulator += Math.min(deltaTime, 1000); // Prevent spiral of death
+
+    while (accumulator >= TICK_RATE) {
+        updateGameState(TICK_RATE / 1000);
+        accumulator -= TICK_RATE;
+    }
+
+    particles.updateAndRender(deltaTime / 1000);
     updateDOM();
-    saveGame();
+    requestAnimationFrame(gameLoop);
 }
 
-export function getDynamicSwordDesc(key, lvl) {
-    const mult = 1.0 + (lvl - 1) * 0.25;
-    const descs = {
-        kubikiribocho: `A Lâmina Decapitadora. Cliques ganham +${(2 * mult).toFixed(1)}% do seu CPS global.`,
-        samehada: `A Pele de Tubarão. Aliados ficam +${(10 * mult).toFixed(1)}% mais eficientes.`,
-        kusanagi: `A Espada de Sasuke. Multiplica o poder do seu clique manual em ${(1.0 + 0.5 * mult).toFixed(2)}x.`,
-        totsuka: `A Lâmina de Itachi. Multiplica o seu CPS global em ${(1.0 + 0.20 * mult).toFixed(2)}x.`,
-        hiramekarei: `A Espada de Chojuro. Reduz o tempo de missões em ${(15 * mult).toFixed(1)}%.`,
-        kiba: `As Lâminas de Trovão. Cliques têm ${(15 * mult).toFixed(1)}% de chance de Crítico (${(5 * mult).toFixed(1)}x).`
-    };
-    return descs[key] || "";
-}
-
-export function upgradeSword(swordId, cost) {
-    if (gameState.chakra < cost) {
-        alert("Chakra insuficiente para refinar esta espada!");
-        return;
-    }
-    
-    if (!gameState.swords_levels) {
-        gameState.swords_levels = {
-            kubikiribocho: 1,
-            samehada: 1,
-            kusanagi: 1,
-            totsuka: 1,
-            hiramekarei: 1,
-            kiba: 1
-        };
-    }
-    
-    gameState.chakra -= cost;
-    gameState.swords_levels[swordId] = (gameState.swords_levels[swordId] || 1) + 1;
-    
-    recalculateStats();
-    updateDOM();
-    saveGame();
-}
-
-export function setTrainingBuff(duration) {
-    trainingBuffTimer = duration;
-    recalculateStats();
-}
+// Autosave every 10 seconds
+setInterval(() => {
+    if (currentUsername) saveGame();
+}, 10000);
 
 export function logout() {
     localStorage.removeItem('username');
     window.location.href = "login.html";
 }
-
 window.logout = logout;
 
-// Initialize theme & game state on load
+// --- INITIALIZATION ---
 window.addEventListener('load', () => {
     let user = localStorage.getItem('username');
     if (!user) {
-        window.location.href = "login.html";
-        return;
+        user = 'Shinobi';
+        localStorage.setItem('username', user);
     }
     setUsername(user);
     const displayEl = document.getElementById('display-username');
     if (displayEl) displayEl.innerText = user;
+
+    particles.init('fx-canvas');
     loadGame();
 
     const savedTheme = localStorage.getItem('theme');
@@ -1134,60 +989,41 @@ window.addEventListener('load', () => {
     } else {
         updateThemeUI(false);
     }
+
     setupClickAnimation();
+
+    // Initialize Subsystems
+    chuninExamManager.init(gameState, saveGame, updateDOM);
+    gauntletManager.init(gameState, saveGame, updateDOM);
+
+    // Start decoupled rAF Game Loop
+    lastTime = performance.now();
+    requestAnimationFrame(gameLoop);
 });
 
-// Passive background game loop (100ms)
-setInterval(() => {
-    if (!currentUsername) return;
-    
-    // Decrement active timers by 0.1s
-    if (gatesActiveTime > 0) {
-        gatesActiveTime -= 0.1;
-        if (gatesActiveTime <= 0) {
-            gatesActiveTime = 0;
-            // Backlash for Gate 8
-            if (gameState.gates_unlocked === 8) {
-                gameState.chakra = 0; // Drain chakra!
-                exhaustionTime = 10.0; // 10s exhaustion
-                alert("🔴 PORTÃO DA MORTE: Seu corpo entrou em colapso! Chakra reduzido a 0 e exaustão por 10 segundos.");
-            } else {
-                alert("Os Portões Internos se fecharam.");
-            }
-            recalculateStats();
-        }
-    }
-    if (gatesCooldown > 0) {
-        gatesCooldown -= 0.1;
-        if (gatesCooldown < 0) gatesCooldown = 0;
-    }
-    if (exhaustionTime > 0) {
-        exhaustionTime -= 0.1;
-        if (exhaustionTime <= 0) {
-            exhaustionTime = 0;
-            alert("Você se recuperou da exaustão.");
-            recalculateStats();
-        }
-    }
-    if (trainingBuffTimer > 0) {
-        trainingBuffTimer -= 0.1;
-        if (trainingBuffTimer <= 0) {
-            trainingBuffTimer = 0;
-            alert("O bônus de treinamento de Chakra expirou.");
-            recalculateStats();
-        }
-    }
-    
-    if (calculatedCps > 0) {
-        gameState.chakra += calculatedCps / 10;
-        gameState.total_chakra_earned += calculatedCps / 10;
-    }
-    
-    updateMissionsProgress();
-    updateDOM();
-}, 100);
-
-// Autosave every 10 seconds
-setInterval(() => {
-    if (currentUsername) saveGame();
-}, 10000);
+// Hooks for HTML
+window.startMission = startMission;
+window.speedUpMission = speedUpMission;
+window.claimMission = claimMission;
+window.handleMissionClick = handleMissionClick;
+window.performPrestige = performPrestige;
+window.buyPrestigeUpgrade = buyPrestigeUpgrade;
+window.rollGacha = rollGacha;
+window.equipSword = equipSword;
+window.startParryGame = startParryGame;
+window.triggerParry = triggerParry;
+window.switchTrainingGame = switchTrainingGame;
+window.startJutsuGame = startJutsuGame;
+window.startBalanceGame = startBalanceGame;
+window.balanceClick = balanceClick;
+window.toggleMute = () => {
+    const isMuted = sound.toggleMute();
+    const btn = document.getElementById('sound-toggle-btn');
+    if (btn) btn.innerText = isMuted ? "🔇 Som: Desligado" : "🔊 Som: Ligado";
+};
+window.openChuninExam = () => {
+    chuninExamManager.openExamModal();
+};
+window.closeChuninExam = () => {
+    chuninExamManager.closeExamModal();
+};

@@ -1,4 +1,6 @@
 import { gameState, MISSION_INFO, updateDOM, saveGame, calculatedCps, formatNumber } from './game.js';
+import { D, formatBigNumber } from './BigNumber.js';
+import { sound } from './audio.js';
 
 export function getMissionLogMessage(missionId, pct) {
     if (pct <= 0) return "Iniciando missão...";
@@ -84,7 +86,7 @@ export function startMission(missionId) {
     
     if (activeMission.status !== "idle") return;
     
-    if (mission.price && gameState.chakra < mission.price) {
+    if (mission.price && D(gameState.chakra).lt(mission.price)) {
         alert(`Chakra insuficiente! Você precisa de pelo menos ${formatNumber(mission.price)} Chakra para iniciar esta missão.`);
         return;
     }
@@ -118,7 +120,7 @@ export function startMission(missionId) {
     }
     
     if (mission.price) {
-        gameState.chakra -= mission.price;
+        gameState.chakra = D(gameState.chakra).sub(mission.price);
     }
     
     let duration = mission.duration;
@@ -251,8 +253,8 @@ export function claimMission(missionId) {
     const info = MISSION_INFO[missionId];
     
     if (mission.status === "completed") {
-        gameState.chakra += info.rewardChakra;
-        gameState.total_chakra_earned += info.rewardChakra;
+        gameState.chakra = D(gameState.chakra).add(info.rewardChakra);
+        gameState.total_chakra_earned = D(gameState.total_chakra_earned).add(info.rewardChakra);
         
         if (info.rewardPrestige > 0) {
             gameState.prestige_points += info.rewardPrestige;
@@ -424,9 +426,9 @@ function failParry(reason) {
     if (startBtn) startBtn.disabled = false;
     
     // Penalidade: perde 5% do chakra atual
-    const penalty = Math.floor(gameState.chakra * 0.05);
-    if (penalty > 0) {
-        gameState.chakra = Math.max(0, gameState.chakra - penalty);
+    const penalty = D(gameState.chakra).mul(0.05);
+    if (penalty.gt(0)) {
+        gameState.chakra = D(gameState.chakra).sub(penalty).max(0);
         reason += ` (-${formatNumber(penalty)} Chakra!)` ;
     }
     
@@ -566,9 +568,9 @@ function completeJutsu() {
     if (startBtn) startBtn.disabled = false;
     
     const feedback = document.getElementById('jutsu-feedback');
-    const reward = Math.floor(500 + Math.max(300, gameState.total_chakra_earned * 0.035));
-    gameState.chakra += reward;
-    gameState.total_chakra_earned += reward;
+    const reward = D(500).add(D(gameState.total_chakra_earned).mul(0.035).max(300));
+    gameState.chakra = D(gameState.chakra).add(reward);
+    gameState.total_chakra_earned = D(gameState.total_chakra_earned).add(reward);
     
     if (feedback) {
         feedback.style.color = "lightgreen";
@@ -590,9 +592,9 @@ function failJutsu(reason) {
     if (startBtn) startBtn.disabled = false;
     
     // Penalidade: perde 8% do chakra atual
-    const penalty = Math.floor(gameState.chakra * 0.08);
-    if (penalty > 0) {
-        gameState.chakra = Math.max(0, gameState.chakra - penalty);
+    const penalty = D(gameState.chakra).mul(0.08);
+    if (penalty.gt(0)) {
+        gameState.chakra = D(gameState.chakra).sub(penalty).max(0);
         reason += ` (-${formatNumber(penalty)} Chakra!)`;
     }
     
@@ -716,9 +718,9 @@ function failBalance(reason) {
     if (clickBtn) clickBtn.disabled = true;
     
     // Penalidade: perde 10% do chakra atual
-    const penalty = Math.floor(gameState.chakra * 0.10);
-    if (penalty > 0) {
-        gameState.chakra = Math.max(0, gameState.chakra - penalty);
+    const penalty = D(gameState.chakra).mul(0.10);
+    if (penalty.gt(0)) {
+        gameState.chakra = D(gameState.chakra).sub(penalty).max(0);
         reason += ` (-${formatNumber(penalty)} Chakra!)`;
     }
     

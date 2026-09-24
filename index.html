@@ -8,7 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Shojumaru&display=swap" rel="stylesheet">
 </head>
 <body>
-
+    <!-- Canvas de Partículas Shinobi -->
+    <canvas id="fx-canvas"></canvas>
 
     <!-- Conteúdo do Jogo -->
     <div id="app" class="game-container">
@@ -18,14 +19,25 @@
                 <div class="ninja-display">
                     Ninja: <span id="display-username" style="color: var(--primary-color); font-weight: 800;">-</span> | <span onclick="logout()" style="color: var(--accent-color); cursor: pointer; text-decoration: underline;">Sair</span>
                 </div>
+                <div class="sidebar-quick-controls">
+                    <button id="sound-toggle-btn" class="ctrl-btn" onclick="window.toggleMute()">🔊 Som: Ligado</button>
+                    <button id="notation-toggle-btn" class="ctrl-btn" onclick="window.toggleNotation()">Notação: Sufixos</button>
+                    <button id="theme-toggle" class="ctrl-btn" onclick="toggleTheme()">
+                        <span id="theme-icon">🌙</span> <span id="theme-text">Tema</span>
+                    </button>
+                </div>
             </div>
             
             <!-- Menu de Abas Vertical na Sidebar -->
             <nav class="nav-tabs vertical-tabs">
-                <button id="tab-btn-upgrades" class="tab-btn active" onclick="switchTab('upgrades')">🏆 Progresso & Conquistas</button>
-                <button id="tab-btn-missions" class="tab-btn" onclick="switchTab('missions')">⚔️ Missões & Invasões</button>
+                <button id="tab-btn-upgrades" class="tab-btn active" onclick="switchTab('upgrades')">🏆 Progresso & Portões</button>
+                <button id="tab-btn-clans" class="tab-btn" onclick="switchTab('clans')">🌀 Árvore de Clãs</button>
+                <button id="tab-btn-exam" class="tab-btn" onclick="switchTab('exam')">📜 Exame Chūnin</button>
+                <button id="tab-btn-gauntlet" class="tab-btn" onclick="switchTab('gauntlet')">⚔️ Gauntlet 100+</button>
+                <button id="tab-btn-rankings" class="tab-btn" onclick="switchTab('rankings')">👑 Rankings</button>
+                <button id="tab-btn-rewards" class="tab-btn" onclick="switchTab('rewards')">⏳ Presença Shinobi</button>
+                <button id="tab-btn-missions" class="tab-btn" onclick="switchTab('missions')">🎯 Missões & Treino</button>
                 <button id="tab-btn-bijuu" class="tab-btn" onclick="switchTab('bijuu')">🦊 Bijuu Lendária</button>
-                <button id="tab-btn-prestige" class="tab-btn" onclick="switchTab('prestige')">🌀 Renascimento</button>
                 <button id="tab-btn-gacha" class="tab-btn" onclick="switchTab('gacha')">🗡️ Forja Gacha</button>
             </nav>
 
@@ -734,6 +746,56 @@
                     </div>
                 </section>
             </div>
+
+            <!-- Aba 2: Árvore Genealógica (Clãs & Linhagem) -->
+            <div id="tab-content-clans" class="tab-content hidden">
+                <div id="clan-tree-container"></div>
+            </div>
+
+            <!-- Aba 3: Exame Chūnin (Canônico) -->
+            <div id="tab-content-exam" class="tab-content hidden">
+                <section class="exam-hub-card">
+                    <h2>📜 Exame Chūnin Oficial da Vila da Folha</h2>
+                    <p>Prove seu valor como verdadeiro shinobi! O Exame Chūnin é um rito de passagem composto por 3 fases canônicas e rigorosas.</p>
+                    <div class="exam-phases-preview">
+                        <div class="exam-phase-badge">
+                            <span class="badge-icon">📝</span>
+                            <h4>1ª Fase: Prova Escrita</h4>
+                            <p>Trapaça furtiva sem ser detectado pelos fiscais ANBU de Ibiki Morino.</p>
+                        </div>
+                        <div class="exam-phase-badge">
+                            <span class="badge-icon">🌳</span>
+                            <h4>2ª Fase: Floresta da Morte</h4>
+                            <p>Sobrevivência contra esquadrões rivais para saquear o pergaminho faltante em até 3 minutos.</p>
+                        </div>
+                        <div class="exam-phase-badge">
+                            <span class="badge-icon">⚔️</span>
+                            <h4>3ª Fase: Torneio 1v1</h4>
+                            <p>Duelos na arena contra Shikamaru, Temari, Neji e Gaara com mecânicas de reação e QTE.</p>
+                        </div>
+                    </div>
+                    <div class="exam-launch-box">
+                        <button class="exam-launch-btn" onclick="window.openChuninExam()">
+                            🔥 INICIAR EXAME CHŪNIN AGORA!
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Aba 4: Gauntlet com mais de 100 Inimigos -->
+            <div id="tab-content-gauntlet" class="tab-content hidden">
+                <div id="gauntlet-container"></div>
+            </div>
+
+            <!-- Aba 5: Rankings Segmentados -->
+            <div id="tab-content-rankings" class="tab-content hidden">
+                <div id="rankings-container"></div>
+            </div>
+
+            <!-- Aba 6: Recompensas de Presença Shinobi -->
+            <div id="tab-content-rewards" class="tab-content hidden">
+                <div id="presence-rewards-container"></div>
+            </div>
         </main>
 
         <!-- Coluna Direita: Geradores e Ninjas -->
@@ -1335,6 +1397,17 @@
             <p>Você ficou fora por <span id="offline-time-val">0</span> segundos.</p>
             <p>Seus ninjas geraram: <span id="offline-chakra-val">0</span> Chakra!</p>
             <button onclick="closeModal()">Coletar Chakra</button>
+        </div>
+    </div>
+
+    <!-- Modal do Exame Chūnin -->
+    <div id="chunin-exam-modal" class="modal hidden">
+        <div class="modal-content exam-modal-content">
+            <div class="exam-modal-header">
+                <h3>📜 Exame Chūnin Oficial de Konoha</h3>
+                <button class="modal-close-btn" onclick="window.closeChuninExam()">✕</button>
+            </div>
+            <div id="exam-modal-body"></div>
         </div>
     </div>
 
