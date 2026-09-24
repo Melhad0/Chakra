@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import Decimal from 'break_infinity.js';
-import { D } from '../engine/BigNumber';
+import { D, formatBigNumber } from '../engine/BigNumber';
 import { ElementalAffinity, PlayerStats } from '../types/game';
 import { GeneratorItem, ShopMode, ShopQty } from '../types/economy';
 import { INITIAL_GENERATORS, INITIAL_UPGRADES, GATE_DATA, CLAN_NODES } from '../engine/data';
@@ -147,7 +147,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const y = coords?.y ?? 0;
 
     const newFloatingNumbers = s.kineticMode
-      ? [...s.floatingNumbers.slice(-15), { id: fxId, text: `+${finalAmount.toFixed(0)}`, isCrit, x, y }]
+      ? [...s.floatingNumbers.slice(-15), { id: fxId, text: `+${formatBigNumber(finalAmount)}`, isCrit, x, y }]
       : s.floatingNumbers;
 
     const newShockwaves = s.kineticMode

@@ -49,6 +49,8 @@ export default {
         'hover-bob': 'hoverBob 3s ease-in-out infinite alternate',
         'fluid-flow': 'fluidFlow 3s linear infinite',
         'parry-pulse': 'parryPulse 1.6s cubic-bezier(0.2, 0.8, 0.3, 1) infinite',
+        'float-fade': 'floatFade 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards',
+        'shockwave-pulse': 'shockwavePulse 0.5s ease-out forwards',
       },
       keyframes: {
         pulseSlow: {
@@ -75,6 +77,34 @@ export default {
           '0%': { transform: 'translate(-50%, -50%) scale(2.2)', opacity: '0.3' },
           '70%': { opacity: '1', borderColor: '#ffd700' },
           '100%': { transform: 'translate(-50%, -50%) scale(1.0)', opacity: '0.8', borderColor: '#00e5ff' },
+        },
+        floatFade: {
+          '0%': {
+            opacity: '1',
+            transform: 'translate(-50%, -50%) translate3d(0, 0, 0) scale(0.85)',
+          },
+          '25%': {
+            opacity: '1',
+            transform: 'translate(-50%, -50%) translate3d(var(--float-x, 0px), -30px, 0) scale(1.2)',
+          },
+          '70%': {
+            opacity: '0.8',
+            transform: 'translate(-50%, -50%) translate3d(calc(var(--float-x, 0px) * 1.3), -55px, 0) scale(1.0)',
+          },
+          '100%': {
+            opacity: '0',
+            transform: 'translate(-50%, -50%) translate3d(calc(var(--float-x, 0px) * 1.5), -75px, 0) scale(0.8)',
+          },
+        },
+        shockwavePulse: {
+          '0%': {
+            opacity: '0.9',
+            transform: 'translate(-50%, -50%) scale(0.3)',
+          },
+          '100%': {
+            opacity: '0',
+            transform: 'translate(-50%, -50%) scale(2.2)',
+          },
         },
       },
       boxShadow: {

@@ -5,6 +5,73 @@ import { calculateTotalCPS, calculateClickPower } from '../../engine/formulas';
 import { GATE_DATA } from '../../engine/data';
 import { Flame, ShieldAlert, Zap } from 'lucide-react';
 
+interface FloatingItemProps {
+  id: number;
+  x: number;
+  y: number;
+  text: string;
+  isCrit: boolean;
+  onRemove: (id: number) => void;
+}
+
+const FloatingNumberItem: React.FC<FloatingItemProps> = ({ id, x, y, text, isCrit, onRemove }) => {
+  const randomOffset = React.useMemo(() => Math.random() * 60 - 30, []);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      onRemove(id);
+    }, 850);
+    return () => clearTimeout(timer);
+  }, [id, onRemove]);
+
+  return (
+    <div
+      onAnimationEnd={() => onRemove(id)}
+      style={{
+        left: `${x}px`,
+        top: `${y}px`,
+        ['--float-x' as any]: `${randomOffset}px`,
+      }}
+      className={`absolute pointer-events-none font-ninja font-black animate-float-fade z-30 select-none ${
+        isCrit
+          ? 'text-2xl text-chakra-gold drop-shadow-[0_0_15px_#ffd700]'
+          : 'text-base text-white drop-shadow-[0_0_8px_#00e5ff]'
+      }`}
+    >
+      {text}
+    </div>
+  );
+};
+
+interface ShockwaveProps {
+  id: number;
+  x: number;
+  y: number;
+  isCrit: boolean;
+  onRemove: (id: number) => void;
+}
+
+const ShockwaveItem: React.FC<ShockwaveProps> = ({ id, x, y, isCrit, onRemove }) => {
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      onRemove(id);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [id, onRemove]);
+
+  return (
+    <div
+      onAnimationEnd={() => onRemove(id)}
+      style={{ left: `${x}px`, top: `${y}px` }}
+      className={`absolute pointer-events-none rounded-full border animate-shockwave-pulse z-20 ${
+        isCrit
+          ? 'w-24 h-24 border-chakra-gold bg-chakra-gold/25 shadow-gold-glow'
+          : 'w-20 h-20 border-chakra-water bg-chakra-water/20 shadow-chakra-glow'
+      }`}
+    />
+  );
+};
+
 export const ActionStage: React.FC = () => {
   const chakra = useGameStore((s) => s.chakra);
   const generators = useGameStore((s) => s.generators);
@@ -81,32 +148,27 @@ export const ActionStage: React.FC = () => {
 
         {/* Ondas de Choque Radiais Translúcidas */}
         {shockwaves.map((wave) => (
-          <div
+          <ShockwaveItem
             key={wave.id}
-            onAnimationEnd={() => removeShockwave(wave.id)}
-            style={{ left: `${wave.x}px`, top: `${wave.y}px` }}
-            className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border pointer-events-none animate-[ping_0.5s_cubic-bezier(0,0,0.2,1)_forwards] ${
-              wave.isCrit
-                ? 'w-24 h-24 border-chakra-gold bg-chakra-gold/20 shadow-gold-glow'
-                : 'w-20 h-20 border-chakra-water bg-chakra-water/10 shadow-chakra-glow'
-            }`}
+            id={wave.id}
+            x={wave.x}
+            y={wave.y}
+            isCrit={wave.isCrit}
+            onRemove={removeShockwave}
           />
         ))}
 
         {/* Números Flutuantes Parabólicos */}
         {floatingNumbers.map((item) => (
-          <div
+          <FloatingNumberItem
             key={item.id}
-            onAnimationEnd={() => removeFloatingNumber(item.id)}
-            style={{ left: `${item.x}px`, top: `${item.y}px` }}
-            className={`absolute pointer-events-none font-ninja font-black animate-[fade-up_0.8s_ease-out_forwards] -translate-x-1/2 -translate-y-1/2 ${
-              item.isCrit
-                ? 'text-2xl text-chakra-gold drop-shadow-[0_0_15px_#ffd700]'
-                : 'text-base text-white drop-shadow-[0_0_8px_#00e5ff]'
-            }`}
-          >
-            {item.text}
-          </div>
+            id={item.id}
+            x={item.x}
+            y={item.y}
+            text={item.text}
+            isCrit={item.isCrit}
+            onRemove={removeFloatingNumber}
+          />
         ))}
 
         {/* Badges de Status do Clique */}
