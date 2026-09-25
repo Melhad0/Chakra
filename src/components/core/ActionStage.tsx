@@ -1,9 +1,9 @@
 import React, { useRef } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { formatBigNumber } from '../../engine/BigNumber';
-import { calculateTotalCPS, calculateClickPower } from '../../engine/formulas';
+import { calculateTotalCPS, calculateClickPower, getGatesMultiplier } from '../../engine/formulas';
 import { GATE_DATA } from '../../engine/data';
-import { Flame, ShieldAlert, Zap, Target, Activity, Clock, Skull, CheckCircle2 } from 'lucide-react';
+import { Flame, ShieldAlert, Zap, Target, Activity, Clock, Skull, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Badge } from '../common/Badge';
 
 interface FloatingItemProps {
@@ -82,6 +82,8 @@ export const ActionStage: React.FC = () => {
   const gatesActiveTimer = useGameStore((s) => s.gatesActiveTimer);
   const gatesCooldownTimer = useGameStore((s) => s.gatesCooldownTimer);
   const exhaustionTimer = useGameStore((s) => s.exhaustionTimer);
+  const clickExhaustionTimer = useGameStore((s) => s.clickExhaustionTimer);
+  const onlinePresenceBuffTimer = useGameStore((s) => s.onlinePresenceBuffTimer);
   const stageShaking = useGameStore((s) => s.stageShaking);
   const floatingNumbers = useGameStore((s) => s.floatingNumbers);
   const shockwaves = useGameStore((s) => s.shockwaves);
@@ -101,13 +103,15 @@ export const ActionStage: React.FC = () => {
       clanNodes,
       gatesUnlocked,
       gatesActiveTimer > 0,
-      exhaustionTimer > 0
+      exhaustionTimer > 0,
+      {},
+      onlinePresenceBuffTimer > 0
     );
-  }, [generators, upgrades, clanNodes, gatesUnlocked, gatesActiveTimer, exhaustionTimer]);
+  }, [generators, upgrades, clanNodes, gatesUnlocked, gatesActiveTimer, exhaustionTimer, onlinePresenceBuffTimer]);
 
   const clickPower = React.useMemo(() => {
-    return calculateClickPower(currentCPS, upgrades, clanNodes);
-  }, [currentCPS, upgrades, clanNodes]);
+    return calculateClickPower(currentCPS, upgrades, clanNodes, generators);
+  }, [currentCPS, upgrades, clanNodes, generators]);
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!stageRef.current) return;
@@ -122,13 +126,31 @@ export const ActionStage: React.FC = () => {
 
   return (
     <main className="h-full bg-zinc-900/40 backdrop-blur-md border border-zinc-800/80 hover:border-zinc-700/80 transition-colors rounded-xl p-4 flex flex-col items-center justify-between relative overflow-hidden select-none shadow-sm">
+      {/* ALERTA DE EXAUSTÃO MUSCULAR SEVERA */}
+      {(exhaustionTimer > 0 || clickExhaustionTimer > 0) && (
+        <div className="w-full mb-3 p-2.5 bg-rose-950/40 border border-rose-800/60 rounded-xl text-rose-300 font-mono text-xs flex items-center justify-between z-20">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-400 stroke-[2] animate-bounce" />
+            <div>
+              <span className="font-bold">Colapso Muscular Shinobi:</span>
+              <span className="ml-1 text-[11px] text-rose-200">CPS -85% ({exhaustionTimer.toFixed(1)}s)</span>
+            </div>
+          </div>
+          {clickExhaustionTimer > 0 && (
+            <span className="px-2 py-0.5 rounded bg-rose-900/60 border border-rose-700/60 text-[10px] text-rose-200 font-bold">
+              Cliques Bloqueados: {clickExhaustionTimer.toFixed(1)}s
+            </span>
+          )}
+        </div>
+      )}
+
       {/* 1. PALCO FOCAL DO SELO REATIVO COM ANÉIS CONCÊNTRICOS SUTIS */}
       <div
         ref={stageRef}
         onClick={handleClick}
-        className={`flex-1 w-full flex flex-col items-center justify-center relative cursor-pointer ${
-          stageShaking ? 'animate-[bounce_0.2s_ease-in-out_2]' : ''
-        }`}
+        className={`flex-1 w-full flex flex-col items-center justify-center relative ${
+          clickExhaustionTimer > 0 ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+        } ${stageShaking ? 'animate-[bounce_0.2s_ease-in-out_2]' : ''}`}
       >
         {/* Anéis de Precisão Técnica */}
         <div className="absolute w-[280px] h-[280px] rounded-full border border-dashed border-zinc-800/60 animate-spin-slow pointer-events-none" />
@@ -140,13 +162,27 @@ export const ActionStage: React.FC = () => {
         {/* Botão Central Reativo de Alta Precisão */}
         <div
           id="click-btn"
-          className="group relative z-10 w-36 h-36 rounded-2xl bg-zinc-900/90 border border-zinc-800/90 flex flex-col items-center justify-center shadow-lg hover:border-orange-500/40 hover:bg-zinc-850 active:scale-95 transition-all duration-150 ease-out"
+          className={`group relative z-10 w-36 h-36 rounded-2xl flex flex-col items-center justify-center shadow-lg transition-all duration-150 ease-out ${
+            clickExhaustionTimer > 0
+              ? 'bg-rose-950/30 border border-rose-900/60'
+              : 'bg-zinc-900/90 border border-zinc-800/90 hover:border-orange-500/40 hover:bg-zinc-850 active:scale-95'
+          }`}
         >
-          <div className="w-16 h-16 rounded-xl bg-zinc-800/60 border border-zinc-700/50 flex items-center justify-center text-orange-400 group-hover:scale-105 transition-transform">
-            <Target className="w-8 h-8 stroke-[1.5]" />
+          <div
+            className={`w-16 h-16 rounded-xl flex items-center justify-center transition-transform ${
+              clickExhaustionTimer > 0
+                ? 'bg-rose-900/40 border border-rose-800 text-rose-400'
+                : 'bg-zinc-800/60 border border-zinc-700/50 text-orange-400 group-hover:scale-105'
+            }`}
+          >
+            {clickExhaustionTimer > 0 ? (
+              <Skull className="w-8 h-8 stroke-[1.5]" />
+            ) : (
+              <Target className="w-8 h-8 stroke-[1.5]" />
+            )}
           </div>
           <span className="text-[10px] font-mono font-medium text-zinc-400 uppercase tracking-widest mt-2">
-            Canalizar
+            {clickExhaustionTimer > 0 ? `Exausto (${clickExhaustionTimer.toFixed(1)}s)` : 'Canalizar'}
           </span>
         </div>
 
@@ -195,18 +231,18 @@ export const ActionStage: React.FC = () => {
           <div>
             {exhaustionTimer > 0 ? (
               <Badge variant="danger" icon={<Skull className="w-3 h-3 stroke-[1.75]" />}>
-                Exausto: {exhaustionTimer.toFixed(1)}s
+                Exaustão: {exhaustionTimer.toFixed(1)}s (-85% CPS)
               </Badge>
             ) : gatesActiveTimer > 0 ? (
               <Badge variant="production" icon={<Flame className="w-3 h-3 stroke-[1.75]" />}>
-                Ativo: {gatesActiveTimer.toFixed(1)}s (+{gatesUnlocked * 150}%)
+                Ativo: {gatesActiveTimer.toFixed(1)}s ({getGatesMultiplier(gatesUnlocked)}x CPS)
               </Badge>
             ) : gatesCooldownTimer > 0 ? (
               <Badge variant="warning" icon={<Clock className="w-3 h-3 stroke-[1.75]" />}>
                 Recarga: {gatesCooldownTimer.toFixed(1)}s
               </Badge>
             ) : gatesUnlocked >= 8 ? (
-              <Badge variant="cyan">Abertura Completa</Badge>
+              <Badge variant="cyan">Abertura Completa (15x)</Badge>
             ) : (
               <span className="text-[10px] font-mono text-zinc-400">
                 Próximo: {nextGate?.name}
@@ -268,7 +304,7 @@ export const ActionStage: React.FC = () => {
                 : 'bg-zinc-900/50 border-zinc-800/80 text-zinc-500 cursor-not-allowed'
             }`}
           >
-            <Zap className="w-3.5 h-3.5 stroke-[1.75]" /> Liberar Fúria (+{gatesUnlocked * 150}%)
+            <Zap className="w-3.5 h-3.5 stroke-[1.75]" /> Liberar Fúria ({getGatesMultiplier(gatesUnlocked)}x CPS)
           </button>
         </div>
       </div>
@@ -277,10 +313,12 @@ export const ActionStage: React.FC = () => {
       <div className="w-full mt-2.5 py-1.5 px-3 bg-zinc-950/40 border border-zinc-800/60 rounded-lg text-[11px] font-mono text-zinc-400 flex items-center gap-2 flex-shrink-0">
         <ShieldAlert className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
         <span className="truncate">
-          {exhaustionTimer > 0
-            ? 'O corpo entrou em colapso devido à liberação do Portão da Morte.'
+          {clickExhaustionTimer > 0
+            ? 'Colapso muscular severo: o fluxo dos dezetsu foi interrompido por exaustão física.'
+            : exhaustionTimer > 0
+            ? 'Exaustão Shinobi ativa: CPS reduzido em 85% após o encerramento dos Portões.'
             : gatesActiveTimer > 0
-            ? 'Os Portões de Chakra foram abertos. Frequência metabólica extrema ativa.'
+            ? `Os Oito Portões Internos estão abertos (${getGatesMultiplier(gatesUnlocked)}x CPS). Cuidado com o colapso iminente!`
             : 'Canalize seu chakra com selos de mão para despertar novas técnicas ninjas.'}
         </span>
       </div>

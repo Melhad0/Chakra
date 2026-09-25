@@ -3,21 +3,37 @@ import { D } from '../engine/BigNumber';
 import { BossData } from '../types/combat';
 
 export const HP_BASE = 500;
-export const HP_GROWTH = 1.28;
+export const HP_GROWTH = 1.42;
 
 /**
- * Fórmula de Escala Unificada Exponencial:
- * HP_n = HP_base * (1.28)^(n - 1)
+ * Fórmula de Escala Unificada Exponencial (Hardcore Boss DPS Check):
+ * HP_n = HP_base * (1.42)^(n - 1)
  */
 export function calculateBossHP(n: number, base: number = HP_BASE): Decimal {
   return D(base).mul(D(HP_GROWTH).pow(n - 1)).round();
 }
 
+export const BASE_BOSS_REWARD = 250; // Corte imediato de 75% no valor base
+
 /**
- * Recompensa de Chakra proporcional à escala da fase
+ * Recompensa de Chakra proporcional à escala da fase (Nerf 75%):
+ * Equação: BaseBossReward * 1.18^(n - 1)
  */
-export function calculateBossBounty(n: number, hp: Decimal): Decimal {
-  return hp.mul(2.2).add(D(1500).mul(D(1.22).pow(n - 1))).round();
+export function calculateBossBounty(n: number, _hp?: Decimal): Decimal {
+  return D(BASE_BOSS_REWARD).mul(D(1.18).pow(n - 1)).round();
+}
+
+/**
+ * Recompensa de Chakra com Hard-Cap atrelado ao CPS estável:
+ * min(BaseBossReward * 1.18^(n - 1), CPS_estavel * 40)
+ */
+export function calculateEffectiveBossReward(n: number, stableRollingCPS: Decimal): Decimal {
+  const baseReward = calculateBossBounty(n);
+  if (stableRollingCPS && stableRollingCPS.gt(0)) {
+    const cpsCap = stableRollingCPS.mul(40).round();
+    return Decimal.min(baseReward, cpsCap);
+  }
+  return baseReward;
 }
 
 export const GAUNTLET_BOSSES: BossData[] = [
@@ -212,6 +228,7 @@ export const GAUNTLET_BOSSES: BossData[] = [
     timer: 35,
     bountyChakra: calculateBossBounty(10, calculateBossHP(10)),
     bountyAncestral: 4,
+    weaponFragments: 3,
     mechanic: {
       type: 'sakon_regen',
       title: 'Parasitismo e Regeneração Celular',
@@ -402,6 +419,8 @@ export const GAUNTLET_BOSSES: BossData[] = [
     timer: 35,
     bountyChakra: calculateBossBounty(20, calculateBossHP(20)),
     bountyAncestral: 8,
+    weaponFragments: 5,
+    gachaTickets: 1,
     mechanic: {
       type: 'standard',
       title: 'Nano-Insetos Tóxicos',
@@ -596,6 +615,8 @@ export const GAUNTLET_BOSSES: BossData[] = [
     timer: 40,
     bountyChakra: calculateBossBounty(30, calculateBossHP(30)),
     bountyAncestral: 25,
+    weaponFragments: 8,
+    gachaTickets: 1,
     mechanic: {
       type: 'raikage_armor',
       title: 'Armadura Raiton Indestrutível',
@@ -790,6 +811,8 @@ export const GAUNTLET_BOSSES: BossData[] = [
     timer: 45,
     bountyChakra: calculateBossBounty(40, calculateBossHP(40)),
     bountyAncestral: 150,
+    weaponFragments: 10,
+    gachaTickets: 2,
     mechanic: {
       type: 'isshiki_cubes',
       title: 'Cubos Negros de Daikokuten',

@@ -5,6 +5,7 @@ export type ElementalAffinity = 'Fire' | 'Wind' | 'Lightning' | 'Earth' | 'Water
 
 export interface PlayerStats {
   manualClicksCurrentSession: number;
+  manualClicksSession?: number;
   manualClicksAllTime: number;
   highestCPSRecord: Decimal;
   totalPrestiges: number;

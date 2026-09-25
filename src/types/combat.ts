@@ -52,14 +52,22 @@ export interface BossData {
   timer: number;
   bountyChakra: Decimal;
   bountyAncestral: number;
+  weaponFragments?: number;
+  gachaTickets?: number;
   mechanic: BossMechanic;
 }
 
-export interface BossNavigationState {
-  currentBossIndex: number;  // Chefe ativo em combate (0 a 39)
-  maxUnlockedBoss: number;   // Maior chefe já derrotado (Recorde da Run: 0 a 40)
-  combatMode: 'PUSH' | 'FARM';
+export interface BossGauntletState {
+  currentActiveBossId: number;        // ID do próximo chefe a ser superado (1 a N)
+  highestBossDefeated: number;        // Recorde histórico da conta
+  cooldownExpiresAt: number | null;   // Timestamp UNIX do fim do cooldown
+  isFighting: boolean;
+  bossCurrentHp: Decimal;
+  bossTimeRemaining: number;
+  maxUnlockedBoss: number;            // Alias retrocompatível (sempre = highestBossDefeated)
 }
+
+export type BossNavigationState = BossGauntletState;
 
 export interface GauntletEnemy {
   readonly id: number;

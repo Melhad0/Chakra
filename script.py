@@ -786,5 +786,75 @@ def save_game():
         "click_power": click_power
     })
 
+@app.route("/api/rankings/sync", methods=["POST"])
+def sync_ranking():
+    data = request.json or {}
+    username = data.get("username", "").strip()
+    if not username:
+        return jsonify({"error": "Nome de usuário necessário"}), 400
+
+    users = load_users()
+    matched_key = None
+    for k in users.keys():
+        if k.lower() == username.lower():
+            matched_key = k
+            break
+
+    ranking_entry = {
+        "ninjaId": data.get("ninjaId", 0),
+        "username": username,
+        "manualClicksSession": int(data.get("manualClicksSession", 0)),
+        "manualClicksAllTime": int(data.get("manualClicksAllTime", 0)),
+        "highestCpsRecord": str(data.get("highestCpsRecord", "0")),
+        "totalPrestiges": int(data.get("totalPrestiges", 0)),
+        "currentRank": data.get("currentRank", "estudante"),
+        "updatedAt": datetime.now(timezone.utc).isoformat()
+    }
+
+    if matched_key and isinstance(users[matched_key], dict):
+        users[matched_key]["ranking"] = ranking_entry
+        save_users(users)
+    else:
+        rankings_file = "rankings.json"
+        rankings_data = {}
+        if os.path.exists(rankings_file):
+            try:
+                with open(rankings_file, "r", encoding="utf-8") as rf:
+                    rankings_data = json.load(rf)
+            except Exception:
+                rankings_data = {}
+        rankings_data[username.lower()] = ranking_entry
+        try:
+            with open(rankings_file, "w", encoding="utf-8") as rf:
+                json.dump(rankings_data, rf, indent=2)
+        except Exception:
+            pass
+
+    return jsonify({"status": "success", "ranking": ranking_entry})
+
+@app.route("/api/rankings/top", methods=["GET"])
+def get_top_rankings():
+    users = load_users()
+    rankings_list = []
+
+    for k, v in users.items():
+        if isinstance(v, dict) and "ranking" in v:
+            rankings_list.append(v["ranking"])
+
+    rankings_file = "rankings.json"
+    if os.path.exists(rankings_file):
+        try:
+            with open(rankings_file, "r", encoding="utf-8") as rf:
+                extra_rankings = json.load(rf)
+                existing_names = {r["username"].lower() for r in rankings_list}
+                for u_key, r_val in extra_rankings.items():
+                    if u_key not in existing_names:
+                        rankings_list.append(r_val)
+        except Exception:
+            pass
+
+    rankings_list.sort(key=lambda x: x.get("manualClicksAllTime", 0), reverse=True)
+    return jsonify({"status": "success", "rankings": rankings_list[:50]})
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
