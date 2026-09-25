@@ -69,35 +69,62 @@ chakra/
 
 ## 🚀 Como Executar
 
-### Opção 1: Servidor Completo (Python / Flask)
+### Opção 1: Execução Automática Unificada ("Makerun" - Recomendado)
 
-Necessário para autenticação via backend e persistência em arquivos JSON locais (`saves/`):
+O projeto conta com um **Runner Orchestrator** inteligente que detecta ferramentas, cria o ambiente virtual `.venv`, instala dependências (`pip` e `npm`), limpa portas travadas (5000 e 5173), inicia ambos os servidores com logs coloridos e abre o navegador automaticamente:
 
-1. Instale o Flask:
+- **Windows (PowerShell)**:
+  ```powershell
+  .\run.bat
+  ```
+
+- **Windows (CMD ou Duplo Clique)**:
+  ```cmd
+  run.bat
+  ```
+  *(Ou dê duplo clique no arquivo `run.bat` pelo Windows Explorer)*
+
+- **Linux / macOS / WSL**:
+  ```bash
+  chmod +x run.sh
+  ./run.sh
+  ```
+
+- **GNU Make (Linux / macOS / WSL / Git Bash)**:
+  ```bash
+  make run
+  ```
+  *Digite `make help` para visualizar todos os comandos disponíveis (`make front`, `make back`, `make kill`, `make clean`).*
+
+- **NPM Scripts**:
+  ```bash
+  npm run dev:all
+  ```
+
+---
+
+### Opção 2: Execução Manual dos Serviços
+
+Caso prefira iniciar cada serviço isoladamente em terminais separados:
+
+1. **Backend Flask (Porta 5000)**:
    ```bash
-   pip install flask
-   ```
+   # Linux/macOS
+   python3 -m venv .venv && source .venv/bin/activate
+   pip install -r requirements.txt
+   python script.py
 
-2. Inicie o servidor:
-   ```bash
+   # Windows
+   python -m venv .venv && .venv\Scripts\activate
+   pip install -r requirements.txt
    python script.py
    ```
 
-3. Abra o navegador em:
+2. **Frontend Vite (Porta 5173)**:
+   ```bash
+   npm install
+   npm run dev
    ```
-   http://localhost:5000
-   ```
-
-### Opção 2: Frontend Estático (Live Server / HTTP)
-
-Como os módulos JavaScript utilizam sintaxe ES Modules (`import`/`export`), execute com qualquer servidor web local:
-
-- **VS Code**: Clique com o botão direito em `login.html` ou `index.html` e selecione **Open with Live Server**.
-- **Python HTTP**:
-  ```bash
-  python -m http.server 8000
-  ```
-  Acesse: `http://localhost:8000/login.html`
 
 ---
 

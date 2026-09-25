@@ -3,6 +3,7 @@ import { useGameStore } from '../store/useGameStore';
 import { gameLoop } from '../engine/GameLoop';
 
 export function useGameLoop() {
+  const currentUser = useGameStore((state) => state.currentUser);
   const tick = useGameStore((state) => state.tick);
   const saveGame = useGameStore((state) => state.saveGame);
   const loadGame = useGameStore((state) => state.loadGame);
@@ -10,6 +11,9 @@ export function useGameLoop() {
   const saveTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
+    // Apenas inicializa o loop se o usuário estiver autenticado
+    if (!currentUser) return;
+
     // Carrega o progresso salvo
     loadGame();
 
@@ -39,5 +43,5 @@ export function useGameLoop() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       saveGame();
     };
-  }, [tick, saveGame, loadGame]);
+  }, [currentUser, tick, saveGame, loadGame]);
 }

@@ -4,10 +4,13 @@ import { formatBigNumber, toggleNotationMode, getNotationMode } from '../../engi
 import { calculateTotalCPS } from '../../engine/formulas';
 import { usePlaytime } from '../../hooks/usePlaytime';
 import { audio } from '../../engine/audio';
-import { Volume2, VolumeX, Sparkles, Hash, Flame, Clock, SunMedium } from 'lucide-react';
+import { Volume2, VolumeX, Sparkles, Hash, Flame, Clock, SunMedium, User, ShieldCheck, LogOut } from 'lucide-react';
 import { Badge } from '../common/Badge';
 
 export const Navbar: React.FC = () => {
+  const currentUser = useGameStore((s) => s.currentUser);
+  const openAuthModal = useGameStore((s) => s.openAuthModal);
+  const logout = useGameStore((s) => s.logout);
   const chakra = useGameStore((s) => s.chakra);
   const chakraAncestral = useGameStore((s) => s.chakraAncestral);
   const generators = useGameStore((s) => s.generators);
@@ -112,6 +115,39 @@ export const Navbar: React.FC = () => {
 
       {/* Controles Rápidos do Cockpit */}
       <div className="flex items-center gap-2">
+        {/* Identificação Shinobi / Botão de Acesso */}
+        {currentUser ? (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={openAuthModal}
+              title="Visualizar Registro e Perfil Shinobi"
+              className="flex items-center gap-2 px-2.5 py-1 bg-zinc-900/80 hover:bg-zinc-800/80 border border-cyan-500/30 hover:border-cyan-500/60 rounded-lg text-xs font-mono transition shadow-sm"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 stroke-[2]" />
+              <span className="text-zinc-200 font-semibold max-w-[110px] truncate hidden sm:inline">
+                {currentUser.fullName.split(' ')[0]}
+              </span>
+              <span className="text-cyan-400 font-bold">#{currentUser.ninjaId}</span>
+            </button>
+            <button
+              onClick={logout}
+              title="Encerrar Sessão (Voltar para Login)"
+              className="p-1.5 rounded-lg bg-zinc-900/60 border border-zinc-800 hover:border-rose-900/60 text-zinc-400 hover:text-rose-400 transition"
+            >
+              <LogOut className="w-3.5 h-3.5 stroke-[1.75]" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={openAuthModal}
+            title="Acessar Selo ou Cadastrar Shinobi"
+            className="flex items-center gap-1.5 px-3 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 text-xs font-semibold tracking-wider uppercase rounded-lg transition"
+          >
+            <User className="w-3.5 h-3.5 stroke-[2]" />
+            <span>Acessar Selo</span>
+          </button>
+        )}
+
         {/* Temporizador de Presença */}
         <div
           title="Recompensa de Presença Online"

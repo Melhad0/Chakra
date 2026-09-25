@@ -4,6 +4,7 @@ import { D, formatBigNumber } from '../engine/BigNumber';
 import { ElementalAffinity, PlayerStats } from '../types/game';
 import { GeneratorItem, ShopMode, ShopQty } from '../types/economy';
 import { BossNavigationState } from '../types/combat';
+import { ShinobiUser } from '../types/auth';
 import { INITIAL_GENERATORS, INITIAL_UPGRADES, GATE_DATA, CLAN_NODES } from '../engine/data';
 import {
   calculateTotalCPS,
@@ -82,12 +83,59 @@ export interface GameStoreState {
   tick: (dt: number) => void;
   saveGame: () => void;
   loadGame: () => void;
+
+  // Autenticação & Sessão Shinobi (IAM)
+  currentUser: ShinobiUser | null;
+  isAuthModalOpen: boolean;
+  openAuthModal: () => void;
+  closeAuthModal: () => void;
+  setCurrentUser: (user: ShinobiUser | null) => void;
+  guestLogin: () => void;
+  logout: () => void;
 }
 
 const STORAGE_KEY = 'chakra_clicker_save_react_v2';
+const SHINOBI_USER_KEY = 'chakra_shinobi_user';
 let nextFxId = 1;
 
 export const useGameStore = create<GameStoreState>((set, get) => ({
+  currentUser: (() => {
+    try {
+      const raw = localStorage.getItem(SHINOBI_USER_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })(),
+  isAuthModalOpen: false,
+  openAuthModal: () => set({ isAuthModalOpen: true }),
+  closeAuthModal: () => set({ isAuthModalOpen: false }),
+  setCurrentUser: (user: ShinobiUser | null) => {
+    if (user) {
+      try {
+        localStorage.setItem(SHINOBI_USER_KEY, JSON.stringify(user));
+      } catch {}
+    } else {
+      localStorage.removeItem(SHINOBI_USER_KEY);
+    }
+    set({ currentUser: user });
+  },
+  guestLogin: () => {
+    const guestUser: ShinobiUser = {
+      ninjaId: Math.floor(1000000 + Math.random() * 9000000),
+      fullName: 'Shinobi Convidado',
+      username: 'convidado',
+      email: 'convidado@chakra.local',
+      birthDate: '2000-01-01',
+      createdAt: new Date().toISOString(),
+    };
+    get().setCurrentUser(guestUser);
+  },
+  logout: () => {
+    localStorage.removeItem(SHINOBI_USER_KEY);
+    set({ currentUser: null });
+  },
+
   chakra: D(0),
   chakraAncestral: D(0),
   activeElement: 'Fire',

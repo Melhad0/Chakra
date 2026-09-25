@@ -6,4 +6,6 @@ __pycache__/
 .gemini/
 node_modules/
 dist/
+.venv/
+.vite/
 

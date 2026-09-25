@@ -3,6 +3,10 @@ import json
 import os
 import time
 import copy
+import re
+import secrets
+from datetime import datetime, timezone, date
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__, static_folder=".")
 
@@ -348,14 +352,42 @@ def check_achievements(state):
         
     return unlocked
 
+FULL_NAME_REGEX = re.compile(r'^[A-Za-zÀ-ÖØ-öø-ÿ]+(?:\s+[A-Za-zÀ-ÖØ-öø-ÿ]+)+$')
+USERNAME_REGEX = re.compile(r'^[a-zA-Z0-9_]{3,20}$')
+EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+SPECIAL_CHAR_REGEX = re.compile(r'[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]')
+
+def sanitize_username(username: str) -> str:
+    """Evita ataques de Path Traversal sanitizando o identificador de arquivo."""
+    cleaned = re.sub(r'[^a-zA-Z0-9_-]', '', str(username).strip())
+    if not cleaned or ".." in cleaned:
+        return "shinobi_player"
+    return cleaned
+
+def generate_unique_ninja_id(existing_ids: set) -> int:
+    """Gera um inteiro criptograficamente seguro entre 1.000.000 e 99.999.999 (até 8 dígitos)."""
+    max_attempts = 100
+    for _ in range(max_attempts):
+        candidate_id = secrets.randbelow(99999999 - 1000000 + 1) + 1000000
+        if candidate_id not in existing_ids:
+            return candidate_id
+    raise RuntimeError("Limite de alocação de IDs atingido ou colisão excessiva.")
+
+def get_user_save_path(username: str) -> str:
+    safe_name = sanitize_username(username)
+    base_dir = os.path.abspath(SAVES_DIR)
+    target_path = os.path.abspath(os.path.join(base_dir, f"{safe_name}.json"))
+    if not target_path.startswith(base_dir):
+        raise ValueError("Tentativa de Path Traversal detectada.")
+    return target_path
+
 def load_user_save(username):
-    save_path = os.path.join(SAVES_DIR, f"{username}.json")
-    if not os.path.exists(save_path):
-        return copy.deepcopy(DEFAULT_STATE)
     try:
-        with open(save_path, "r") as f:
+        save_path = get_user_save_path(username)
+        if not os.path.exists(save_path):
+            return copy.deepcopy(DEFAULT_STATE)
+        with open(save_path, "r", encoding="utf-8") as f:
             state = json.load(f)
-            # Guarantee structure consistency
             for key, val in DEFAULT_STATE.items():
                 if key not in state:
                     state[key] = copy.deepcopy(val)
@@ -368,9 +400,9 @@ def load_user_save(username):
         return copy.deepcopy(DEFAULT_STATE)
 
 def write_user_save(username, state):
-    save_path = os.path.join(SAVES_DIR, f"{username}.json")
     try:
-        with open(save_path, "w") as f:
+        save_path = get_user_save_path(username)
+        with open(save_path, "w", encoding="utf-8") as f:
             json.dump(state, f, indent=4)
     except Exception:
         pass
@@ -383,36 +415,253 @@ def index():
 def static_files(path):
     return send_from_directory(".", path)
 
+@app.route("/api/auth/check-username", methods=["GET"])
+def check_username():
+    raw_user = request.args.get("u") or request.args.get("username", "")
+    username = raw_user.strip()
+    if not username:
+        return jsonify({"available": False, "message": "Nome de usuário ausente."}), 400
+    if not USERNAME_REGEX.match(username):
+        return jsonify({"available": False, "message": "O usuário deve ter de 3 a 20 caracteres (apenas letras, números e _)."}), 200
+
+    users = load_users()
+    uname_lower = username.lower()
+    for ukey, udata in users.items():
+        existing_u = (udata.get("username", ukey) if isinstance(udata, dict) else ukey).lower()
+        if existing_u == uname_lower:
+            return jsonify({"available": False, "message": "Este nome de usuário já está em uso."}), 200
+
+    return jsonify({"available": True, "message": "Nome de usuário disponível para alistamento!"}), 200
+
+@app.route("/api/auth/register", methods=["POST"])
+def auth_register():
+    data = request.json or {}
+    full_name = data.get("fullName", "").strip()
+    username = data.get("username", "").strip()
+    email = data.get("email", "").strip().lower()
+    birth_date = data.get("birthDate", "").strip()
+    password = data.get("password", "")
+    confirm_password = data.get("confirmPassword", "")
+
+    # Validações estritas de negócio
+    if not full_name or len(full_name) < 3 or len(full_name) > 70 or not FULL_NAME_REGEX.match(full_name):
+        return jsonify({
+            "success": False,
+            "message": "Nome completo inválido. Informe ao menos prenome e sobrenome (3 a 70 caracteres, apenas letras)."
+        }), 400
+
+    if not username or not USERNAME_REGEX.match(username):
+        return jsonify({
+            "success": False,
+            "message": "Nome de usuário inválido. Deve ter entre 3 e 20 caracteres (apenas letras, números e _)."
+        }), 400
+
+    if not email or not EMAIL_REGEX.match(email):
+        return jsonify({
+            "success": False,
+            "message": "E-mail inválido segundo o padrão RFC 5322."
+        }), 400
+
+    # Consistência temporal da data de nascimento
+    try:
+        bdate = datetime.strptime(birth_date, "%Y-%m-%d").date()
+        today = date.today()
+        if bdate > today:
+            return jsonify({"success": False, "message": "A data de nascimento não pode estar no futuro."}), 400
+        age = today.year - bdate.year - ((today.month, today.day) < (bdate.month, bdate.day))
+        if age < 6:
+            return jsonify({"success": False, "message": "A idade mínima para alistamento na Academia Ninja é de 6 anos."}), 400
+        if age > 120:
+            return jsonify({"success": False, "message": "Data de nascimento fora do limite plausível (máximo 120 anos)."}), 400
+    except ValueError:
+        return jsonify({"success": False, "message": "Formato de data inválido. Utilize YYYY-MM-DD."}), 400
+
+    # Política de senha segura
+    if len(password) < 8 or len(password) > 64:
+        return jsonify({"success": False, "message": "A senha deve conter entre 8 e 64 caracteres."}), 400
+    if not re.search(r'[A-Z]', password):
+        return jsonify({"success": False, "message": "A senha deve conter ao menos uma letra maiúscula."}), 400
+    if not re.search(r'[a-z]', password):
+        return jsonify({"success": False, "message": "A senha deve conter ao menos uma letra minúscula."}), 400
+    if not re.search(r'[0-9]', password):
+        return jsonify({"success": False, "message": "A senha deve conter ao menos um número."}), 400
+    if not SPECIAL_CHAR_REGEX.search(password):
+        return jsonify({"success": False, "message": "A senha deve conter ao menos um caractere especial (!@#$%^&* etc.)."}), 400
+    if password != confirm_password:
+        return jsonify({"success": False, "message": "A confirmação de senha não coincide com a senha informada."}), 400
+
+    users = load_users()
+    uname_lower = username.lower()
+
+    # Garantia de unicidade (case-insensitive)
+    for ukey, udata in users.items():
+        existing_u = (udata.get("username", ukey) if isinstance(udata, dict) else ukey).lower()
+        existing_e = (udata.get("email", "") if isinstance(udata, dict) else "").lower()
+        if existing_u == uname_lower:
+            return jsonify({"success": False, "message": "Nome de usuário shinobi já está em uso."}), 409
+        if existing_e and existing_e == email:
+            return jsonify({"success": False, "message": "Este e-mail já está associado a outro registro shinobi."}), 409
+
+    # Geração de ID numérico pseudoaleatório com prevenção de colisão
+    existing_ids = {
+        udata.get("ninjaId") for udata in users.values() if isinstance(udata, dict) and "ninjaId" in udata
+    }
+    ninja_id = generate_unique_ninja_id(existing_ids)
+
+    # Hashing seguro com PBKDF2:SHA256
+    password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+    created_iso = datetime.now(timezone.utc).isoformat()
+
+    user_record = {
+        "ninjaId": ninja_id,
+        "fullName": full_name,
+        "username": username,
+        "email": email,
+        "birthDate": birth_date,
+        "passwordHash": password_hash,
+        "createdAt": created_iso
+    }
+
+    users[uname_lower] = user_record
+    save_users(users)
+
+    # Cria o arquivo de progresso isolado do jogador
+    write_user_save(username, copy.deepcopy(DEFAULT_STATE))
+
+    token = f"shinobi_{ninja_id}_{secrets.token_hex(16)}"
+
+    return jsonify({
+        "success": True,
+        "message": "Alistamento shinobi concluído com sucesso!",
+        "user": {
+            "ninjaId": ninja_id,
+            "fullName": full_name,
+            "username": username,
+            "email": email,
+            "birthDate": birth_date,
+            "createdAt": created_iso
+        },
+        "token": token
+    }), 201
+
+@app.route("/api/auth/login", methods=["POST"])
+def auth_login():
+    data = request.json or {}
+    login_identifier = data.get("loginIdentifier", "").strip()
+    password = data.get("password", "")
+
+    if not login_identifier or not password:
+        return jsonify({"success": False, "message": "Identificador de acesso e senha são obrigatórios."}), 400
+
+    users = load_users()
+    ident_lower = login_identifier.lower()
+    matched_user = None
+
+    for ukey, udata in users.items():
+        if isinstance(udata, dict):
+            u_name = udata.get("username", ukey).lower()
+            u_email = udata.get("email", "").lower()
+            if u_name == ident_lower or u_email == ident_lower or ukey.lower() == ident_lower:
+                matched_user = udata
+                break
+        else:
+            # Compatibilidade e migração de registros legados
+            if ukey.lower() == ident_lower:
+                if udata == password:
+                    existing_ids = {
+                        ud.get("ninjaId") for ud in users.values() if isinstance(ud, dict) and "ninjaId" in ud
+                    }
+                    ninja_id = generate_unique_ninja_id(existing_ids)
+                    created_iso = datetime.now(timezone.utc).isoformat()
+                    migrated = {
+                        "ninjaId": ninja_id,
+                        "fullName": ukey,
+                        "username": ukey,
+                        "email": f"{ukey}@chakra.local",
+                        "birthDate": "2000-01-01",
+                        "passwordHash": generate_password_hash(password, method='pbkdf2:sha256'),
+                        "createdAt": created_iso
+                    }
+                    users[ukey.lower()] = migrated
+                    save_users(users)
+                    matched_user = migrated
+                break
+
+    if not matched_user:
+        return jsonify({"success": False, "message": "Credenciais shinobi inválidas (usuário ou senha incorretos)."}), 401
+
+    pwd_hash = matched_user.get("passwordHash")
+    if not pwd_hash or not check_password_hash(pwd_hash, password):
+        return jsonify({"success": False, "message": "Credenciais shinobi inválidas (usuário ou senha incorretos)."}), 401
+
+    ninja_id = matched_user.get("ninjaId", 1000000)
+    token = f"shinobi_{ninja_id}_{secrets.token_hex(16)}"
+
+    return jsonify({
+        "success": True,
+        "message": f"Bem-vindo de volta ao Cockpit, {matched_user.get('fullName', matched_user.get('username'))}!",
+        "user": {
+            "ninjaId": ninja_id,
+            "fullName": matched_user.get("fullName", matched_user.get("username")),
+            "username": matched_user.get("username"),
+            "email": matched_user.get("email", ""),
+            "birthDate": matched_user.get("birthDate", ""),
+            "createdAt": matched_user.get("createdAt", "")
+        },
+        "token": token
+    }), 200
+
+# Rotas legadas mantidas para retrocompatibilidade
 @app.route("/api/register", methods=["POST"])
 def register():
-    data = request.json
+    data = request.json or {}
+    if "fullName" in data and "confirmPassword" in data:
+        return auth_register()
     username = data.get("username", "").strip()
     password = data.get("password", "").strip()
-    
     if not username or not password:
         return jsonify({"error": "Usuário e senha necessários"}), 400
-        
     users = load_users()
-    if username in users:
+    if username.lower() in [u.lower() for u in users.keys()]:
         return jsonify({"error": "Usuário já existe"}), 400
-        
-    users[username] = password
+    existing_ids = {ud.get("ninjaId") for ud in users.values() if isinstance(ud, dict) and "ninjaId" in ud}
+    ninja_id = generate_unique_ninja_id(existing_ids)
+    created_iso = datetime.now(timezone.utc).isoformat()
+    users[username.lower()] = {
+        "ninjaId": ninja_id,
+        "fullName": username,
+        "username": username,
+        "email": f"{username}@chakra.local",
+        "birthDate": "2000-01-01",
+        "passwordHash": generate_password_hash(password, method='pbkdf2:sha256'),
+        "createdAt": created_iso
+    }
     save_users(users)
-    
-    # Save default state
     write_user_save(username, copy.deepcopy(DEFAULT_STATE))
-    return jsonify({"status": "success"})
+    return jsonify({"status": "success", "username": username, "ninjaId": ninja_id})
 
 @app.route("/api/login", methods=["POST"])
 def login():
-    data = request.json
+    data = request.json or {}
+    if "loginIdentifier" in data:
+        return auth_login()
     username = data.get("username", "").strip()
     password = data.get("password", "").strip()
-    
     users = load_users()
-    if username not in users or users[username] != password:
+    ident_lower = username.lower()
+    matched = None
+    for k, v in users.items():
+        if k.lower() == ident_lower:
+            matched = v
+            break
+    if not matched:
         return jsonify({"error": "Usuário ou senha incorretos"}), 400
-        
+    if isinstance(matched, dict):
+        if not check_password_hash(matched.get("passwordHash", ""), password):
+            return jsonify({"error": "Usuário ou senha incorretos"}), 400
+    else:
+        if matched != password:
+            return jsonify({"error": "Usuário ou senha incorretos"}), 400
     return jsonify({"status": "success", "username": username})
 
 @app.route("/api/google-login", methods=["POST"])
