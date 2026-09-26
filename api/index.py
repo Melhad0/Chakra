@@ -21,30 +21,30 @@ app = Flask(__name__, static_folder=".")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "*")
 CORS(app, origins=FRONTEND_URL if FRONTEND_URL != "*" else "*")
 
-SAVES_DIR = "saves"
-USERS_FILE = "users.json"
-os.makedirs(SAVES_DIR, exist_ok=True)
+IS_VERCEL = bool(os.environ.get("VERCEL"))
+SAVES_DIR = "/tmp/saves" if IS_VERCEL else "saves"
+USERS_FILE = "/tmp/users.json" if IS_VERCEL else "users.json"
+try:
+    os.makedirs(SAVES_DIR, exist_ok=True)
+except Exception:
+    pass
 
 # -------------------------------------------------------------
 # Conexão Neon.tech (PostgreSQL Serverless com suporte a JSONB)
-# Se DATABASE_URL estiver configurada, conecta na nuvem.
-# Se não estiver, usa arquivos JSON locais como fallback transparente.
+# Sanitiza DATABASE_URL removendo channel_binding para evitar OperationalError na libpq
 # -------------------------------------------------------------
-DATABASE_URL = (os.getenv("DATABASE_URL") or os.getenv("NEON_DATABASE_URL", "")).strip()
+RAW_DB_URL = (os.getenv("DATABASE_URL") or os.getenv("NEON_DATABASE_URL", "")).strip()
+DATABASE_URL = RAW_DB_URL.replace("&channel_binding=require", "").replace("?channel_binding=require&", "?").replace("?channel_binding=require", "")
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 def get_db():
     if not DATABASE_URL:
         return None
     try:
-        return psycopg2.connect(DATABASE_URL)
+        conn = psycopg2.connect(DATABASE_URL)
+        return conn
     except Exception as e:
-        # Se channel_binding não for suportado pela libpq do ambiente, tenta sem ele
-        if "channel_binding" in DATABASE_URL:
-            try:
-                clean_url = DATABASE_URL.replace("&channel_binding=require", "").replace("?channel_binding=require&", "?").replace("?channel_binding=require", "")
-                return psycopg2.connect(clean_url)
-            except Exception:
-                pass
         print(f"[Neon Postgres] Falha na conexão com o banco: {e}")
         return None
 
@@ -570,6 +570,7 @@ def static_files(path):
 
 @app.route("/api/auth/check-username", methods=["GET"])
 @app.route("/auth/check-username", methods=["GET"])
+@app.route("/api/api/auth/check-username", methods=["GET"])
 def check_username():
     raw_user = request.args.get("u") or request.args.get("username", "")
     username = raw_user.strip()
@@ -589,6 +590,7 @@ def check_username():
 
 @app.route("/api/auth/register", methods=["POST"])
 @app.route("/auth/register", methods=["POST"])
+@app.route("/api/api/auth/register", methods=["POST"])
 def auth_register():
     data = request.json or {}
     full_name = data.get("fullName", "").strip()
@@ -701,6 +703,7 @@ def auth_register():
 
 @app.route("/api/auth/login", methods=["POST"])
 @app.route("/auth/login", methods=["POST"])
+@app.route("/api/api/auth/login", methods=["POST"])
 def auth_login():
     data = request.json or {}
     login_identifier = data.get("loginIdentifier", "").strip()
@@ -886,6 +889,7 @@ def google_real_login():
 
 @app.route("/api/load", methods=["GET"])
 @app.route("/load", methods=["GET"])
+@app.route("/api/api/load", methods=["GET"])
 def load_game():
     username = request.args.get("username", "").strip()
     if not username:
@@ -919,6 +923,7 @@ def load_game():
 
 @app.route("/api/save", methods=["POST"])
 @app.route("/save", methods=["POST"])
+@app.route("/api/api/save", methods=["POST"])
 def save_game():
     data = request.json
     username = data.get("username", "").strip()
@@ -946,6 +951,7 @@ def save_game():
 
 @app.route("/api/rankings/sync", methods=["POST"])
 @app.route("/rankings/sync", methods=["POST"])
+@app.route("/api/api/rankings/sync", methods=["POST"])
 def sync_ranking():
     data = request.json or {}
     username = data.get("username", "").strip()
@@ -1026,6 +1032,7 @@ def sync_ranking():
 
 @app.route("/api/rankings/top", methods=["GET"])
 @app.route("/rankings/top", methods=["GET"])
+@app.route("/api/api/rankings/top", methods=["GET"])
 def get_top_rankings():
     if DATABASE_URL:
         conn = get_db()
@@ -1081,6 +1088,7 @@ def get_top_rankings():
 
 @app.route("/api/health", methods=["GET"])
 @app.route("/health", methods=["GET"])
+@app.route("/api/api/health", methods=["GET"])
 def health_check():
     return jsonify({
         "status": "healthy",
@@ -1201,8 +1209,30 @@ def init_neon_tables():
     finally:
         conn.close()
 
-# Executa verificação inicial de tabelas no Neon
-init_neon_tables()
+_tables_initialized = False
+
+def ensure_tables():
+    global _tables_initialized
+    if not _tables_initialized and DATABASE_URL:
+        try:
+            init_neon_tables()
+            _tables_initialized = True
+        except Exception as e:
+            print(f"[Neon Postgres] Falha ao verificar tabelas: {e}")
+
+@app.before_request
+def before_request_hook():
+    ensure_tables()
+
+@app.errorhandler(Exception)
+def handle_global_exception(e):
+    import traceback
+    return jsonify({
+        "success": False,
+        "message": f"Erro interno no servidor: {str(e)}",
+        "error": str(e),
+        "traceback": traceback.format_exc()
+    }), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

@@ -21,16 +21,22 @@ app = Flask(__name__, static_folder=".")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "*")
 CORS(app, origins=FRONTEND_URL if FRONTEND_URL != "*" else "*")
 
-SAVES_DIR = "saves"
-USERS_FILE = "users.json"
-os.makedirs(SAVES_DIR, exist_ok=True)
+IS_VERCEL = bool(os.environ.get("VERCEL"))
+SAVES_DIR = "/tmp/saves" if IS_VERCEL else "saves"
+USERS_FILE = "/tmp/users.json" if IS_VERCEL else "users.json"
+try:
+    os.makedirs(SAVES_DIR, exist_ok=True)
+except Exception:
+    pass
 
 # -------------------------------------------------------------
 # Conexão Neon.tech (PostgreSQL Serverless com suporte a JSONB)
-# Se DATABASE_URL estiver configurada, conecta na nuvem.
-# Se não estiver, usa arquivos JSON locais como fallback transparente.
+# Sanitiza DATABASE_URL removendo channel_binding para evitar OperationalError na libpq
 # -------------------------------------------------------------
-DATABASE_URL = (os.getenv("DATABASE_URL") or os.getenv("NEON_DATABASE_URL", "")).strip()
+RAW_DB_URL = (os.getenv("DATABASE_URL") or os.getenv("NEON_DATABASE_URL", "")).strip()
+DATABASE_URL = RAW_DB_URL.replace("&channel_binding=require", "").replace("?channel_binding=require&", "?").replace("?channel_binding=require", "")
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 def get_db():
     if not DATABASE_URL:
@@ -1187,8 +1193,30 @@ def init_neon_tables():
     finally:
         conn.close()
 
-# Executa verificação inicial de tabelas no Neon
-init_neon_tables()
+_tables_initialized = False
+
+def ensure_tables():
+    global _tables_initialized
+    if not _tables_initialized and DATABASE_URL:
+        try:
+            init_neon_tables()
+            _tables_initialized = True
+        except Exception as e:
+            print(f"[Neon Postgres] Falha ao verificar tabelas: {e}")
+
+@app.before_request
+def before_request_hook():
+    ensure_tables()
+
+@app.errorhandler(Exception)
+def handle_global_exception(e):
+    import traceback
+    return jsonify({
+        "success": False,
+        "message": f"Erro interno no servidor: {str(e)}",
+        "error": str(e),
+        "traceback": traceback.format_exc()
+    }), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
