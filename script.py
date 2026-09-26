@@ -1,4 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+from dotenv import load_dotenv
 import json
 import os
 import time
@@ -8,11 +10,37 @@ import secrets
 from datetime import datetime, timezone, date
 from werkzeug.security import generate_password_hash, check_password_hash
 
+import psycopg2
+from psycopg2.extras import RealDictCursor, Json
+
+load_dotenv()
+
 app = Flask(__name__, static_folder=".")
+
+# Suporte a CORS para conexões externas (ex: Vercel)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "*")
+CORS(app, origins=FRONTEND_URL if FRONTEND_URL != "*" else "*")
 
 SAVES_DIR = "saves"
 USERS_FILE = "users.json"
 os.makedirs(SAVES_DIR, exist_ok=True)
+
+# -------------------------------------------------------------
+# Conexão Neon.tech (PostgreSQL Serverless com suporte a JSONB)
+# Se DATABASE_URL estiver configurada, conecta na nuvem.
+# Se não estiver, usa arquivos JSON locais como fallback transparente.
+# -------------------------------------------------------------
+DATABASE_URL = (os.getenv("DATABASE_URL") or os.getenv("NEON_DATABASE_URL", "")).strip()
+
+def get_db():
+    if not DATABASE_URL:
+        return None
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        return conn
+    except Exception as e:
+        print(f"[Neon Postgres] Falha na conexão com o banco: {e}")
+        return None
 
 DEFAULT_STATE = {
     "chakra": 0.0,
@@ -189,17 +217,93 @@ CPS_MAP = {
 }
 
 def load_users():
+    if DATABASE_URL:
+        conn = get_db()
+        if conn:
+            try:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute("SELECT * FROM users")
+                    rows = cur.fetchall()
+                    users = {}
+                    for r in rows:
+                        ukey = r["username_key"]
+                        user_obj = {
+                            "ninjaId": r.get("ninja_id") or 0,
+                            "fullName": r.get("full_name") or "",
+                            "username": r.get("username") or ukey,
+                            "email": r.get("email") or "",
+                            "birthDate": r.get("birth_date") or "",
+                            "passwordHash": r.get("password_hash") or "",
+                            "createdAt": r.get("created_at").isoformat() if r.get("created_at") else "",
+                        }
+                        if r.get("auth_value"):
+                            user_obj["auth_value"] = r["auth_value"]
+                        extra_data = r.get("data") or {}
+                        if isinstance(extra_data, dict):
+                            for ek, ev in extra_data.items():
+                                if ek not in user_obj:
+                                    user_obj[ek] = ev
+                        users[ukey] = user_obj
+                    return users
+            except Exception as e:
+                print(f"[Neon Postgres] Erro em load_users: {e}")
+            finally:
+                conn.close()
+
     if not os.path.exists(USERS_FILE):
         return {}
     try:
-        with open(USERS_FILE, "r") as f:
+        with open(USERS_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return {}
 
 def save_users(users):
+    if DATABASE_URL:
+        conn = get_db()
+        if conn:
+            try:
+                with conn.cursor() as cur:
+                    for ukey, udata in users.items():
+                        ukey_lower = ukey.lower()
+                        if isinstance(udata, dict):
+                            cur.execute("""
+                                INSERT INTO users (username_key, username, full_name, email, birth_date, password_hash, ninja_id, data)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                                ON CONFLICT (username_key) DO UPDATE SET
+                                    username = EXCLUDED.username,
+                                    full_name = EXCLUDED.full_name,
+                                    email = EXCLUDED.email,
+                                    birth_date = EXCLUDED.birth_date,
+                                    password_hash = EXCLUDED.password_hash,
+                                    ninja_id = EXCLUDED.ninja_id,
+                                    data = EXCLUDED.data;
+                            """, (
+                                ukey_lower,
+                                udata.get("username", ukey),
+                                udata.get("fullName", ""),
+                                udata.get("email", ""),
+                                udata.get("birthDate", ""),
+                                udata.get("passwordHash", ""),
+                                udata.get("ninjaId", 0),
+                                Json(udata)
+                            ))
+                        else:
+                            cur.execute("""
+                                INSERT INTO users (username_key, username, auth_value)
+                                VALUES (%s, %s, %s)
+                                ON CONFLICT (username_key) DO UPDATE SET
+                                    username = EXCLUDED.username,
+                                    auth_value = EXCLUDED.auth_value;
+                            """, (ukey_lower, ukey, str(udata)))
+                    conn.commit()
+            except Exception as e:
+                print(f"[Neon Postgres] Erro em save_users: {e}")
+            finally:
+                conn.close()
+
     try:
-        with open(USERS_FILE, "w") as f:
+        with open(USERS_FILE, "w", encoding="utf-8") as f:
             json.dump(users, f, indent=4)
     except Exception:
         pass
@@ -382,6 +486,29 @@ def get_user_save_path(username: str) -> str:
     return target_path
 
 def load_user_save(username):
+    safe_name = sanitize_username(username).lower()
+    if DATABASE_URL:
+        conn = get_db()
+        if conn:
+            try:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute("SELECT state FROM saves WHERE username_key = %s", (safe_name,))
+                    row = cur.fetchone()
+                    if row and row.get("state"):
+                        state = row["state"]
+                        for key, val in DEFAULT_STATE.items():
+                            if key not in state:
+                                state[key] = copy.deepcopy(val)
+                            elif isinstance(val, dict):
+                                for subkey, subval in val.items():
+                                    if subkey not in state[key]:
+                                        state[key][subkey] = copy.deepcopy(subval)
+                        return state
+            except Exception as e:
+                print(f"[Neon Postgres] Erro em load_user_save: {e}")
+            finally:
+                conn.close()
+
     try:
         save_path = get_user_save_path(username)
         if not os.path.exists(save_path):
@@ -400,6 +527,26 @@ def load_user_save(username):
         return copy.deepcopy(DEFAULT_STATE)
 
 def write_user_save(username, state):
+    safe_name = sanitize_username(username).lower()
+    if DATABASE_URL:
+        conn = get_db()
+        if conn:
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        INSERT INTO saves (username_key, username, state, updated_at)
+                        VALUES (%s, %s, %s, NOW())
+                        ON CONFLICT (username_key) DO UPDATE SET
+                            username = EXCLUDED.username,
+                            state = EXCLUDED.state,
+                            updated_at = NOW();
+                    """, (safe_name, username, Json(state)))
+                    conn.commit()
+            except Exception as e:
+                print(f"[Neon Postgres] Erro em write_user_save: {e}")
+            finally:
+                conn.close()
+
     try:
         save_path = get_user_save_path(username)
         with open(save_path, "w", encoding="utf-8") as f:
@@ -811,6 +958,39 @@ def sync_ranking():
         "updatedAt": datetime.now(timezone.utc).isoformat()
     }
 
+    if DATABASE_URL:
+        conn = get_db()
+        if conn:
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        INSERT INTO rankings (username_key, username, ninja_id, manual_clicks_session, manual_clicks_all_time, highest_cps_record, total_prestiges, current_rank, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                        ON CONFLICT (username_key) DO UPDATE SET
+                            username = EXCLUDED.username,
+                            ninja_id = EXCLUDED.ninja_id,
+                            manual_clicks_session = EXCLUDED.manual_clicks_session,
+                            manual_clicks_all_time = EXCLUDED.manual_clicks_all_time,
+                            highest_cps_record = EXCLUDED.highest_cps_record,
+                            total_prestiges = EXCLUDED.total_prestiges,
+                            current_rank = EXCLUDED.current_rank,
+                            updated_at = NOW();
+                    """, (
+                        username.lower(),
+                        username,
+                        ranking_entry["ninjaId"],
+                        ranking_entry["manualClicksSession"],
+                        ranking_entry["manualClicksAllTime"],
+                        ranking_entry["highestCpsRecord"],
+                        ranking_entry["totalPrestiges"],
+                        ranking_entry["currentRank"]
+                    ))
+                    conn.commit()
+            except Exception as e:
+                print(f"[Neon Postgres] Erro ao salvar ranking: {e}")
+            finally:
+                conn.close()
+
     if matched_key and isinstance(users[matched_key], dict):
         users[matched_key]["ranking"] = ranking_entry
         save_users(users)
@@ -834,6 +1014,36 @@ def sync_ranking():
 
 @app.route("/api/rankings/top", methods=["GET"])
 def get_top_rankings():
+    if DATABASE_URL:
+        conn = get_db()
+        if conn:
+            try:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute("""
+                        SELECT 
+                            ninja_id AS "ninjaId",
+                            username,
+                            manual_clicks_session AS "manualClicksSession",
+                            manual_clicks_all_time AS "manualClicksAllTime",
+                            highest_cps_record AS "highestCpsRecord",
+                            total_prestiges AS "totalPrestiges",
+                            current_rank AS "currentRank",
+                            updated_at AS "updatedAt"
+                        FROM rankings
+                        ORDER BY manual_clicks_all_time DESC
+                        LIMIT 50;
+                    """)
+                    rows = cur.fetchall()
+                    if rows:
+                        for r in rows:
+                            if r.get("updatedAt"):
+                                r["updatedAt"] = r["updatedAt"].isoformat()
+                        return jsonify({"status": "success", "rankings": rows})
+            except Exception as e:
+                print(f"[Neon Postgres] Erro em get_top_rankings: {e}")
+            finally:
+                conn.close()
+
     users = load_users()
     rankings_list = []
 
@@ -856,5 +1066,131 @@ def get_top_rankings():
     rankings_list.sort(key=lambda x: x.get("manualClicksAllTime", 0), reverse=True)
     return jsonify({"status": "success", "rankings": rankings_list[:50]})
 
+@app.route("/api/health", methods=["GET"])
+def health_check():
+    return jsonify({
+        "status": "healthy",
+        "service": "Chakra Clicker API",
+        "storage": "neon_postgres" if DATABASE_URL else "local_json",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+
+def auto_migrate_to_neon(conn):
+    """Migra dados locais para o Neon PostgreSQL se o banco estiver vazio."""
+    try:
+        with conn.cursor() as cur:
+            # 1. Usuários
+            cur.execute("SELECT COUNT(*) FROM users;")
+            user_count = cur.fetchone()[0]
+            if user_count == 0 and os.path.exists(USERS_FILE):
+                with open(USERS_FILE, "r", encoding="utf-8") as f:
+                    local_users = json.load(f)
+                if local_users:
+                    print(f"[Neon Migration] Migrando {len(local_users)} contas locais para o Neon Postgres...")
+                    for ukey, udata in local_users.items():
+                        ukey_lower = ukey.lower()
+                        if isinstance(udata, dict):
+                            cur.execute("""
+                                INSERT INTO users (username_key, username, full_name, email, birth_date, password_hash, ninja_id, data)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                                ON CONFLICT (username_key) DO NOTHING;
+                            """, (
+                                ukey_lower,
+                                udata.get("username", ukey),
+                                udata.get("fullName", ""),
+                                udata.get("email", ""),
+                                udata.get("birthDate", ""),
+                                udata.get("passwordHash", ""),
+                                udata.get("ninjaId", 0),
+                                Json(udata)
+                            ))
+                        else:
+                            cur.execute("""
+                                INSERT INTO users (username_key, username, auth_value)
+                                VALUES (%s, %s, %s)
+                                ON CONFLICT (username_key) DO NOTHING;
+                            """, (ukey_lower, ukey, str(udata)))
+                    conn.commit()
+                    print("[Neon Migration] Contas migradas com sucesso!")
+
+            # 2. Saves
+            cur.execute("SELECT COUNT(*) FROM saves;")
+            save_count = cur.fetchone()[0]
+            if save_count == 0 and os.path.exists(SAVES_DIR):
+                files = [f for f in os.listdir(SAVES_DIR) if f.endswith(".json")]
+                if files:
+                    print(f"[Neon Migration] Migrando {len(files)} saves locais para o Neon Postgres...")
+                    for fname in files:
+                        uname = fname[:-5]
+                        fpath = os.path.join(SAVES_DIR, fname)
+                        with open(fpath, "r", encoding="utf-8") as f:
+                            save_state = json.load(f)
+                        cur.execute("""
+                            INSERT INTO saves (username_key, username, state)
+                            VALUES (%s, %s, %s)
+                            ON CONFLICT (username_key) DO NOTHING;
+                        """, (uname.lower(), uname, Json(save_state)))
+                    conn.commit()
+                    print("[Neon Migration] Saves migrados com sucesso!")
+    except Exception as e:
+        print(f"[Neon Migration] Erro na migração automática: {e}")
+
+def init_neon_tables():
+    """Inicializa as tabelas no Neon Postgres se não existirem."""
+    if not DATABASE_URL:
+        return
+    conn = get_db()
+    if not conn:
+        print("[Neon Postgres] Aviso: DATABASE_URL presente mas conexão indisponível. Usando fallback local.")
+        return
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                username_key VARCHAR(100) PRIMARY KEY,
+                username VARCHAR(100) NOT NULL,
+                full_name VARCHAR(150),
+                email VARCHAR(200),
+                birth_date VARCHAR(20),
+                password_hash TEXT,
+                ninja_id BIGINT,
+                auth_value TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                data JSONB DEFAULT '{}'::jsonb
+            );
+
+            CREATE TABLE IF NOT EXISTS saves (
+                username_key VARCHAR(100) PRIMARY KEY,
+                username VARCHAR(100) NOT NULL,
+                state JSONB NOT NULL,
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            );
+
+            CREATE TABLE IF NOT EXISTS rankings (
+                username_key VARCHAR(100) PRIMARY KEY,
+                username VARCHAR(100) NOT NULL,
+                ninja_id BIGINT DEFAULT 0,
+                manual_clicks_session BIGINT DEFAULT 0,
+                manual_clicks_all_time BIGINT DEFAULT 0,
+                highest_cps_record TEXT DEFAULT '0',
+                total_prestiges INT DEFAULT 0,
+                current_rank VARCHAR(50) DEFAULT 'estudante',
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            );
+            """)
+            conn.commit()
+            print("[Neon Postgres] Tabelas verificadas/inicializadas com sucesso!")
+
+        auto_migrate_to_neon(conn)
+    except Exception as e:
+        print(f"[Neon Postgres] Falha ao criar tabelas: {e}")
+    finally:
+        conn.close()
+
+# Executa verificação inicial de tabelas no Neon
+init_neon_tables()
+
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    debug = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
+    app.run(host="0.0.0.0", port=port, debug=debug)
