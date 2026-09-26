@@ -1,6 +1,41 @@
 import Decimal from 'break_infinity.js';
 import { D } from '../engine/BigNumber';
-import { ShinobiRankDefinition, ShinobiRankId, RivalShinobi } from '../types/rankings';
+import {
+  ShinobiRankDefinition,
+  ShinobiRankId,
+  RivalShinobi,
+  ShinobiExamDefinition,
+  ShinobiExamId,
+} from '../types/rankings';
+
+export const SHINOBI_EXAMS: ShinobiExamDefinition[] = [
+  {
+    id: 'chunin',
+    title: 'Exame Chūnin de Konohagakure',
+    targetRankId: 'chunin',
+    requiredRankId: 'gennin',
+    loreDescription:
+      'Avaliação canônica em 3 fases: Prova Escrita de Ibiki Morino, Floresta da Morte e Torneio da Arena Final.',
+    phasesCount: 3,
+    rewardDescription:
+      'Promoção a Ninja Chūnin, Colete Tático, +500.000 Chakra, +5 Ancestrais e Desbloqueio imediato de Missões Rank C.',
+  },
+  {
+    id: 'jonin',
+    title: 'Exame Jōnin de Elite & Liderança Tática',
+    targetRankId: 'jonin',
+    requiredRankId: 'chunin',
+    loreDescription:
+      'Comando tático de esquadrões: Desafio de Teste dos Sinos com Kakashi, Ressonância de Chakra Elemental e Batalha contra a ANBU Mascarada.',
+    phasesCount: 3,
+    rewardDescription:
+      'Promoção a Ninja Jōnin de Elite, +10.000.000 Chakra, +20 Ancestrais, 5 Fragmentos de Armas e liberação de Missões Rank B e A.',
+  },
+];
+
+export const SHINOBI_EXAMS_MAP = Object.fromEntries(
+  SHINOBI_EXAMS.map((e) => [e.id, e])
+) as Record<ShinobiExamId, ShinobiExamDefinition>;
 
 export const SHINOBI_RANKS: ShinobiRankDefinition[] = [
   {
@@ -163,24 +198,39 @@ export const SHINOBI_RANKS_MAP = Object.fromEntries(
 ) as Record<ShinobiRankId, ShinobiRankDefinition>;
 
 /**
- * Retorna a patente atual baseada nas estatísticas do jogador
+ * Retorna a patente atual baseada nas estatísticas do jogador e nos exames oficiais concluídos.
+ * A aprovação em um Exame Shinobi garante a patente definitiva conquistada.
  */
 export function getCurrentRank(
   allTimeClicks: number,
   highestCPS: Decimal,
-  prestiges: number
+  prestiges: number,
+  passedExams?: Record<string, boolean>
 ): ShinobiRankDefinition {
+  let minExamRankIndex = 0;
+  if (passedExams) {
+    if (passedExams['rikudou']) minExamRankIndex = 8;
+    else if (passedExams['kage']) minExamRankIndex = 7;
+    else if (passedExams['sannin']) minExamRankIndex = 6;
+    else if (passedExams['anbu']) minExamRankIndex = 5;
+    else if (passedExams['jonin']) minExamRankIndex = 4;
+    else if (passedExams['tokubetsu_jonin']) minExamRankIndex = 3;
+    else if (passedExams['chunin']) minExamRankIndex = 2;
+    else if (passedExams['gennin']) minExamRankIndex = 1;
+  }
+
   for (let i = SHINOBI_RANKS.length - 1; i >= 0; i--) {
     const rank = SHINOBI_RANKS[i];
     if (
-      allTimeClicks >= rank.minClicksAllTime &&
-      highestCPS.gte(rank.minCPS) &&
-      prestiges >= rank.minPrestiges
+      i <= minExamRankIndex ||
+      (allTimeClicks >= rank.minClicksAllTime &&
+        highestCPS.gte(rank.minCPS) &&
+        prestiges >= rank.minPrestiges)
     ) {
       return rank;
     }
   }
-  return SHINOBI_RANKS[0];
+  return SHINOBI_RANKS[minExamRankIndex] || SHINOBI_RANKS[0];
 }
 
 /**

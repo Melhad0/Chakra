@@ -25,6 +25,7 @@ export const OperationsPanel: React.FC = () => {
   const buyClanNode = useGameStore((s) => s.buyClanNode);
   const activeMission = useGameStore((s) => s.activeMission);
   const stats = useGameStore((s) => s.stats);
+  const passedExams = useGameStore((s) => s.passedExams);
   const performPrestige = useGameStore((s) => s.performPrestige);
   const setView = useGameStore((s) => s.setView);
 
@@ -33,7 +34,12 @@ export const OperationsPanel: React.FC = () => {
       {/* 4 CARTÕES DE ACESSO RÁPIDO AOS MÓDULOS DEDICADOS EM TELA CHEIA */}
       {(() => {
         const unlockedClanNodesCount = Object.keys(clanNodes).filter((k) => clanNodes[k]).length;
-        const currentRank = getCurrentRank(stats.manualClicksAllTime, stats.highestCPSRecord, stats.totalPrestiges);
+        const currentRank = getCurrentRank(
+          stats.manualClicksAllTime,
+          stats.highestCPSRecord,
+          stats.totalPrestiges,
+          passedExams
+        );
         const canPrestige = stats.totalChakraEarned.gte(PRESTIGE_THRESHOLD);
         const prestigeProgress = Math.min(100, Math.max(0, stats.totalChakraEarned.div(PRESTIGE_THRESHOLD).mul(100).toNumber()));
         const isChuninEligible = stats.manualClicksAllTime >= 100;
@@ -96,30 +102,58 @@ export const OperationsPanel: React.FC = () => {
               </div>
             </button>
 
-            {/* Card 3: Exame Chūnin */}
+            {/* Card 3: Pavilhão de Exames Shinobi */}
             <button
               onClick={() => setView('CHUNIN_EXAM')}
-              className="group p-2.5 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 border border-amber-900/30 hover:border-amber-500/60 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer"
+              className={`group p-2.5 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer border ${
+                passedExams['chunin']
+                  ? 'border-emerald-800/40 hover:border-emerald-500/60'
+                  : 'border-amber-900/30 hover:border-amber-500/60'
+              }`}
             >
               <div className="flex items-center justify-between w-full mb-1">
-                <div className="w-6 h-6 rounded-md bg-amber-950/60 border border-amber-800/60 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform">
+                <div
+                  className={`w-6 h-6 rounded-md flex items-center justify-center group-hover:scale-105 transition-transform border ${
+                    passedExams['chunin']
+                      ? 'bg-emerald-950/60 border-emerald-800/60 text-emerald-400'
+                      : 'bg-amber-950/60 border-amber-800/60 text-amber-400'
+                  }`}
+                >
                   <Scroll className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-[10px] font-mono font-bold text-amber-400">
-                  3 Fases
+                <span
+                  className={`text-[10px] font-mono font-bold ${
+                    passedExams['chunin'] ? 'text-emerald-400' : 'text-amber-400'
+                  }`}
+                >
+                  {passedExams['chunin'] ? 'Chūnin ✔' : '3 Fases'}
                 </span>
               </div>
               <div>
-                <h4 className="text-xs font-bold text-zinc-100 group-hover:text-amber-300 transition-colors">
-                  Exame
+                <h4
+                  className={`text-xs font-bold transition-colors ${
+                    passedExams['chunin']
+                      ? 'text-zinc-100 group-hover:text-emerald-300'
+                      : 'text-zinc-100 group-hover:text-amber-300'
+                  }`}
+                >
+                  {passedExams['chunin'] ? 'Exame Jōnin' : 'Exame Chūnin'}
                 </h4>
                 <p className="text-[9px] font-mono text-zinc-400 truncate">
-                  {isChuninEligible ? 'Elegível' : '100 Cliques'}
+                  {passedExams['chunin']
+                    ? 'Próxima Graduação'
+                    : isChuninEligible
+                    ? 'Elegível'
+                    : '100 Cliques'}
                 </p>
               </div>
               <div className="mt-1 pt-1 border-t border-zinc-850/80 flex items-center justify-between text-[9px] font-mono text-zinc-500">
-                <span>Torneio</span>
-                <ArrowUpRight className="w-3 h-3 text-amber-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                <span>{passedExams['chunin'] ? 'Pavilhão' : 'Torneio'}</span>
+                <ArrowUpRight
+                  className={`w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform ${
+                    passedExams['chunin'] ? 'text-emerald-400' : 'text-amber-400'
+                  }`}
+                />
               </div>
             </button>
 

@@ -30,11 +30,12 @@ export const MissionsView: React.FC = () => {
   const gachaTickets = useGameStore((s) => s.gachaTickets);
   const forgeFragments = useGameStore((s) => s.forgeFragments);
   const missionPermanentCpsMult = useGameStore((s) => s.missionPermanentCpsMult);
+  const passedExams = useGameStore((s) => s.passedExams);
 
   // Patente do Jogador
   const currentRank = useMemo(() => {
-    return getCurrentRank(stats.manualClicksAllTime, stats.highestCPSRecord, stats.totalPrestiges);
-  }, [stats.manualClicksAllTime, stats.highestCPSRecord, stats.totalPrestiges]);
+    return getCurrentRank(stats.manualClicksAllTime, stats.highestCPSRecord, stats.totalPrestiges, passedExams);
+  }, [stats.manualClicksAllTime, stats.highestCPSRecord, stats.totalPrestiges, passedExams]);
 
   const playerRankIndex = useMemo(() => {
     return SHINOBI_RANKS.findIndex((r) => r.id === currentRank.id);

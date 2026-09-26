@@ -78,3 +78,15 @@ export interface GlobalLeaderboardEntry {
   totalPrestiges: number;
   updatedAt: string;
 }
+
+export type ShinobiExamId = 'chunin' | 'jonin';
+
+export interface ShinobiExamDefinition {
+  readonly id: ShinobiExamId;
+  readonly title: string;
+  readonly targetRankId: ShinobiRankId;
+  readonly requiredRankId: ShinobiRankId;
+  readonly loreDescription: string;
+  readonly phasesCount: number;
+  readonly rewardDescription: string;
+}

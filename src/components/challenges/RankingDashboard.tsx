@@ -29,6 +29,7 @@ export const RankingDashboard: React.FC = () => {
   const claimedRankRewards = useGameStore((s) => s.claimedRankRewards);
   const claimRankReward = useGameStore((s) => s.claimRankReward);
   const currentUser = useGameStore((s) => s.currentUser);
+  const passedExams = useGameStore((s) => s.passedExams);
 
   const [activeLeaderboard, setActiveLeaderboard] = useState<LeaderboardType>('peakCps');
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -41,8 +42,8 @@ export const RankingDashboard: React.FC = () => {
 
   // Determina patente atual e próxima
   const currentRank = useMemo(
-    () => getCurrentRank(allTimeClicks, highestCPS, prestiges),
-    [allTimeClicks, highestCPS, prestiges]
+    () => getCurrentRank(allTimeClicks, highestCPS, prestiges, passedExams),
+    [allTimeClicks, highestCPS, prestiges, passedExams]
   );
   const nextRank = useMemo(() => getNextRank(currentRank.id), [currentRank.id]);
 

@@ -26,6 +26,7 @@ export const OnlineRewardsModal: React.FC = () => {
   const onlinePresenceRewardsClaimed = useGameStore((s) => s.onlinePresenceRewardsClaimed);
   const onlinePresenceBuffTimer = useGameStore((s) => s.onlinePresenceBuffTimer);
   const claimOnlinePresenceReward = useGameStore((s) => s.claimOnlinePresenceReward);
+  const passedExams = useGameStore((s) => s.passedExams);
 
   const [notification, setNotification] = useState<{ message: string; isError: boolean } | null>(null);
 
@@ -35,7 +36,8 @@ export const OnlineRewardsModal: React.FC = () => {
   const currentRank = getCurrentRank(
     stats.manualClicksAllTime,
     stats.highestCPSRecord,
-    stats.totalPrestiges
+    stats.totalPrestiges,
+    passedExams
   );
 
   const formatTime = (totalSeconds: number): string => {

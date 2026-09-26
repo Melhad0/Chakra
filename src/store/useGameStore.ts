@@ -5,7 +5,7 @@ import { ElementalAffinity, PlayerStats } from '../types/game';
 import { GeneratorItem, ShopMode, ShopQty } from '../types/economy';
 import { BossNavigationState } from '../types/combat';
 import { ShinobiUser } from '../types/auth';
-import { ShinobiRankId } from '../types/rankings';
+import { ShinobiRankId, ShinobiRankDefinition } from '../types/rankings';
 import { ActiveGameView } from '../types/navigation';
 import { INITIAL_GENERATORS, INITIAL_UPGRADES, GATE_DATA, CLAN_NODES } from '../engine/data';
 import { TECHNIQUE_UPGRADES, UPGRADES_BY_ID } from '../constants/upgrades';
@@ -115,6 +115,14 @@ export interface GameStoreState {
   claimedRankRewards: Record<string, boolean>;
   claimRankReward: (rankId: ShinobiRankId) => boolean;
   buyAllAffordableUpgrades: () => number;
+
+  // Sistema de Exames Shinobi & Promoção de Patamares
+  passedExams: Record<string, boolean>;
+  completeExam: (examRankId: ShinobiRankId) => {
+    success: boolean;
+    message: string;
+    promotedRank: ShinobiRankDefinition;
+  };
 
   // Quadro de Missões Shinobi (Ranks E a SS)
   activeMission: ActiveMissionState;
@@ -320,6 +328,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   },
   clanNodes: {},
   claimedRankRewards: {},
+  passedExams: {},
 
   // Módulo de Inventário & Afinidade de Chakra
   inventory: createInitialInventory(),
@@ -757,7 +766,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const currentRank = getCurrentRank(
       s.stats.manualClicksAllTime,
       s.stats.highestCPSRecord,
-      s.stats.totalPrestiges
+      s.stats.totalPrestiges,
+      s.passedExams
     );
     const rankIdx = SHINOBI_RANKS.findIndex((r) => r.id === currentRank.id);
     if (rankIdx < mission.requiredRankTier) return false;
@@ -895,7 +905,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       const currentRank = getCurrentRank(
         s.stats.manualClicksAllTime,
         s.stats.highestCPSRecord,
-        s.stats.totalPrestiges
+        s.stats.totalPrestiges,
+        s.passedExams
       );
       const minRankDef = SHINOBI_RANKS.find((r) => r.id === tier.minRank);
       const currentIndex = SHINOBI_RANKS.findIndex((r) => r.id === currentRank.id);
@@ -1008,6 +1019,63 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       };
     });
     return true;
+  },
+
+  completeExam: (examRankId: ShinobiRankId) => {
+    const s = get();
+    const targetRank = SHINOBI_RANKS_MAP[examRankId] || SHINOBI_RANKS[0];
+
+    // Se já passou, não duplica recompensa, apenas confirma
+    if (s.passedExams[examRankId]) {
+      return {
+        success: false,
+        message: `Exame para ${targetRank.title} já foi oficializado anteriormente!`,
+        promotedRank: targetRank,
+      };
+    }
+
+    audio.playLevelUp();
+
+    let bonusChakra = D(0);
+    let bonusAncestral = D(0);
+    let bonusGachaTickets = 0;
+    let bonusForgeFragments = 0;
+
+    if (examRankId === 'chunin') {
+      bonusChakra = D(500000);
+      bonusAncestral = D(5);
+      bonusGachaTickets = 1;
+      bonusForgeFragments = 3;
+    } else if (examRankId === 'jonin') {
+      bonusChakra = D(10000000);
+      bonusAncestral = D(20);
+      bonusGachaTickets = 3;
+      bonusForgeFragments = 10;
+    }
+
+    set((state) => ({
+      passedExams: {
+        ...state.passedExams,
+        [examRankId]: true,
+      },
+      chakra: state.chakra.add(bonusChakra),
+      chakraAncestral: state.chakraAncestral.add(bonusAncestral),
+      gachaTickets: state.gachaTickets + bonusGachaTickets,
+      forgeFragments: state.forgeFragments + bonusForgeFragments,
+      stats: {
+        ...state.stats,
+        totalChakraEarned: state.stats.totalChakraEarned.add(bonusChakra),
+      },
+    }));
+
+    // Auto-save imediato para salvar no storage local e nuvem
+    get().saveGame();
+
+    return {
+      success: true,
+      message: `Graduação concluída com louvor! Você foi promovido a ${targetRank.title}!`,
+      promotedRank: targetRank,
+    };
   },
 
   buyAllAffordableUpgrades: () => {
@@ -1385,6 +1453,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         upgrades: s.upgrades,
         clanNodes: s.clanNodes,
         claimedRankRewards: s.claimedRankRewards,
+        passedExams: s.passedExams,
         gatesUnlocked: s.gatesUnlocked,
         exhaustionTimer: s.exhaustionTimer,
         clickExhaustionTimer: s.clickExhaustionTimer,
@@ -1455,6 +1524,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           upgrades: { ...state.upgrades, ...(data.upgrades || {}) },
           clanNodes: data.clanNodes || {},
           claimedRankRewards: data.claimedRankRewards || {},
+          passedExams: data.passedExams || {},
           gatesUnlocked: data.gatesUnlocked || 0,
           exhaustionTimer: data.exhaustionTimer || 0,
           clickExhaustionTimer: data.clickExhaustionTimer || 0,

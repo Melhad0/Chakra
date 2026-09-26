@@ -5,7 +5,7 @@ import { calculateTotalCPS } from '../../engine/formulas';
 import { usePlaytime } from '../../hooks/usePlaytime';
 import { audio } from '../../engine/audio';
 import { Volume2, VolumeX, Sparkles, Hash, Flame, SunMedium, User, ShieldCheck, LogOut, Gift, AlertTriangle, Swords, Clock, Scroll, Briefcase } from 'lucide-react';
-import { Badge } from '../common/Badge';
+import { getCurrentRank } from '../../constants/rankings';
 
 export const Navbar: React.FC = () => {
   const setView = useGameStore((s) => s.setView);
@@ -14,6 +14,8 @@ export const Navbar: React.FC = () => {
   const currentUser = useGameStore((s) => s.currentUser);
   const openAuthModal = useGameStore((s) => s.openAuthModal);
   const logout = useGameStore((s) => s.logout);
+  const stats = useGameStore((s) => s.stats);
+  const passedExams = useGameStore((s) => s.passedExams);
   const chakra = useGameStore((s) => s.chakra);
   const chakraAncestral = useGameStore((s) => s.chakraAncestral);
   const generators = useGameStore((s) => s.generators);
@@ -93,7 +95,14 @@ export const Navbar: React.FC = () => {
     setNotation(next);
   };
 
-  const rankName = gatesUnlocked >= 8 ? 'Rikudou' : gatesUnlocked >= 4 ? 'Jōnin' : 'Gennin';
+  const currentRank = React.useMemo(() => {
+    return getCurrentRank(
+      stats.manualClicksAllTime,
+      stats.highestCPSRecord,
+      stats.totalPrestiges,
+      passedExams
+    );
+  }, [stats.manualClicksAllTime, stats.highestCPSRecord, stats.totalPrestiges, passedExams]);
 
   return (
     <header className="h-16 px-4 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/80 flex items-center justify-between z-30 select-none shadow-sm">
@@ -144,18 +153,27 @@ export const Navbar: React.FC = () => {
           </span>
         </div>
 
-        {/* Patamar Shinobi */}
-        <div className="bg-zinc-900/40 border border-zinc-800/80 px-3 py-1.5 rounded-lg text-center min-w-[110px] flex flex-col items-center justify-center">
-          <span className="text-[10px] font-semibold tracking-widest text-zinc-400 uppercase block mb-0.5">
-            Patamar
-          </span>
-          <Badge
-            variant={gatesUnlocked >= 8 ? 'danger' : gatesUnlocked >= 4 ? 'cyan' : 'neutral'}
-            icon={<Flame className="w-3 h-3 stroke-[1.75]" />}
+        {/* Patamar Shinobi Oficial */}
+        <button
+          onClick={() => setView('RANKINGS')}
+          title={`Patamar Shinobi: ${currentRank.title} (${currentRank.subtitle}). Clique para abrir o Hall da Fama e Recompensas!`}
+          className="bg-zinc-900/40 hover:bg-zinc-900/80 border border-zinc-800/80 hover:border-zinc-700 px-3 py-1.5 rounded-lg text-center min-w-[130px] flex flex-col items-center justify-center transition cursor-pointer group"
+        >
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span className="text-[10px] font-semibold tracking-widest text-zinc-400 uppercase group-hover:text-zinc-200 transition">
+              Patamar
+            </span>
+            {passedExams['chunin'] && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" title="Aprovado no Exame Oficial" />
+            )}
+          </div>
+          <div
+            className={`px-2 py-0.5 rounded text-xs font-mono font-bold border flex items-center gap-1.5 ${currentRank.badgeClass}`}
           >
-            {rankName}
-          </Badge>
-        </div>
+            <Flame className="w-3 h-3 stroke-[2]" style={{ color: currentRank.accentColor }} />
+            <span>{currentRank.title}</span>
+          </div>
+        </button>
 
         {/* Indicador de Exaustão no HUD Central */}
         {exhaustionTimer > 0 && (
