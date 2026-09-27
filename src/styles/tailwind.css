@@ -41,6 +41,35 @@
   .animate-shockwave-pulse {
     animation: shockwavePulse 0.5s ease-out forwards;
   }
+
+  /* Animações Cenográficas de Fundo (Floresta da Folha & Vale do Fim) */
+  .animate-leaf-1 {
+    animation: leafDrift1 10s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .animate-leaf-2 {
+    animation: leafDrift2 13s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .animate-leaf-3 {
+    animation: leafDrift3 11s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .animate-sunbeam {
+    animation: sunbeamPulse 8s ease-in-out infinite;
+  }
+  .animate-mist-slow {
+    animation: mistHorizontal 16s ease-in-out infinite;
+  }
+  .animate-twinkle {
+    animation: celestialTwinkle 3.5s ease-in-out infinite;
+  }
+  .animate-lightning-arc {
+    animation: lightningArc 5.5s ease-in-out infinite;
+  }
+  .animate-ember {
+    animation: emberFloat 6s ease-out infinite;
+  }
+  .animate-moon-pulse {
+    animation: moonPulse 7s ease-in-out infinite;
+  }
 }
 
 @keyframes floatFade {
@@ -70,5 +99,136 @@
   100% {
     opacity: 0;
     transform: translate(-50%, -50%) scale(2.0);
+  }
+}
+
+/* Keyframes da Floresta da Folha & Vale do Fim */
+@keyframes leafDrift1 {
+  0% {
+    transform: translate3d(0, -30px, 0) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  85% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translate3d(140px, 360px, 0) rotate(260deg);
+    opacity: 0;
+  }
+}
+
+@keyframes leafDrift2 {
+  0% {
+    transform: translate3d(0, -30px, 0) rotate(45deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate3d(-50px, 170px, 0) rotate(140deg);
+  }
+  85% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate3d(90px, 370px, 0) rotate(340deg);
+    opacity: 0;
+  }
+}
+
+@keyframes leafDrift3 {
+  0% {
+    transform: translate3d(0, -30px, 0) rotate(-30deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  55% {
+    transform: translate3d(70px, 190px, 0) rotate(90deg);
+  }
+  85% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translate3d(-40px, 350px, 0) rotate(220deg);
+    opacity: 0;
+  }
+}
+
+@keyframes sunbeamPulse {
+  0%, 100% {
+    opacity: 0.18;
+    transform: scale(0.97) rotate(-12deg);
+  }
+  50% {
+    opacity: 0.38;
+    transform: scale(1.03) rotate(-10deg);
+  }
+}
+
+@keyframes mistHorizontal {
+  0% {
+    transform: translateX(-15%);
+    opacity: 0.25;
+  }
+  50% {
+    transform: translateX(10%);
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateX(-15%);
+    opacity: 0.25;
+  }
+}
+
+@keyframes celestialTwinkle {
+  0%, 100% {
+    opacity: 0.25;
+    transform: scale(0.75);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes lightningArc {
+  0%, 92%, 97%, 100% {
+    opacity: 0;
+  }
+  93%, 95% {
+    opacity: 0.85;
+    filter: drop-shadow(0 0 14px #38bdf8);
+  }
+}
+
+@keyframes emberFloat {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.95;
+  }
+  80% {
+    opacity: 0.65;
+  }
+  100% {
+    transform: translate3d(-45px, -190px, 0) scale(1.25);
+    opacity: 0;
+  }
+}
+
+@keyframes moonPulse {
+  0%, 100% {
+    box-shadow: 0 0 35px rgba(147, 197, 253, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 65px rgba(167, 139, 250, 0.6);
   }
 }

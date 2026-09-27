@@ -5,6 +5,7 @@ import { calculateTotalCPS, calculateClickPower, getGatesMultiplier } from '../.
 import { GATE_DATA } from '../../engine/data';
 import { Flame, ShieldAlert, Zap, Target, Activity, Clock, Skull, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Badge } from '../common/Badge';
+import { ClickStageBackground } from './ClickStageBackground';
 
 interface FloatingItemProps {
   id: number;
@@ -143,20 +144,23 @@ export const ActionStage: React.FC = () => {
         </div>
       )}
 
-      {/* 1. PALCO FOCAL DO SELO REATIVO COM ANÉIS CONCÊNTRICOS SUTIS */}
+      {/* 1. PALCO FOCAL DO SELO REATIVO COM CENÁRIO ANIMADO (FLORESTA DA FOLHA / VALE DO FIM) */}
       <div
         ref={stageRef}
         onClick={handleClick}
-        className={`flex-1 w-full flex flex-col items-center justify-center relative ${
-          clickExhaustionTimer > 0 ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+        className={`flex-1 w-full relative rounded-2xl overflow-hidden border border-zinc-800/80 bg-zinc-950/90 flex flex-col items-center justify-center shadow-inner group/stage select-none min-h-[350px] transition-colors ${
+          clickExhaustionTimer > 0 ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
         }`}
       >
+        {/* Fundo Animado Cenográfico: Floresta da Folha & Vale do Fim */}
+        <ClickStageBackground clickExhaustion={clickExhaustionTimer > 0} />
+
         {/* Anéis de Precisão Técnica */}
-        <div className="absolute w-[280px] h-[280px] rounded-full border border-dashed border-zinc-800/60 animate-spin-slow pointer-events-none" />
-        <div className="absolute w-[220px] h-[220px] rounded-full border border-zinc-800/40 animate-spin-reverse pointer-events-none" />
+        <div className="absolute w-[280px] h-[280px] rounded-full border border-dashed border-zinc-800/60 animate-spin-slow pointer-events-none z-10" />
+        <div className="absolute w-[220px] h-[220px] rounded-full border border-zinc-800/40 animate-spin-reverse pointer-events-none z-10" />
 
         {/* Halo Suave de Profundidade */}
-        <div className="absolute w-[180px] h-[180px] rounded-full bg-orange-500/5 blur-3xl pointer-events-none" />
+        <div className="absolute w-[180px] h-[180px] rounded-full bg-orange-500/5 blur-3xl pointer-events-none z-10" />
 
         {/* Botão Central Reativo de Alta Precisão */}
         <div
