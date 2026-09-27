@@ -3,7 +3,12 @@ import Decimal from 'break_infinity.js';
 import { D, formatBigNumber } from '../engine/BigNumber';
 import { ElementalAffinity, PlayerStats } from '../types/game';
 import { GeneratorItem, ShopMode, ShopQty } from '../types/economy';
-import { BossNavigationState } from '../types/combat';
+import {
+  BossNavigationState,
+  ShinobiCombatStats,
+  MAX_COMBAT_LEVEL,
+  POINTS_PER_LEVEL,
+} from '../types/combat';
 import { ShinobiUser } from '../types/auth';
 import { ShinobiRankId, ShinobiRankDefinition, ShinobiPromotionId } from '../types/rankings';
 import { ActiveGameView } from '../types/navigation';
@@ -31,6 +36,8 @@ import {
   GAUNTLET_BOSSES,
   calculateBossHP,
   calculateEffectiveBossReward,
+  calculateBossXp,
+  calculateRequiredXp,
 } from '../constants/bosses';
 import { ActiveMissionState, MissionOutcome } from '../types/missions';
 import { SHINOBI_MISSIONS_CATALOG } from '../constants/missionsCatalog';
@@ -119,6 +126,12 @@ export interface GameStoreState {
   setGauntletCombatMode: (mode: 'PUSH' | 'FARM') => void;
   recordGauntletVictory: (defeatedBossId: number) => void;
   handleGauntletDefeat: () => void;
+  setCurrentActiveBossId: (bossId: number) => void;
+
+  // Sistema de Progressão RPG de Combate (Desafios)
+  combatStats: ShinobiCombatStats;
+  distributeCombatStats: (stat: 'strength' | 'vitality' | 'agility', amount: number) => boolean;
+  awardCombatXp: (amount: Decimal) => { leveledUp: boolean; newLevel: number; pointsGained: number };
 
   // Recompensas de Patentes & Rankings
   claimedRankRewards: Record<string, boolean>;
@@ -657,12 +670,100 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     bossTimeRemaining: 30,
   },
 
-  startBossFight: () => {
+  // Sistema de Atributos & Progressão Shinobi (Nível 1 a 700)
+  combatStats: {
+    level: 1,
+    currentXp: D(0),
+    requiredXp: calculateRequiredXp(1),
+    unspentStatPoints: 0,
+    strength: 10,
+    vitality: 10,
+    agility: 5,
+  },
+
+  distributeCombatStats: (stat: 'strength' | 'vitality' | 'agility', amount: number) => {
     const s = get();
-    const now = Date.now();
-    if (s.gauntlet.cooldownExpiresAt && now < s.gauntlet.cooldownExpiresAt) {
+    if (s.combatStats.unspentStatPoints < amount || amount <= 0) {
       return false;
     }
+    audio.playClick();
+    set((state) => ({
+      combatStats: {
+        ...state.combatStats,
+        unspentStatPoints: state.combatStats.unspentStatPoints - amount,
+        [stat]: state.combatStats[stat] + amount,
+      },
+    }));
+    return true;
+  },
+
+  awardCombatXp: (amount: Decimal) => {
+    let leveledUp = false;
+    let newLevel = 1;
+    let pointsGained = 0;
+
+    set((state) => {
+      const stats = { ...state.combatStats };
+      if (stats.level >= MAX_COMBAT_LEVEL) {
+        return state;
+      }
+
+      let currentXp = stats.currentXp.add(amount);
+      let requiredXp = stats.requiredXp;
+      let level = stats.level;
+      let unspentPoints = stats.unspentStatPoints;
+
+      while (currentXp.gte(requiredXp) && level < MAX_COMBAT_LEVEL) {
+        currentXp = currentXp.sub(requiredXp);
+        level += 1;
+        unspentPoints += POINTS_PER_LEVEL;
+        requiredXp = calculateRequiredXp(level);
+        leveledUp = true;
+        pointsGained += POINTS_PER_LEVEL;
+      }
+
+      if (level >= MAX_COMBAT_LEVEL) {
+        currentXp = D(0);
+        requiredXp = calculateRequiredXp(MAX_COMBAT_LEVEL);
+      }
+
+      newLevel = level;
+
+      return {
+        combatStats: {
+          ...stats,
+          level,
+          currentXp,
+          requiredXp,
+          unspentStatPoints: unspentPoints,
+        },
+      };
+    });
+
+    if (leveledUp) {
+      audio.playLevelUp();
+    }
+
+    return { leveledUp, newLevel, pointsGained };
+  },
+
+  setCurrentActiveBossId: (bossId: number) => {
+    const targetBoss = GAUNTLET_BOSSES.find((b) => b.id === bossId);
+    if (!targetBoss) return;
+    set((state) => ({
+      gauntlet: {
+        ...state.gauntlet,
+        currentActiveBossId: bossId,
+        bossCurrentHp: targetBoss.hp,
+        bossTimeRemaining: targetBoss.timer || 30,
+        isFighting: false,
+        cooldownExpiresAt: null,
+      },
+    }));
+  },
+
+  startBossFight: () => {
+    const s = get();
     const currentBoss =
       GAUNTLET_BOSSES.find((b) => b.id === s.gauntlet.currentActiveBossId) || GAUNTLET_BOSSES[0];
     set((state) => ({
@@ -671,6 +772,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         isFighting: true,
         bossCurrentHp: currentBoss.hp,
         bossTimeRemaining: currentBoss.timer || 30,
+        cooldownExpiresAt: null,
       },
     }));
     return true;
@@ -684,16 +786,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     audio.playLevelUp();
 
-    // Rolagem estocástica de saque conforme a curva P_drop(n)
+    // Rolagem de saque estocástica
     const lootRoll = rollBossLoot(bossId);
     s.addLootToInventory({
       equipmentDrop: lootRoll.equipmentDrop,
       farmMaterial: lootRoll.farmMaterial,
     });
 
-    // Passiva de Suiton (Água): -20% de tempo de descanso pós-vitória (45s -> 36s)
-    const hasWater = s.inventory.unlockedElements.includes('WATER');
-    const victoryCooldownMs = hasWater ? 36000 : 45000;
+    // Concede XP de combate shinobi
+    const xpReward = calculateBossXp(bossId);
+    s.awardCombatXp(xpReward);
 
     set((state) => {
       const nextHighest = Math.max(state.gauntlet.highestBossDefeated, bossId);
@@ -712,7 +814,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           isFighting: false,
           bossCurrentHp: nextBoss.hp,
           bossTimeRemaining: nextBoss.timer || 30,
-          cooldownExpiresAt: Date.now() + victoryCooldownMs,
+          cooldownExpiresAt: null,
         },
       };
     });
@@ -720,11 +822,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   onBossDefeat: () => {
     audio.playCrit();
-    const s = get();
-    // Passiva de Doton (Terra): -15% no tempo de penalidade pós-colapso (90s -> 76.5s)
-    const hasEarth = s.inventory.unlockedElements.includes('EARTH');
-    const defeatCooldownMs = hasEarth ? 76500 : 90000;
-
     set((state) => {
       const currentBoss =
         GAUNTLET_BOSSES.find((b) => b.id === state.gauntlet.currentActiveBossId) ||
@@ -736,7 +833,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           isFighting: false,
           bossCurrentHp: currentBoss.hp,
           bossTimeRemaining: currentBoss.timer || 30,
-          cooldownExpiresAt: Date.now() + defeatCooldownMs,
+          cooldownExpiresAt: null,
         },
       };
     });
@@ -755,12 +852,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     });
   },
 
-  setGauntletBossIndex: (_index: number) => {
-    // Progressão linear estrita: desabilitado
+  setGauntletBossIndex: (index: number) => {
+    get().setCurrentActiveBossId(index);
   },
 
   setGauntletCombatMode: (_mode: 'PUSH' | 'FARM') => {
-    // Extinto: progressão linear estrita sem farm
+    // Modo de combate direto e manual
   },
 
   recordGauntletVictory: (defeatedBossId: number) => {
@@ -1524,10 +1621,19 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           currentActiveBossId: s.gauntlet.currentActiveBossId,
           highestBossDefeated: s.gauntlet.highestBossDefeated,
           maxUnlockedBoss: s.gauntlet.highestBossDefeated,
-          cooldownExpiresAt: s.gauntlet.cooldownExpiresAt,
-          isFighting: s.gauntlet.isFighting,
+          cooldownExpiresAt: null,
+          isFighting: false,
           bossCurrentHp: s.gauntlet.bossCurrentHp.toString(),
           bossTimeRemaining: s.gauntlet.bossTimeRemaining,
+        },
+        combatStats: {
+          level: s.combatStats.level,
+          currentXp: s.combatStats.currentXp.toString(),
+          requiredXp: s.combatStats.requiredXp.toString(),
+          unspentStatPoints: s.combatStats.unspentStatPoints,
+          strength: s.combatStats.strength,
+          vitality: s.combatStats.vitality,
+          agility: s.combatStats.agility,
         },
         stats: {
           manualClicksAllTime: s.stats.manualClicksAllTime,
@@ -1600,7 +1706,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
                   data.gauntlet.highestBossDefeated ?? data.gauntlet.maxUnlockedBoss ?? 0,
                 maxUnlockedBoss:
                   data.gauntlet.highestBossDefeated ?? data.gauntlet.maxUnlockedBoss ?? 0,
-                cooldownExpiresAt: data.gauntlet.cooldownExpiresAt || null,
+                cooldownExpiresAt: null,
                 isFighting: false,
                 bossCurrentHp: data.gauntlet.bossCurrentHp
                   ? D(data.gauntlet.bossCurrentHp)
@@ -1608,6 +1714,19 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
                 bossTimeRemaining: data.gauntlet.bossTimeRemaining || 30,
               }
             : state.gauntlet,
+          combatStats: data.combatStats
+            ? {
+                level: Math.min(MAX_COMBAT_LEVEL, Math.max(1, data.combatStats.level || 1)),
+                currentXp: D(data.combatStats.currentXp || 0),
+                requiredXp: data.combatStats.requiredXp
+                  ? D(data.combatStats.requiredXp)
+                  : calculateRequiredXp(data.combatStats.level || 1),
+                unspentStatPoints: Math.max(0, data.combatStats.unspentStatPoints || 0),
+                strength: Math.max(10, data.combatStats.strength || 10),
+                vitality: Math.max(10, data.combatStats.vitality || 10),
+                agility: Math.max(5, data.combatStats.agility || 5),
+              }
+            : state.combatStats,
           stats: {
             ...state.stats,
             manualClicksCurrentSession: 0,

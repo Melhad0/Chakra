@@ -1,81 +1,124 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { formatBigNumber, D } from '../../engine/BigNumber';
 import Decimal from 'break_infinity.js';
-import { calculateTotalCPS, calculateClickPower } from '../../engine/formulas';
 import { audio } from '../../engine/audio';
-import { GAUNTLET_BOSSES, calculateEffectiveBossReward } from '../../constants/bosses';
-import { BossData } from '../../types/combat';
+import {
+  GAUNTLET_BOSSES,
+  calculateEffectiveBossReward,
+  calculateBossAttackDamage,
+  calculateBossAttackInterval,
+  calculateBossXp,
+  calculatePlayerMaxHp,
+  calculatePlayerDamage,
+  calculateDodgeChance,
+} from '../../constants/bosses';
+import { BossData, MAX_COMBAT_LEVEL } from '../../types/combat';
+import { getBossLootDefinition, calculateBossDropProbability } from '../../constants/equipmentCatalog';
 import { Badge } from '../common/Badge';
 import { IconRenderer } from '../common/IconRenderer';
 import { ViewHeader } from './ViewHeader';
+import { BattlefieldBackground } from '../challenges/BattlefieldBackground';
 import {
   Swords,
   ChevronLeft,
   ChevronRight,
   Shield,
-  Clock,
-  AlertTriangle,
+  Heart,
+  Zap,
   CheckCircle2,
-  Search,
   Lock,
+  Sparkles,
+  AlertTriangle,
+  RotateCcw,
+  Plus,
+  Flame,
+  Search,
+  Activity,
+  Package,
 } from 'lucide-react';
 
 export const ChallengesView: React.FC = () => {
-  const clanNodes = useGameStore((s) => s.clanNodes);
-  const generators = useGameStore((s) => s.generators);
-  const upgrades = useGameStore((s) => s.upgrades);
-  const gatesUnlocked = useGameStore((s) => s.gatesUnlocked);
-  const gatesActiveTimer = useGameStore((s) => s.gatesActiveTimer);
-  const exhaustionTimer = useGameStore((s) => s.exhaustionTimer);
-  const onlinePresenceBuffTimer = useGameStore((s) => s.onlinePresenceBuffTimer);
   const stableRollingCPS = useGameStore((s) => s.stableRollingCPS);
-
-  // Estado Gauntlet do Zustand Store
   const gauntlet = useGameStore((s) => s.gauntlet);
+  const combatStats = useGameStore((s) => s.combatStats);
+  const inventory = useGameStore((s) => s.inventory);
+  const clanNodes = useGameStore((s) => s.clanNodes);
+
   const startBossFight = useGameStore((s) => s.startBossFight);
   const onBossVictory = useGameStore((s) => s.onBossVictory);
   const onBossDefeat = useGameStore((s) => s.onBossDefeat);
+  const distributeCombatStats = useGameStore((s) => s.distributeCombatStats);
+  const setCurrentActiveBossId = useGameStore((s) => s.setCurrentActiveBossId);
 
-  // Chefe selecionado para visualização no painel
-  const [selectedBossId, setSelectedBossId] = useState<number>(gauntlet.currentActiveBossId);
+  // Chefe selecionado na navegação (inicia no chefe ativo ou no 1)
+  const [selectedBossId, setSelectedBossId] = useState<number>(gauntlet.currentActiveBossId || 1);
 
-  // Mantém selectedBossId sincronizado quando o chefe ativo avança
+  // Sincroniza quando o chefe ativo avança
   useEffect(() => {
-    setSelectedBossId(gauntlet.currentActiveBossId);
+    if (gauntlet.currentActiveBossId) {
+      setSelectedBossId(gauntlet.currentActiveBossId);
+    }
   }, [gauntlet.currentActiveBossId]);
 
-  const currentBoss: BossData =
-    GAUNTLET_BOSSES.find((b) => b.id === selectedBossId) || GAUNTLET_BOSSES[0];
+  const currentBoss: BossData = useMemo(() => {
+    return GAUNTLET_BOSSES.find((b) => b.id === selectedBossId) || GAUNTLET_BOSSES[0];
+  }, [selectedBossId]);
 
-  const isActiveTarget = currentBoss.id === gauntlet.currentActiveBossId;
   const isCleared = currentBoss.id <= gauntlet.highestBossDefeated;
   const isLocked = currentBoss.id > gauntlet.currentActiveBossId;
+  const isActiveTarget = currentBoss.id === gauntlet.currentActiveBossId;
 
-  // Gerenciamento de Cooldown de Recuperação de Esquadrão
-  const [now, setNow] = useState<number>(Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(timer);
-  }, []);
+  // Multiplicadores de Trajes e Armas equipadas no Inventário
+  const weaponMultiplier = useMemo(() => {
+    const melee = inventory?.equippedGear?.WEAPON_MELEE;
+    const ranged = inventory?.equippedGear?.WEAPON_RANGED;
+    const legacy = inventory?.equippedWeapon;
+    const item = melee || legacy || ranged;
+    return item?.bonusClickMult && item.bonusClickMult.gt(1) ? item.bonusClickMult : D(1);
+  }, [inventory]);
 
-  const cooldownExpiresAt = gauntlet.cooldownExpiresAt;
-  const isCooldownActive = !!(cooldownExpiresAt && cooldownExpiresAt > now);
-  const cooldownRemainingMs = isCooldownActive && cooldownExpiresAt ? cooldownExpiresAt - now : 0;
+  const armorMultiplier = useMemo(() => {
+    const chest = inventory?.equippedGear?.CHESTPLATE;
+    const legacy = inventory?.equippedArmor;
+    const item = chest || legacy;
+    return item?.bonusCpsMult && item.bonusCpsMult.gt(1) ? item.bonusCpsMult : D(1);
+  }, [inventory]);
 
-  const formatCooldown = (ms: number): string => {
-    const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}s`;
-  };
+  // Atributos de Combate do Jogador
+  const playerMaxHp = useMemo(() => {
+    return calculatePlayerMaxHp(combatStats.vitality, armorMultiplier);
+  }, [combatStats.vitality, armorMultiplier]);
 
-  // Estados locais do combate ativo
+  const playerBaseDamage = useMemo(() => {
+    return calculatePlayerDamage(combatStats.strength, weaponMultiplier);
+  }, [combatStats.strength, weaponMultiplier]);
+
+  const playerDodgeChance = useMemo(() => {
+    return calculateDodgeChance(combatStats.agility);
+  }, [combatStats.agility]);
+
+  // Atributos de Ataque do Chefe
+  const bossAttackDamage = useMemo(() => {
+    return calculateBossAttackDamage(currentBoss.id);
+  }, [currentBoss.id]);
+
+  const bossAttackIntervalSec = useMemo(() => {
+    return calculateBossAttackInterval(currentBoss.id);
+  }, [currentBoss.id]);
+
+  // Estados locais de Combate
   const [bossHp, setBossHp] = useState<Decimal>(currentBoss.hp);
   const [ghostHp, setGhostHp] = useState<Decimal>(currentBoss.hp);
-  const [combatTimer, setCombatTimer] = useState<number>(currentBoss.timer);
+  const [playerHp, setPlayerHp] = useState<number>(playerMaxHp);
+  const [playerGhostHp, setPlayerGhostHp] = useState<number>(playerMaxHp);
+  const [bossAttackProgress, setBossAttackProgress] = useState<number>(0); // 0 a 100%
+
   const [isHit, setIsHit] = useState<boolean>(false);
+  const [isPlayerHit, setIsPlayerHit] = useState<boolean>(false);
   const [lastDmgInfo, setLastDmgInfo] = useState<{ amount: number; isCrit: boolean; note?: string } | null>(null);
+  const [playerDmgFeedback, setPlayerDmgFeedback] = useState<string | null>(null);
+
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [tierFilter, setTierFilter] = useState<string>('Todos');
   const [defeatMessage, setDefeatMessage] = useState<string | null>(null);
@@ -95,13 +138,16 @@ export const ChallengesView: React.FC = () => {
   const [toneriTimer, setToneriTimer] = useState<number>(1.5);
   const [isshikiCubes, setIsshikiCubes] = useState<number>(3);
 
-  const prevBossIdRef = useRef<number>(currentBoss.id);
+  // Aba ativa nos painéis táticos: 'COMBAT' | 'STATS' | 'DROPS'
+  const [activeSideTab, setActiveSideTab] = useState<'STATS' | 'DROPS' | 'LIST'>('STATS');
 
-  // Reset de combate ao trocar de chefe ou encerrar luta
+  // Inicializa e reseta valores ao mudar de chefe ou iniciar combate
   useEffect(() => {
     setBossHp(currentBoss.hp);
     setGhostHp(currentBoss.hp);
-    setCombatTimer(currentBoss.timer);
+    setPlayerHp(playerMaxHp);
+    setPlayerGhostHp(playerMaxHp);
+    setBossAttackProgress(0);
     setPuppetsRemaining(10);
     setIsIaiSilenced(false);
     setIsBakuActive(false);
@@ -113,219 +159,197 @@ export const ChallengesView: React.FC = () => {
     setToneriTimer(1.5);
     setIsshikiCubes(3);
 
-    const forbiddenWords = ['CHAKRA', 'FOGO', 'RASENGAN', 'SELO', 'NINJA'];
+    const forbiddenWords = ['CHAKRA', 'FOGO', 'RASENGAN', 'SELO', 'NINJA', 'KATON', 'SHINOBI'];
     setForbiddenWord(forbiddenWords[Math.floor(Math.random() * forbiddenWords.length)]);
-    prevBossIdRef.current = currentBoss.id;
-  }, [currentBoss.id, currentBoss.hp, currentBoss.timer, gauntlet.isFighting]);
+  }, [currentBoss.id, currentBoss.hp, playerMaxHp, gauntlet.isFighting]);
 
-  // Rastro fantasma de dano recebido
+  // Efeito rastro fantasma no HP do chefe e jogador
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setGhostHp(bossHp);
-    }, 300);
+    const timer = setTimeout(() => setGhostHp(bossHp), 250);
     return () => clearTimeout(timer);
   }, [bossHp]);
 
-  // Cálculo de Poder do Shinobi
-  const effectiveClanNodes = useMemo(() => {
-    if (currentBoss.mechanic.type === 'isshiki_cubes' && isshikiCubes > 0) {
-      return {};
-    }
-    return clanNodes;
-  }, [clanNodes, currentBoss.mechanic.type, isshikiCubes]);
+  useEffect(() => {
+    const timer = setTimeout(() => setPlayerGhostHp(playerHp), 250);
+    return () => clearTimeout(timer);
+  }, [playerHp]);
 
-  const currentCPS = useMemo(() => {
-    return calculateTotalCPS(
-      generators,
-      upgrades,
-      effectiveClanNodes,
-      gatesUnlocked,
-      gatesActiveTimer > 0,
-      exhaustionTimer > 0,
-      {},
-      onlinePresenceBuffTimer > 0
+  // =========================================================================
+  // GATILHOS DE VITÓRIA E DERROTA
+  // =========================================================================
+  const triggerVictory = useCallback(() => {
+    audio.playLevelUp();
+    const effectiveReward = calculateEffectiveBossReward(currentBoss.id, stableRollingCPS);
+    const xpGained = calculateBossXp(currentBoss.id);
+
+    setVictoryMessage(
+      `Vitória conquistada contra #${currentBoss.id} ${currentBoss.name}!\nRecompensa: +${formatBigNumber(
+        effectiveReward
+      )} Chakra, +${currentBoss.bountyAncestral} Ancestral e +${formatBigNumber(xpGained)} XP de Combate!`
     );
-  }, [generators, upgrades, effectiveClanNodes, gatesUnlocked, gatesActiveTimer, exhaustionTimer, onlinePresenceBuffTimer]);
+    setTimeout(() => setVictoryMessage(null), 6000);
 
-  const clickPower = useMemo(() => {
-    let p = calculateClickPower(currentCPS, upgrades, effectiveClanNodes);
-    if (isIaiSilenced) {
-      p = D(1);
-    }
-    return p;
-  }, [currentCPS, upgrades, effectiveClanNodes, isIaiSilenced]);
+    onBossVictory(currentBoss.id);
+  }, [currentBoss, onBossVictory, stableRollingCPS]);
 
-  const playerBaseDamage = Math.max(5, Math.floor(clickPower.toNumber()));
+  const triggerDefeat = useCallback(
+    (reason: string) => {
+      audio.playCrit();
+      setDefeatMessage(
+        `DERROTA EM COMBATE!\n${reason}\nVocê pode se recuperar e tentar novamente de imediato sem nenhum tempo de espera!`
+      );
+      setTimeout(() => setDefeatMessage(null), 8000);
+
+      onBossDefeat();
+      setBossAttackProgress(0);
+      setPlayerHp(playerMaxHp);
+      setPuppetsRemaining(10);
+      setMuuFissionActive(false);
+      setToneriQteActive(false);
+      setIsshikiCubes(3);
+    },
+    [onBossDefeat, playerMaxHp]
+  );
 
   // =========================================================================
-  // LOOP DE COMBATE DO GAUNTLET (EXECUTA EXCLUSIVAMENTE COM isFighting = true)
+  // LOOP DE COMBATE: ATAQUES DO CHEFE (MAIS LENTOS QUE O JOGADOR, ~3.0s)
   // =========================================================================
+  const playerHpRef = useRef(playerHp);
+  playerHpRef.current = playerHp;
+
   useEffect(() => {
     if (!gauntlet.isFighting) return;
 
+    const tickMs = 50;
+    const progressPerTick = (100 / (bossAttackIntervalSec * 1000)) * tickMs;
+
     const interval = setInterval(() => {
-      // 1. QTE do Toneri
+      // 1. QTE Toneri
       if (toneriQteActive) {
         setToneriTimer((prev) => {
-          const next = prev - 0.1;
+          const next = prev - 0.05;
           if (next <= 0) {
             setToneriQteActive(false);
-            triggerDefeat('Toneri Otsutsuki executou o corte fatal da Espada de Prata Reencarnada.');
+            triggerDefeat('Toneri desferiu a Espada de Prata Reencarnada com força letal!');
             return 0;
           }
           return next;
         });
       }
 
-      // 2. Cronômetro Geral de Combate
-      setCombatTimer((prevTimer) => {
-        const nextTimer = prevTimer - 0.1;
+      // 2. Progresso do Ataque do Chefe
+      setBossAttackProgress((prevProgress) => {
+        const nextProgress = prevProgress + progressPerTick;
 
-        if (nextTimer <= 0) {
-          triggerDefeat(`O limite de tempo (${currentBoss.timer}s) esgotou contra ${currentBoss.name}.`);
-          return currentBoss.timer;
+        if (nextProgress >= 100) {
+          // Chefe desfere o golpe contra o Shinobi!
+          const rollDodge = Math.random() * 100;
+          const dodged = rollDodge < playerDodgeChance;
+
+          if (dodged) {
+            audio.playClick();
+            setPlayerDmgFeedback('ESQUIVOU! 💨 (0 Dano)');
+            setTimeout(() => setPlayerDmgFeedback(null), 800);
+          } else {
+            audio.playCrit();
+            setIsPlayerHit(true);
+            setTimeout(() => setIsPlayerHit(false), 200);
+
+            setPlayerDmgFeedback(`-${bossAttackDamage} HP`);
+            setTimeout(() => setPlayerDmgFeedback(null), 800);
+
+            const nextHp = Math.max(0, playerHpRef.current - bossAttackDamage);
+            setPlayerHp(nextHp);
+
+            if (nextHp <= 0) {
+              triggerDefeat(`Sua vida chegou a zero sob a fúria do golpe de ${currentBoss.name}.`);
+            }
+          }
+
+          return 0; // Reinicia a barra de cast de ataque
         }
 
-        // Mecânica Mifune: Silêncio Iai
-        if (currentBoss.mechanic.type === 'mifune_iai') {
-          const elapsed = currentBoss.timer - nextTimer;
-          const cycle = Math.floor(elapsed) % 8;
-          setIsIaiSilenced(cycle < 2);
-        }
-
-        // Mecânica Danzō: Vórtice do Baku
-        if (currentBoss.mechanic.type === 'danzo_baku') {
-          const elapsed = currentBoss.timer - nextTimer;
-          const cycle = Math.floor(elapsed) % 10;
-          setIsBakuActive(cycle < 3);
-        }
-
-        // Mecânica Tayuya: Dreno passivo
-        if (currentBoss.mechanic.type === 'tayuya_drain' && Math.floor(nextTimer * 10) % 50 === 0) {
-          useGameStore.setState((s) => ({
-            chakra: s.chakra.mul(0.99),
-          }));
-        }
-
-        return nextTimer;
+        return nextProgress;
       });
-
-      // 3. Dano Passivo por Segundo (CPS)
-      if (currentBoss.mechanic.type !== 'raikage_armor' && currentCPS.gt(0)) {
-        let dpsTick = currentCPS.mul(0.1);
-
-        // Calibração: Chefe 30+ possui blindagem passiva (-40% CPS)
-        if (currentBoss.id >= 30) {
-          dpsTick = dpsTick.mul(0.60);
-        }
-
-        if (currentBoss.mechanic.type === 'chiyo_puppets' && puppetsRemaining > 0) {
-          return;
-        }
-
-        if (currentBoss.mechanic.type === 'sakon_regen' && currentCPS.lt(150)) {
-          const regen = currentBoss.hp.mul(0.02 * 0.1);
-          setBossHp((prev) => Decimal.min(currentBoss.hp, prev.add(regen)));
-          return;
-        }
-
-        if (muuFissionActive) {
-          const halfDmg = dpsTick.div(2);
-          setCloneHpA((p) => Decimal.max(0, p.sub(halfDmg)));
-          setCloneHpB((p) => Decimal.max(0, p.sub(halfDmg)));
-          setBossHp((prev) => {
-            const next = prev.sub(dpsTick);
-            if (next.lte(0)) {
-              triggerVictory();
-              return D(0);
-            }
-            return next;
-          });
-        } else {
-          setBossHp((prev) => {
-            const next = prev.sub(dpsTick);
-            if (next.lte(0)) {
-              triggerVictory();
-              return D(0);
-            }
-            return next;
-          });
-        }
-      }
-    }, 100);
+    }, tickMs);
 
     return () => clearInterval(interval);
   }, [
     gauntlet.isFighting,
-    currentBoss,
-    currentCPS,
-    puppetsRemaining,
-    muuFissionActive,
+    bossAttackIntervalSec,
+    bossAttackDamage,
+    playerDodgeChance,
+    currentBoss.name,
     toneriQteActive,
+    triggerDefeat,
   ]);
 
-  const triggerVictory = () => {
-    audio.playLevelUp();
-    const effectiveReward = calculateEffectiveBossReward(currentBoss.id, stableRollingCPS);
-    setVictoryMessage(
-      `Vitória confirmada sobre #${currentBoss.id} ${currentBoss.name}! Recompensa única de ${formatBigNumber(
-        effectiveReward
-      )} Chakra concedida. Esquadrão em descanso tático por 45s.`
-    );
-    setTimeout(() => setVictoryMessage(null), 5000);
+  // =========================================================================
+  // AUTO-ATAQUE RÍTMICO DO JOGADOR (1 GOLPE A CADA 0.8s)
+  // O jogador ataca consistentemente com maior cadência que o chefe (3.0s)
+  // =========================================================================
+  const bossHpRef = useRef(bossHp);
+  bossHpRef.current = bossHp;
 
-    onBossVictory(currentBoss.id);
-  };
+  useEffect(() => {
+    if (!gauntlet.isFighting) return;
 
-  const triggerDefeat = (reason: string) => {
-    audio.playCrit();
-    setDefeatMessage(
-      `COLAPSO DE ESQUADRÃO!\n${reason}\nPenalidade de descanso de 90s aplicada antes de nova tentativa.`
-    );
-    setTimeout(() => setDefeatMessage(null), 6000);
+    const autoStrikeInterval = setInterval(() => {
+      // O auto-ataque causa 70% do dano base para recompensar cliques manuais adicionais
+      const autoDmg = Math.max(1, Math.round(playerBaseDamage * 0.7));
+      const dmgDecimal = D(autoDmg);
 
-    onBossDefeat();
+      setBossHp((prev) => {
+        const next = prev.sub(dmgDecimal);
+        if (next.lte(0)) {
+          triggerVictory();
+          return D(0);
+        }
+        return next;
+      });
+    }, 850);
 
-    setPuppetsRemaining(10);
-    setMuuFissionActive(false);
-    setToneriQteActive(false);
-    setIsshikiCubes(3);
-  };
+    return () => clearInterval(autoStrikeInterval);
+  }, [gauntlet.isFighting, playerBaseDamage, triggerVictory]);
 
-  const handleStartFight = () => {
-    if (isCooldownActive || isCleared || isLocked) return;
-    const ok = startBossFight();
-    if (ok) {
-      audio.playLevelUp();
-      setDefeatMessage(null);
-      setVictoryMessage(null);
-    }
-  };
-
+  // =========================================================================
+  // GOLPE MANUAL DO JOGADOR (INDEPENDENTE DO CPS, BASEADO EM FORÇA + ARMAS)
+  // =========================================================================
   const handleAttackBoss = (isCenterHit: boolean = true) => {
     if (!gauntlet.isFighting) return;
 
     const attackNow = Date.now();
 
+    // Mecânica Danzō: Baku Vortex
     if (isBakuActive && attackNow - lastClickTimestamp < 350) {
-      setLastDmgInfo({ amount: 0, isCrit: false, note: 'Vórtice do Baku ativo. Ataque absorvido.' });
+      setLastDmgInfo({ amount: 0, isCrit: false, note: 'Vórtice do Baku ativo! Golpe dispersado.' });
       setTimeout(() => setLastDmgInfo(null), 500);
       return;
     }
     setLastClickTimestamp(attackNow);
 
+    // Mecânica Mifune: Iai Silenciado
+    if (currentBoss.mechanic.type === 'mifune_iai' && isIaiSilenced) {
+      setLastDmgInfo({ amount: 0, isCrit: false, note: 'Lâmina Iai de Mifune! Ataque silenciado.' });
+      setTimeout(() => setLastDmgInfo(null), 500);
+      return;
+    }
+
+    // Mecânica Kankurō: Névoa de Veneno (20% de erro)
     if (currentBoss.mechanic.type === 'kankuro_poison' && Math.random() < 0.2) {
-      setLastDmgInfo({ amount: 0, isCrit: false, note: 'Névoa de veneno. Ataque errou o alvo!' });
+      setLastDmgInfo({ amount: 0, isCrit: false, note: 'Névoa venenosa! Ataque errou o alvo!' });
       setTimeout(() => setLastDmgInfo(null), 500);
       return;
     }
 
+    // Mecânica Baki: Apenas acerto central causa dano
     if (currentBoss.mechanic.type === 'baki_wind' && !isCenterHit) {
-      setLastDmgInfo({ amount: 0, isCrit: false, note: 'Lâmina de Vento. Apenas acerto central vulnerável.' });
+      setLastDmgInfo({ amount: 0, isCrit: false, note: 'Lâmina de Vento! Apenas o centro é vulnerável!' });
       setTimeout(() => setLastDmgInfo(null), 500);
       return;
     }
 
+    // Mecânica Chiyo: 10 Marionetes antes do corpo real
     if (currentBoss.mechanic.type === 'chiyo_puppets' && puppetsRemaining > 0) {
       audio.playClick();
       setPuppetsRemaining((prev) => {
@@ -338,16 +362,27 @@ export const ChallengesView: React.FC = () => {
     }
 
     setIsHit(true);
-    setTimeout(() => setIsHit(false), 120);
+    setTimeout(() => setIsHit(false), 100);
 
+    // Cálculo de Crítico
     let critChance = 0.05;
     let critMult = 2.0;
-    if (effectiveClanNodes['sharingan_awakening']) critChance += 0.1;
-    if (effectiveClanNodes['mangekyo_sharingan_lineage']) critMult = 3.0;
+    if (clanNodes?.['sharingan_awakening']) critChance += 0.1;
+    if (clanNodes?.['mangekyo_sharingan_lineage']) critMult = 3.0;
+
+    // Equipamentos bônus de crítico
+    const gearList = inventory?.equippedGear
+      ? Object.values(inventory.equippedGear).filter(Boolean)
+      : [];
+    for (const g of gearList) {
+      if (g?.bonusCritChance) critChance += g.bonusCritChance;
+      if (g?.bonusCritMult) critMult *= g.bonusCritMult.toNumber();
+    }
 
     const isCrit = Math.random() < critChance;
-
     const hpRatio = bossHp.div(currentBoss.hp).toNumber();
+
+    // Mecânica Jirobō: Casca de Rocha imune a críticos acima de 70% HP
     let finalCrit = isCrit;
     if (currentBoss.mechanic.type === 'jirobo_shield' && hpRatio >= 0.7) {
       finalCrit = false;
@@ -361,20 +396,23 @@ export const ChallengesView: React.FC = () => {
 
     let calculatedDmg = finalCrit ? Math.floor(playerBaseDamage * critMult) : playerBaseDamage;
 
-    if (currentBoss.mechanic.type === 'mizuki_rage' && combatTimer >= currentBoss.timer - 10) {
-      calculatedDmg = Math.max(1, Math.floor(calculatedDmg / 2));
+    // Mecânica Mizuki: Fúria reduz dano pela metade nos primeiros 10s
+    if (currentBoss.mechanic.type === 'mizuki_rage' && bossAttackProgress < 50) {
+      calculatedDmg = Math.max(1, Math.floor(calculatedDmg * 0.7));
     }
 
     const dmg = D(Math.max(1, calculatedDmg));
     setLastDmgInfo({ amount: dmg.toNumber(), isCrit: finalCrit });
-    setTimeout(() => setLastDmgInfo(null), 600);
+    setTimeout(() => setLastDmgInfo(null), 500);
 
+    // Mecânica Mū: Fissão Corpórea aos 50% HP
     if (currentBoss.mechanic.type === 'muu_fission' && !muuFissionActive && hpRatio <= 0.5) {
       setMuuFissionActive(true);
       setCloneHpA(bossHp.div(2));
       setCloneHpB(bossHp.div(2));
     }
 
+    // Mecânica Toneri: QTE aos 50% HP
     if (currentBoss.mechanic.type === 'toneri_qte' && !toneriQteActive && hpRatio <= 0.5 && toneriClicks === 0) {
       setToneriQteActive(true);
       setToneriTimer(1.5);
@@ -404,15 +442,44 @@ export const ChallengesView: React.FC = () => {
     }
   };
 
+  // Início Manual de Batalha (Sem Cooldown!)
+  const handleStartFight = () => {
+    if (isLocked) return;
+    setPlayerHp(playerMaxHp);
+    setPlayerGhostHp(playerMaxHp);
+    setBossHp(currentBoss.hp);
+    setGhostHp(currentBoss.hp);
+    setBossAttackProgress(0);
+    setDefeatMessage(null);
+    setVictoryMessage(null);
+
+    // Define o chefe selecionado como ativo no store caso ainda não seja
+    if (gauntlet.currentActiveBossId !== currentBoss.id) {
+      setCurrentActiveBossId(currentBoss.id);
+    }
+
+    startBossFight();
+    audio.playLevelUp();
+  };
+
+  // Recuar de combate
+  const handleRetreat = () => {
+    audio.playClick();
+    onBossDefeat();
+    setBossAttackProgress(0);
+    setPlayerHp(playerMaxHp);
+  };
+
+  // Manipuladores de Mecânicas Especiais
   const handleForbiddenWordClick = () => {
     audio.playCrit();
-    setCombatTimer((prev) => {
-      const penalty = prev * 0.15;
-      const next = Math.max(0.1, prev - penalty);
+    setPlayerHp((prev) => {
+      const penalty = Math.round(playerMaxHp * 0.15);
+      const next = Math.max(1, prev - penalty);
       setLastDmgInfo({
         amount: 0,
         isCrit: false,
-        note: `Palavra Proibida "${forbiddenWord}": -15% de Tempo`,
+        note: `Palavra Tabu "${forbiddenWord}": -${penalty} HP!`,
       });
       setTimeout(() => setLastDmgInfo(null), 1000);
       return next;
@@ -425,7 +492,7 @@ export const ChallengesView: React.FC = () => {
       const next = prev + 1;
       if (next >= 3) {
         setToneriQteActive(false);
-        setLastDmgInfo({ amount: 0, isCrit: true, note: 'Espada de Prata aparada com sucesso.' });
+        setLastDmgInfo({ amount: 0, isCrit: true, note: 'Espada de Prata bloqueada com sucesso!' });
         setTimeout(() => setLastDmgInfo(null), 1000);
       }
       return next;
@@ -439,13 +506,38 @@ export const ChallengesView: React.FC = () => {
       setLastDmgInfo({
         amount: 0,
         isCrit: true,
-        note: `Cubo de Daikokuten estilhaçado (${next} restantes)`,
+        note: `Cubo de Daikokuten destruído (${next} restantes)`,
       });
       setTimeout(() => setLastDmgInfo(null), 800);
       return next;
     });
   };
 
+  // Distribuição de Atributos RPG
+  const handleAddStat = (stat: 'strength' | 'vitality' | 'agility', amount: number) => {
+    if (combatStats.unspentStatPoints <= 0) return;
+    const finalAmount = Math.min(combatStats.unspentStatPoints, amount);
+    distributeCombatStats(stat, finalAmount);
+  };
+
+  // Dados de Drops e Recompensas do Chefe Selecionado
+  const lootDef = useMemo(() => {
+    return getBossLootDefinition(currentBoss.id);
+  }, [currentBoss.id]);
+
+  const dropRatePct = useMemo(() => {
+    return (calculateBossDropProbability(currentBoss.id) * 100).toFixed(1);
+  }, [currentBoss.id]);
+
+  const bossXpReward = useMemo(() => {
+    return calculateBossXp(currentBoss.id);
+  }, [currentBoss.id]);
+
+  const effectiveRewardChakra = useMemo(() => {
+    return calculateEffectiveBossReward(currentBoss.id, stableRollingCPS);
+  }, [currentBoss.id, stableRollingCPS]);
+
+  // Lista de Chefes Filtrada
   const filteredBosses = useMemo(() => {
     return GAUNTLET_BOSSES.filter((b) => {
       const matchTier = tierFilter === 'Todos' || b.tier === tierFilter;
@@ -457,44 +549,55 @@ export const ChallengesView: React.FC = () => {
     });
   }, [tierFilter, searchQuery]);
 
-  const hpPercent = Math.max(0, Math.min(100, bossHp.div(currentBoss.hp).mul(100).toNumber()));
-  const ghostPercent = Math.max(0, Math.min(100, ghostHp.div(currentBoss.hp).mul(100).toNumber()));
-  const timerPercent = Math.max(0, Math.min(100, (combatTimer / currentBoss.timer) * 100));
+  // Porcentagens visuais de barras
+  const bossHpPercent = Math.max(0, Math.min(100, bossHp.div(currentBoss.hp).mul(100).toNumber()));
+  const bossGhostPercent = Math.max(0, Math.min(100, ghostHp.div(currentBoss.hp).mul(100).toNumber()));
+  const playerHpPercent = Math.max(0, Math.min(100, (playerHp / playerMaxHp) * 100));
+  const playerGhostPercent = Math.max(0, Math.min(100, (playerGhostHp / playerMaxHp) * 100));
 
-  const effectiveRewardChakra = calculateEffectiveBossReward(currentBoss.id, stableRollingCPS);
+  // XP Progressão
+  const xpPercent = useMemo(() => {
+    if (combatStats.level >= MAX_COMBAT_LEVEL) return 100;
+    const current = combatStats.currentXp.toNumber();
+    const req = combatStats.requiredXp.toNumber();
+    return Math.min(100, Math.max(0, (current / (req || 1)) * 100));
+  }, [combatStats]);
 
   return (
-    <div className="w-full h-full bg-zinc-950 text-zinc-100 flex flex-col overflow-hidden select-none">
-      {/* Cabeçalho Universal com botão Retornar à Aldeia */}
-      <ViewHeader
-        title="Arena de Desafios"
-        subtitle="Confrontos Táticos de Progressão Linear Estrita • Sem Replay"
-        badgeText={
-          isCooldownActive
-            ? `Recuperação: ${formatCooldown(cooldownRemainingMs)}`
-            : gauntlet.isFighting
-            ? `Fase #${currentBoss.id} • Em Combate`
-            : `Fase #${gauntlet.currentActiveBossId} • Alvo Ativo`
-        }
-        badgeVariant={isCooldownActive ? 'cyan' : gauntlet.isFighting ? 'danger' : 'chakra'}
-      />
+    <div className="w-full h-full bg-[#05070d] text-zinc-100 flex flex-col overflow-hidden select-none relative">
+      {/* CENÁRIO DE GUERRA ANIMADO DINÂMICO CONFORME O PODER DO CHEFE */}
+      <BattlefieldBackground bossId={currentBoss.id} isFighting={gauntlet.isFighting} />
 
-      {/* Conteúdo Principal Dividido em Arena Central e Catálogo Cronológico */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 overflow-hidden">
+      {/* CABEÇALHO DA ARENA */}
+      <div className="relative z-10">
+        <ViewHeader
+          title="Desafios Shinobi & Grande Guerra"
+          subtitle="Combates Manuais por Turno de Ação • Progressão RPG com Nível Máximo 700"
+          badgeText={
+            gauntlet.isFighting
+              ? `Fase #${currentBoss.id} • Em Combate`
+              : `Fase #${gauntlet.currentActiveBossId} • Alvo Ativo`
+          }
+          badgeVariant={gauntlet.isFighting ? 'danger' : 'chakra'}
+        />
+      </div>
+
+      {/* ÁREA PRINCIPAL: PALCO DE BATALHA + PAINÉIS DE ATRIBUTOS E CATÁLOGO */}
+      <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 overflow-hidden relative z-10">
         {/* ================================================================= */}
-        {/* PALCO CENTRAL DE DUELO COM AMBIENTAÇÃO HEROICA                    */}
+        {/* 1. PALCO CENTRAL DE DUELO COM AMBIENTAÇÃO DE GUERRA               */}
         {/* ================================================================= */}
-        <section className="flex-1 bg-zinc-900/40 backdrop-blur-xl border border-zinc-800/80 rounded-2xl shadow-2xl p-6 flex flex-col justify-between overflow-y-auto custom-scrollbar relative">
-          {/* TOPO: Informações do Chefe e Status de Conclusão */}
+        <section className="flex-1 bg-zinc-950/70 backdrop-blur-md border border-zinc-800/90 rounded-2xl shadow-2xl p-5 flex flex-col justify-between overflow-y-auto custom-scrollbar relative">
+          {/* TOPO: Informações do Chefe */}
           <div>
-            <div className="flex items-center justify-between pb-4 border-b border-zinc-800/80 flex-wrap gap-2">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 flex-wrap gap-2">
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-12 h-12 rounded-xl bg-zinc-900 border flex items-center justify-center transition-all ${
+                  className={`w-12 h-12 rounded-xl bg-zinc-900/90 border flex items-center justify-center transition-all ${
                     isHit
                       ? 'border-rose-500 scale-95 text-rose-400'
                       : isCleared
-                      ? 'border-emerald-600/60 text-emerald-400'
+                      ? 'border-emerald-600/70 text-emerald-400'
                       : isActiveTarget
                       ? 'border-rose-700/80 text-rose-300'
                       : 'border-zinc-800 text-zinc-500'
@@ -509,11 +612,11 @@ export const ChallengesView: React.FC = () => {
                     </span>
                     <h2 className="text-base font-bold text-zinc-100">{currentBoss.name}</h2>
                     {isCleared ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-950/60 border border-emerald-800/60 text-emerald-400">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-950/70 border border-emerald-800/70 text-emerald-400">
                         <CheckCircle2 className="w-3 h-3" /> CONCLUÍDO
                       </span>
                     ) : isActiveTarget ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-950/60 border border-rose-800/60 text-rose-300 animate-pulse">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-950/70 border border-rose-800/70 text-rose-300 animate-pulse">
                         <Swords className="w-3 h-3" /> ALVO ATIVO
                       </span>
                     ) : (
@@ -528,106 +631,121 @@ export const ChallengesView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Distintivos de Dificuldade e Recompensas Únicas */}
+              {/* Distintivos & Recompensas em Destaque */}
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="neutral">{currentBoss.tier}</Badge>
-                <div className="px-2.5 py-1 rounded-lg bg-zinc-950/70 border border-zinc-800 text-right font-mono text-xs">
-                  <span className="text-[10px] text-zinc-500 uppercase block">Recompensa Única</span>
+                <div className="px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-right font-mono text-xs shadow">
+                  <span className="text-[10px] text-zinc-500 uppercase block">Recompensa</span>
                   <span className="text-orange-400 font-bold">+{formatBigNumber(effectiveRewardChakra)}</span>
-                  <span className="text-amber-300 text-[10px] ml-1.5">+{currentBoss.bountyAncestral} Anc</span>
-                  {currentBoss.weaponFragments && (
-                    <span className="text-purple-400 text-[10px] ml-1.5 font-bold">
-                      +{currentBoss.weaponFragments} Frag
-                    </span>
-                  )}
+                  <span className="text-amber-300 text-[10px] ml-1.5 font-semibold">+{currentBoss.bountyAncestral} Anc</span>
+                  <span className="text-cyan-400 text-[10px] ml-1.5 font-semibold">+{formatBigNumber(bossXpReward)} XP</span>
                 </div>
               </div>
             </div>
 
-            {/* BANNERS DE FEEDBACK (VITÓRIA, DERROTA OU RECUPERAÇÃO ATIVA) */}
-            {isCooldownActive && (
-              <div className="mt-3 p-3 rounded-xl bg-amber-950/30 border border-amber-800/50 flex items-center justify-between gap-3 text-amber-300 text-xs font-mono">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 animate-spin text-amber-400 flex-shrink-0" />
-                  <span>
-                    <strong>Descanso Tático de Esquadrão:</strong> Reorganizando táticas para evitar exaustão.
-                  </span>
-                </div>
-                <div className="font-bold text-amber-200 bg-amber-950/80 px-2.5 py-1 rounded-md border border-amber-700/60 whitespace-nowrap">
-                  Recuperação: {formatCooldown(cooldownRemainingMs)}
-                </div>
-              </div>
-            )}
-
+            {/* FEEDBACK BANNERS (VITÓRIA OU DERROTA) */}
             {victoryMessage && (
-              <div className="mt-3 p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-300 text-xs font-mono flex items-center gap-2">
+              <div className="mt-3 p-3 rounded-xl bg-emerald-950/70 border border-emerald-700/80 text-emerald-300 text-xs font-mono flex items-center gap-2 shadow-lg animate-in fade-in">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span>{victoryMessage}</span>
+                <span className="whitespace-pre-line">{victoryMessage}</span>
               </div>
             )}
 
             {defeatMessage && (
-              <div className="mt-3 p-3 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs font-mono flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
-                <span className="whitespace-pre-line">{defeatMessage}</span>
+              <div className="mt-3 p-3 rounded-xl bg-rose-950/80 border border-rose-700/90 text-rose-300 text-xs font-mono flex items-center justify-between gap-3 shadow-lg animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                  <span className="whitespace-pre-line">{defeatMessage}</span>
+                </div>
+                <button
+                  onClick={handleStartFight}
+                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-1.5 shadow transition cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> Repetir
+                </button>
               </div>
             )}
 
-            {/* BARRAS DE VIDA (HP) E TEMPO RESTANTE */}
-            <div className="mt-4 space-y-3">
-              {/* Barra de Vida com Ghost Bar e Dano Flutuante */}
+            {/* DUAL COMBAT HUD: BARRA DO CHEFE + BARRA DO JOGADOR + CAST DE ATAQUE */}
+            <div className="mt-4 space-y-3 bg-zinc-950/60 p-3.5 rounded-xl border border-zinc-800/80">
+              {/* 1. Barra de Vida do Chefe */}
               <div>
                 <div className="flex items-center justify-between text-xs font-mono mb-1">
                   <span className="text-zinc-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
-                    <Shield className="w-3.5 h-3.5 text-rose-400" /> Integridade do Chefe
+                    <Shield className="w-3.5 h-3.5 text-rose-400" /> Integridade do Chefe ({currentBoss.name})
                   </span>
                   <span className="text-zinc-200 font-bold">
-                    {formatBigNumber(bossHp)} / {formatBigNumber(currentBoss.hp)} ({hpPercent.toFixed(1)}%)
+                    {formatBigNumber(bossHp)} / {formatBigNumber(currentBoss.hp)} ({bossHpPercent.toFixed(1)}%)
                   </span>
                 </div>
                 <div className="w-full h-4 bg-zinc-950 rounded-lg overflow-hidden relative border border-zinc-800 p-0.5">
-                  {/* Rastro fantasma de dano */}
                   <div
-                    style={{ width: `${ghostPercent}%` }}
-                    className="absolute top-0.5 bottom-0.5 left-0.5 bg-amber-500/40 rounded-md transition-all duration-500"
+                    style={{ width: `${bossGhostPercent}%` }}
+                    className="absolute top-0.5 bottom-0.5 left-0.5 bg-amber-500/40 rounded-md transition-all duration-400"
                   />
-                  {/* Barra de HP frontal */}
                   <div
-                    style={{ width: `${hpPercent}%` }}
+                    style={{ width: `${bossHpPercent}%` }}
                     className={`h-full rounded-md transition-all duration-100 ${
-                      hpPercent <= 25 ? 'bg-rose-600' : hpPercent <= 60 ? 'bg-orange-500' : 'bg-rose-500'
+                      bossHpPercent <= 25 ? 'bg-rose-600' : bossHpPercent <= 60 ? 'bg-orange-500' : 'bg-rose-500'
                     }`}
                   />
                 </div>
               </div>
 
-              {/* Barra de Tempo do Combate */}
+              {/* 2. Barra de Telegraph do Golpe do Chefe (Cadência ~3.0s, mais lenta que o jogador) */}
+              <div>
+                <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+                  <span className="text-amber-400/90 flex items-center gap-1.5">
+                    <Flame className={`w-3.5 h-3.5 ${gauntlet.isFighting ? 'animate-pulse text-orange-400' : 'text-zinc-500'}`} />
+                    Ataque do Chefe ({bossAttackDamage} Dano • Cada {bossAttackIntervalSec.toFixed(1)}s)
+                  </span>
+                  <span className={`font-bold ${bossAttackProgress >= 80 && gauntlet.isFighting ? 'text-rose-400 animate-pulse' : 'text-zinc-400'}`}>
+                    {gauntlet.isFighting ? `${Math.round(bossAttackProgress)}%` : 'Aguardando Início'}
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-zinc-950 rounded-md overflow-hidden border border-zinc-800/80 p-0.5">
+                  <div
+                    style={{ width: `${gauntlet.isFighting ? bossAttackProgress : 0}%` }}
+                    className={`h-full rounded transition-all duration-75 ${
+                      bossAttackProgress >= 80 ? 'bg-rose-500 animate-pulse' : 'bg-amber-500'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* 3. Barra de Vida do Jogador (Shinobi) */}
               <div>
                 <div className="flex items-center justify-between text-xs font-mono mb-1">
-                  <span className="text-zinc-400 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-zinc-400" /> Janela Tática de Ataque
+                  <span className="text-emerald-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                    <Heart className={`w-3.5 h-3.5 ${isPlayerHit ? 'text-rose-500 animate-ping' : 'text-emerald-400'}`} />
+                    Sua Vida (Shinobi)
                   </span>
-                  <span
-                    className={`font-bold ${
-                      combatTimer <= 5 && gauntlet.isFighting ? 'text-rose-400 animate-pulse' : 'text-zinc-300'
-                    }`}
-                  >
-                    {combatTimer.toFixed(1)}s / {currentBoss.timer}s
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-cyan-300 font-mono px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-800/60">
+                      💨 Esquiva: {playerDodgeChance}%
+                    </span>
+                    <span className="text-zinc-200 font-bold">
+                      {formatBigNumber(playerHp)} / {formatBigNumber(playerMaxHp)} ({playerHpPercent.toFixed(1)}%)
+                    </span>
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-zinc-950 rounded-md overflow-hidden border border-zinc-800/80">
+                <div className="w-full h-3.5 bg-zinc-950 rounded-lg overflow-hidden relative border border-zinc-800 p-0.5">
                   <div
-                    style={{ width: `${timerPercent}%` }}
-                    className={`h-full transition-all duration-100 ${
-                      combatTimer <= 5 && gauntlet.isFighting ? 'bg-rose-500' : 'bg-zinc-400'
+                    style={{ width: `${playerGhostPercent}%` }}
+                    className="absolute top-0.5 bottom-0.5 left-0.5 bg-rose-500/40 rounded-md transition-all duration-400"
+                  />
+                  <div
+                    style={{ width: `${playerHpPercent}%` }}
+                    className={`h-full rounded-md transition-all duration-100 ${
+                      playerHpPercent <= 25 ? 'bg-rose-600' : playerHpPercent <= 60 ? 'bg-amber-500' : 'bg-emerald-500'
                     }`}
                   />
                 </div>
               </div>
 
-              {/* Fissão Corpórea de Muu */}
+              {/* Mecânica Muu Fissão */}
               {muuFissionActive && (
-                <div className="grid grid-cols-2 gap-2 mt-2 font-mono text-[10px]">
+                <div className="grid grid-cols-2 gap-2 mt-1 font-mono text-[10px]">
                   <div className="p-2 rounded bg-zinc-950/80 border border-zinc-800">
                     <span className="text-zinc-400 block mb-0.5">Clone Alfa</span>
                     <span className="text-rose-400 font-bold">{formatBigNumber(cloneHpA)} HP</span>
@@ -642,79 +760,64 @@ export const ChallengesView: React.FC = () => {
           </div>
 
           {/* CENTRO: ÁREA DE INTERAÇÃO OU DISPARO DE COMBATE */}
-          <div className="my-6 flex flex-col items-center justify-center">
-            {/* Estado 1: Chefe já Derrotado (Concluído) */}
-            {isCleared ? (
-              <div className="text-center p-6 rounded-2xl bg-zinc-950/60 border border-zinc-850 max-w-md w-full">
-                <div className="w-12 h-12 rounded-xl bg-emerald-950/40 border border-emerald-800/50 flex items-center justify-center text-emerald-400 mx-auto mb-3">
-                  <CheckCircle2 className="w-6 h-6 stroke-[2]" />
-                </div>
-                <h3 className="text-sm font-bold text-zinc-100 mb-1">Chefe Concluído e Derrotado</h3>
-                <p className="text-xs text-zinc-400 font-mono mb-4 leading-relaxed">
-                  As recompensas de #{currentBoss.id} {currentBoss.name} já foram totalmente resgatadas neste ciclo.
-                  O modo de farm repetitivo foi extinto para manter a integridade da economia shinobi.
-                </p>
-                <button
-                  disabled
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-mono font-medium opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border border-zinc-700 transition"
-                >
-                  Confronto Já Superado (Bloqueado)
-                </button>
-              </div>
-            ) : isLocked ? (
-              /* Estado 2: Chefe Futuro Bloqueado */
-              <div className="text-center p-6 rounded-2xl bg-zinc-950/60 border border-zinc-850 max-w-md w-full">
+          <div className="my-4 flex flex-col items-center justify-center">
+            {isLocked ? (
+              /* Estado 1: Chefe Futuro Bloqueado */
+              <div className="text-center p-6 rounded-2xl bg-zinc-950/80 border border-zinc-800 max-w-md w-full shadow-xl">
                 <div className="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 mx-auto mb-3">
                   <Lock className="w-6 h-6 stroke-[1.75]" />
                 </div>
-                <h3 className="text-sm font-bold text-zinc-300 mb-1">Chefe Bloqueado</h3>
-                <p className="text-xs text-zinc-500 font-mono mb-4">
-                  Supere o chefe ativo #{gauntlet.currentActiveBossId} para ter acesso a esta barreira.
+                <h3 className="text-sm font-bold text-zinc-300 mb-1">Barreira Territorial Trancada</h3>
+                <p className="text-xs text-zinc-500 font-mono mb-4 leading-relaxed">
+                  Supere o chefe #{gauntlet.currentActiveBossId} para ter acesso a este confronto da Grande Guerra.
                 </p>
                 <button
                   disabled
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-mono font-medium opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border border-zinc-700 transition"
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-mono font-medium opacity-50 cursor-not-allowed bg-zinc-900 text-zinc-600 border border-zinc-800"
                 >
-                  Barreira Bloqueada
+                  Confronto Bloqueado
                 </button>
               </div>
             ) : !gauntlet.isFighting ? (
-              /* Estado 3: Chefe Ativo Pronto para Combate (Verifica Cooldown) */
-              <div className="text-center p-6 rounded-2xl bg-zinc-950/60 border border-zinc-850 max-w-md w-full">
-                <div className="w-14 h-14 rounded-2xl bg-rose-950/40 border border-rose-800/60 flex items-center justify-center text-rose-400 mx-auto mb-3">
+              /* Estado 2: Pronto para Iniciar Combate Manual */
+              <div className="text-center p-6 rounded-2xl bg-zinc-950/80 border border-zinc-800 max-w-md w-full shadow-2xl">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-950/60 to-orange-950/60 border border-rose-700/60 flex items-center justify-center text-rose-400 mx-auto mb-3 shadow-inner">
                   <Swords className="w-7 h-7 stroke-[1.75]" />
                 </div>
-                <h3 className="text-sm font-bold text-zinc-100 mb-1">Confronto Decisivo: #{currentBoss.id}</h3>
+                <h3 className="text-sm font-bold text-zinc-100 mb-1">
+                  Confronto Decisivo: #{currentBoss.id} {currentBoss.name}
+                </h3>
                 <p className="text-xs text-zinc-400 font-mono mb-4 leading-relaxed">
                   {currentBoss.justification}
                 </p>
 
-                {isCooldownActive ? (
-                  <div className="space-y-2">
-                    <button
-                      disabled
-                      className="w-full py-3 px-4 rounded-xl text-xs font-mono font-semibold uppercase tracking-wider opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500 border border-zinc-700 transition"
-                    >
-                      Recuperação de Esquadrão: {formatCooldown(cooldownRemainingMs)}
-                    </button>
-                    <span className="text-[11px] font-mono text-zinc-500 block">
-                      Aguarde o término do descanso tático para iniciar o duelo.
-                    </span>
+                <div className="grid grid-cols-3 gap-2 mb-4 text-center font-mono text-[10px]">
+                  <div className="p-2 rounded-lg bg-zinc-900/80 border border-zinc-800">
+                    <span className="text-zinc-500 block">Seu Dano</span>
+                    <span className="text-amber-400 font-bold">{formatBigNumber(playerBaseDamage)}</span>
                   </div>
-                ) : (
-                  <button
-                    onClick={handleStartFight}
-                    className="w-full py-3 px-4 rounded-xl text-xs font-mono font-semibold uppercase tracking-wider bg-rose-600 hover:bg-rose-500 text-white border border-rose-500 shadow-lg shadow-rose-950/40 active:scale-95 transition cursor-pointer"
-                  >
-                    Iniciar Combate ({currentBoss.timer}s)
-                  </button>
-                )}
+                  <div className="p-2 rounded-lg bg-zinc-900/80 border border-zinc-800">
+                    <span className="text-zinc-500 block">Sua Vida</span>
+                    <span className="text-emerald-400 font-bold">{formatBigNumber(playerMaxHp)}</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-zinc-900/80 border border-zinc-800">
+                    <span className="text-zinc-500 block">Dano Chefe</span>
+                    <span className="text-rose-400 font-bold">{bossAttackDamage}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleStartFight}
+                  className="w-full py-3.5 px-4 rounded-xl text-xs font-mono font-bold uppercase tracking-wider bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-500 hover:to-orange-500 text-white border border-rose-500 shadow-xl shadow-rose-950/50 active:scale-95 transition cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Swords className="w-4 h-4" /> Iniciar Batalha
+                </button>
               </div>
             ) : (
-              /* Estado 4: LUTA ATIVA (isFighting = true) */
+              /* Estado 3: BATALHA ATIVA */
               <div className="w-full max-w-lg flex flex-col items-center">
-                {/* Feedback de Dano */}
-                <div className="h-6 flex items-center justify-center mb-2">
+                {/* Feedback Dinâmico de Dano e Esquiva */}
+                <div className="h-7 flex items-center justify-center mb-2 gap-3">
                   {lastDmgInfo && (
                     <span
                       className={`text-xs font-mono font-bold animate-bounce ${
@@ -725,33 +828,42 @@ export const ChallengesView: React.FC = () => {
                           : 'text-zinc-200'
                       }`}
                     >
-                      {lastDmgInfo.note || `-${formatBigNumber(lastDmgInfo.amount)} Dano`}
+                      {lastDmgInfo.note || `Golpe: -${formatBigNumber(lastDmgInfo.amount)} HP`}
+                    </span>
+                  )}
+                  {playerDmgFeedback && (
+                    <span className="text-xs font-mono font-bold text-rose-400 animate-pulse">
+                      Chefe: {playerDmgFeedback}
                     </span>
                   )}
                 </div>
 
-                {/* Botão de Ataque Central */}
+                {/* BOTÃO DE ATAQUE MANUAL DO JOGADOR */}
                 <button
                   onClick={() => handleAttackBoss(true)}
-                  className={`w-36 h-36 rounded-full bg-gradient-to-b from-rose-950 to-zinc-950 border-2 flex flex-col items-center justify-center shadow-2xl transition-all duration-100 cursor-pointer active:scale-90 ${
-                    isHit ? 'border-rose-400 scale-95' : 'border-rose-800/80 hover:border-rose-500 hover:scale-105'
+                  className={`w-36 h-36 rounded-full bg-gradient-to-b from-rose-950 via-zinc-950 to-black border-2 flex flex-col items-center justify-center shadow-2xl transition-all duration-100 cursor-pointer active:scale-90 ${
+                    isHit ? 'border-rose-400 scale-95 shadow-rose-900/80' : 'border-rose-700/80 hover:border-rose-500 hover:scale-105'
                   }`}
                 >
                   <Swords className="w-10 h-10 text-rose-400 stroke-[1.75]" />
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-300 font-semibold mt-2">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-200 font-bold mt-2">
                     Golpear
                   </span>
-                  <span className="text-[9px] font-mono text-zinc-500">
-                    -{formatBigNumber(playerBaseDamage)}
+                  <span className="text-[9px] font-mono text-amber-400/90 font-semibold">
+                    ~{formatBigNumber(playerBaseDamage)} Dano
                   </span>
                 </button>
 
-                {/* Botão Adicional de Borda para Mecânica do Baki */}
+                <span className="text-[10px] font-mono text-zinc-500 mt-2">
+                  (Auto-ataque rítmico a cada 0.8s + cliques manuais livres)
+                </span>
+
+                {/* Botão de Borda para Mecânica do Baki */}
                 {currentBoss.mechanic.type === 'baki_wind' && (
                   <div className="mt-3 flex gap-2">
                     <button
                       onClick={() => handleAttackBoss(false)}
-                      className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 text-zinc-500 text-xs font-mono rounded-lg hover:bg-zinc-850"
+                      className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 text-zinc-500 text-xs font-mono rounded-lg hover:bg-zinc-800"
                     >
                       Golpe na Borda
                     </button>
@@ -766,24 +878,24 @@ export const ChallengesView: React.FC = () => {
 
                 {/* QTE Especial do Toneri */}
                 {toneriQteActive && (
-                  <div className="mt-4 p-3 rounded-xl bg-cyan-950/60 border border-cyan-700 flex items-center justify-between gap-3 w-full">
-                    <div className="text-xs font-mono text-cyan-300">
-                      QTE: Apare a Espada de Prata! ({toneriClicks}/3 cliques) • {toneriTimer.toFixed(1)}s
+                  <div className="mt-3 p-3 rounded-xl bg-cyan-950/80 border border-cyan-600 flex items-center justify-between gap-3 w-full animate-pulse">
+                    <div className="text-xs font-mono text-cyan-300 font-bold">
+                      QTE: Bloqueie a Espada de Prata! ({toneriClicks}/3 cliques) • {toneriTimer.toFixed(1)}s
                     </div>
                     <button
                       onClick={handleToneriQteClick}
-                      className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-mono font-bold rounded-lg"
+                      className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-mono font-bold rounded-lg cursor-pointer"
                     >
-                      Aparar!
+                      Bloquear!
                     </button>
                   </div>
                 )}
 
                 {/* Cubos de Daikokuten do Isshiki */}
                 {currentBoss.mechanic.type === 'isshiki_cubes' && isshikiCubes > 0 && (
-                  <div className="mt-4 p-3 rounded-xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between gap-3 w-full">
+                  <div className="mt-3 p-3 rounded-xl bg-zinc-950/90 border border-zinc-800 flex items-center justify-between gap-3 w-full">
                     <div className="text-xs font-mono text-zinc-400">
-                      Cubos Negros ({isshikiCubes}/3): Clãs Suprimidos
+                      Cubos Negros ({isshikiCubes}/3)
                     </div>
                     <button
                       onClick={handleDestroyIsshikiCube}
@@ -794,54 +906,61 @@ export const ChallengesView: React.FC = () => {
                   </div>
                 )}
 
-                {/* Palavra Proibida de Kinkaku & Ginkaku */}
+                {/* Palavra Tabu de Kinkaku */}
                 {currentBoss.mechanic.type === 'kinkaku_words' && (
-                  <div className="mt-4 p-3 rounded-xl bg-purple-950/50 border border-purple-800/60 flex items-center justify-between gap-3 w-full">
+                  <div className="mt-3 p-3 rounded-xl bg-purple-950/70 border border-purple-800/80 flex items-center justify-between gap-3 w-full">
                     <div className="text-xs font-mono text-purple-300">
-                      Palavra Tabu Detectada: <strong>"{forbiddenWord}"</strong>
+                      Palavra Tabu: <strong>"{forbiddenWord}"</strong>
                     </div>
                     <button
                       onClick={handleForbiddenWordClick}
                       className="px-3 py-1 bg-purple-900 hover:bg-purple-800 text-purple-200 text-xs font-mono rounded-md border border-purple-700 cursor-pointer"
                     >
-                      Pronunciar (-15% Tempo)
+                      Pronunciar (-15% HP)
                     </button>
                   </div>
                 )}
+
+                {/* Botão de Recuo Tático */}
+                <button
+                  onClick={handleRetreat}
+                  className="mt-3 text-xs font-mono text-zinc-500 hover:text-zinc-300 underline cursor-pointer"
+                >
+                  Recuar do Confronto
+                </button>
               </div>
             )}
 
-            {/* Mecânica Canônica do Chefe */}
-            <div className="mt-4 max-w-lg text-center px-4 py-2 rounded-xl bg-zinc-950/60 border border-zinc-850 text-xs text-zinc-400 font-mono">
+            {/* Mecânica do Chefe */}
+            <div className="mt-3 max-w-lg text-center px-4 py-2 rounded-xl bg-zinc-950/80 border border-zinc-850 text-xs text-zinc-400 font-mono shadow">
               <span className="text-zinc-200 font-semibold mr-1">[{currentBoss.mechanic.title}]:</span>
               <span>{currentBoss.mechanic.description}</span>
             </div>
           </div>
 
-          {/* RODAPÉ DA ARENA: Navegação Linear entre Chefes Catalogados */}
-          <div className="pt-4 border-t border-zinc-800/80 flex items-center justify-between gap-3 flex-wrap">
+          {/* RODAPÉ DA ARENA: Navegação entre Chefes */}
+          <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <button
                 disabled={selectedBossId <= 1}
                 onClick={() => setSelectedBossId((prev) => Math.max(1, prev - 1))}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-950/70 hover:bg-zinc-800 border border-zinc-800 text-xs font-mono disabled:opacity-30 disabled:cursor-not-allowed transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-xs font-mono disabled:opacity-30 disabled:cursor-not-allowed transition"
               >
-                <ChevronLeft className="w-4 h-4" /> Chefe Anterior
+                <ChevronLeft className="w-4 h-4" /> Anterior
               </button>
 
               <button
                 disabled={selectedBossId >= GAUNTLET_BOSSES.length}
                 onClick={() => setSelectedBossId((prev) => Math.min(GAUNTLET_BOSSES.length, prev + 1))}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-950/70 hover:bg-zinc-800 border border-zinc-800 text-xs font-mono disabled:opacity-30 disabled:cursor-not-allowed transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-xs font-mono disabled:opacity-30 disabled:cursor-not-allowed transition"
               >
-                Próximo Chefe <ChevronRight className="w-4 h-4" />
+                Próximo <ChevronRight className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Atalho para Selecionar o Chefe Ativo Atual */}
             <button
               onClick={() => setSelectedBossId(gauntlet.currentActiveBossId)}
-              className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-xs font-mono text-zinc-300 transition"
+              className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-mono text-zinc-300 transition"
             >
               Focar no Alvo Ativo (#{gauntlet.currentActiveBossId})
             </button>
@@ -849,118 +968,425 @@ export const ChallengesView: React.FC = () => {
         </section>
 
         {/* ================================================================= */}
-        {/* PAINEL LATERAL CRONOLÓGICO DOS 40+ CHEFES                         */}
+        {/* 2. PAINEL LATERAL MULTIFUNCIONAL (ATRIBUTOS, DROPS & CATÁLOGO)    */}
         {/* ================================================================= */}
-        <aside className="w-full lg:w-96 bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl shadow-2xl p-4 flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-200">
-                Cronologia de Oponentes
-              </h3>
-              <span className="text-[10px] font-mono text-zinc-500">
-                Progresso: {gauntlet.highestBossDefeated} / {GAUNTLET_BOSSES.length} Superados
-              </span>
-            </div>
-            <Badge variant="chakra">{filteredBosses.length} Visíveis</Badge>
+        <aside className="w-full lg:w-[420px] bg-zinc-950/75 backdrop-blur-md border border-zinc-800/90 rounded-2xl shadow-2xl p-4 flex flex-col overflow-hidden">
+          {/* NAVEGAÇÃO DE ABAS DO PAINEL LATERAL */}
+          <div className="flex items-center gap-1 p-1 bg-zinc-900/80 rounded-xl border border-zinc-800/80 mb-3">
+            <button
+              onClick={() => setActiveSideTab('STATS')}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-mono font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeSideTab === 'STATS'
+                  ? 'bg-amber-600/90 text-white shadow'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5" />
+              Atributos RPG
+              {combatStats.unspentStatPoints > 0 && (
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveSideTab('DROPS')}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-mono font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeSideTab === 'DROPS'
+                  ? 'bg-rose-600/90 text-white shadow'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <Package className="w-3.5 h-3.5" />
+              Drops & Saques
+            </button>
+
+            <button
+              onClick={() => setActiveSideTab('LIST')}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-mono font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeSideTab === 'LIST'
+                  ? 'bg-zinc-800 text-white shadow'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5" />
+              Oponentes ({filteredBosses.length})
+            </button>
           </div>
 
-          {/* Filtros e Busca */}
-          <div className="my-3 space-y-2">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar chefe por nome ou #..."
-                className="w-full pl-9 pr-3 py-1.5 bg-zinc-950/70 border border-zinc-800 rounded-lg text-xs font-mono text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700"
-              />
-            </div>
+          {/* =============================================================== */}
+          {/* ABA 1: DISTRIBUIÇÃO DE ATRIBUTOS SHINOBI (NÍVEL ATÉ 700)        */}
+          {/* =============================================================== */}
+          {activeSideTab === 'STATS' && (
+            <div className="flex-1 flex flex-col overflow-y-auto space-y-3 custom-scrollbar pr-1">
+              {/* Card de Nível & XP */}
+              <div className="p-3.5 rounded-xl bg-gradient-to-br from-amber-950/40 via-zinc-900/70 to-zinc-950 border border-amber-800/40 shadow-md">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-amber-400">
+                      NÍVEL SHINOBI {combatStats.level}
+                    </span>
+                    <span className="text-[10px] font-mono text-zinc-500">
+                      (Máx: {MAX_COMBAT_LEVEL})
+                    </span>
+                  </div>
+                  <div className="px-2 py-0.5 rounded bg-amber-950/80 border border-amber-700/60 text-amber-300 font-mono text-[11px] font-bold">
+                    {combatStats.unspentStatPoints} pts Livres
+                  </div>
+                </div>
 
-            <div className="flex items-center gap-1 overflow-x-auto pb-1 custom-scrollbar text-[10px] font-mono">
-              {['Todos', 'Inicial / Chūnin', 'Jōnin / Invasões', 'Kage / Lendário', 'Continental / Divino'].map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTierFilter(t)}
-                  className={`px-2 py-0.5 rounded border whitespace-nowrap transition ${
-                    tierFilter === t
-                      ? 'bg-zinc-800 border-zinc-700 text-zinc-100 font-semibold'
-                      : 'bg-zinc-950/40 border-zinc-850 text-zinc-500 hover:text-zinc-300'
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Lista com Rolagem Independente */}
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-            {filteredBosses.map((boss) => {
-              const isBossCleared = boss.id <= gauntlet.highestBossDefeated;
-              const isBossActive = boss.id === gauntlet.currentActiveBossId;
-              const isBossLocked = boss.id > gauntlet.currentActiveBossId;
-              const isBossSelected = boss.id === selectedBossId;
-
-              return (
-                <div
-                  key={boss.id}
-                  onClick={() => setSelectedBossId(boss.id)}
-                  className={`p-3 rounded-xl border transition-all flex items-center justify-between cursor-pointer ${
-                    isBossSelected
-                      ? 'bg-zinc-800/90 border-rose-500/60 text-zinc-100 shadow-md'
-                      : isBossActive
-                      ? 'bg-rose-950/20 border-rose-900/50 hover:border-rose-700 text-zinc-300'
-                      : isBossCleared
-                      ? 'bg-zinc-950/50 border-zinc-850/80 hover:border-zinc-750 text-zinc-400'
-                      : isBossLocked
-                      ? 'opacity-50 bg-zinc-950/40 border-zinc-900 hover:border-zinc-800 text-zinc-500'
-                      : 'bg-zinc-950/40 border-zinc-850 text-zinc-500'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
+                {/* Barra de XP */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] font-mono text-zinc-400">
+                    <span>Progresso de Experiência</span>
+                    <span>
+                      {combatStats.level >= MAX_COMBAT_LEVEL
+                        ? 'Nível Máximo Atingido'
+                        : `${formatBigNumber(combatStats.currentXp)} / ${formatBigNumber(combatStats.requiredXp)} (${xpPercent.toFixed(1)}%)`}
+                    </span>
+                  </div>
+                  <div className="w-full h-2.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
                     <div
-                      className={`w-8 h-8 rounded-lg border flex items-center justify-center flex-shrink-0 ${
-                        isBossCleared
-                          ? 'bg-emerald-950/40 border-emerald-800/50 text-emerald-400'
-                          : isBossActive
-                          ? 'bg-rose-950/60 border-rose-800 text-rose-400'
-                          : 'bg-zinc-900 border-zinc-800 text-zinc-500'
-                      }`}
-                    >
-                      <IconRenderer name={boss.avatar} className="w-4 h-4 stroke-[1.5]" />
+                      style={{ width: `${xpPercent}%` }}
+                      className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-300"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Informação de Regra de Nível */}
+              <div className="text-[11px] font-mono text-zinc-400 bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-800">
+                💡 Cada nível ganho ao derrotar chefes concede <strong>+8 pontos de atributos</strong> para distribuir.
+              </div>
+
+              {/* Atributo 1: FORÇA (DANO) */}
+              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-orange-950/60 border border-orange-700/60 flex items-center justify-center text-orange-400 font-bold">
+                      ⚔️
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-mono text-zinc-500 font-bold">#{boss.id}</span>
-                        <h4 className="text-xs font-semibold text-zinc-200 truncate">{boss.name}</h4>
-                      </div>
-                      <span className="text-[10px] text-zinc-500 block truncate">{boss.level}</span>
+                    <div>
+                      <h4 className="text-xs font-bold text-zinc-200">Força (Ataque)</h4>
+                      <span className="text-[10px] text-zinc-400 font-mono">
+                        Dano do Jogador: <strong>{formatBigNumber(playerBaseDamage)}</strong>
+                      </span>
                     </div>
                   </div>
+                  <span className="text-base font-bold font-mono text-orange-400">
+                    {combatStats.strength}
+                  </span>
+                </div>
 
-                  <div className="text-right flex-shrink-0 ml-2">
-                    {isBossCleared ? (
-                      <span className="text-[10px] font-mono text-emerald-400 font-medium flex items-center justify-end gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Vencido
+                <div className="flex gap-2 pt-1 border-t border-zinc-800/60">
+                  <button
+                    disabled={combatStats.unspentStatPoints < 1}
+                    onClick={() => handleAddStat('strength', 1)}
+                    className="flex-1 py-1 bg-zinc-800 hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-zinc-800 rounded text-xs font-mono font-bold text-white transition flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" /> 1
+                  </button>
+                  <button
+                    disabled={combatStats.unspentStatPoints < 5}
+                    onClick={() => handleAddStat('strength', 5)}
+                    className="flex-1 py-1 bg-zinc-800 hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-zinc-800 rounded text-xs font-mono font-bold text-white transition flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" /> 5
+                  </button>
+                  <button
+                    disabled={combatStats.unspentStatPoints < 1}
+                    onClick={() => handleAddStat('strength', combatStats.unspentStatPoints)}
+                    className="flex-1 py-1 bg-orange-950/80 hover:bg-orange-600 border border-orange-800 disabled:opacity-40 disabled:hover:bg-orange-950/80 rounded text-xs font-mono font-bold text-orange-300 hover:text-white transition cursor-pointer"
+                  >
+                    Max
+                  </button>
+                </div>
+              </div>
+
+              {/* Atributo 2: VIDA (HP MÁXIMO) */}
+              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-950/60 border border-emerald-700/60 flex items-center justify-center text-emerald-400 font-bold">
+                      <Heart className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-zinc-200">Vida (Vitalidade)</h4>
+                      <span className="text-[10px] text-zinc-400 font-mono">
+                        HP Máximo: <strong>{formatBigNumber(playerMaxHp)}</strong>
                       </span>
-                    ) : isBossActive ? (
-                      <span className="text-[10px] font-mono text-rose-400 font-bold block">
-                        Alvo Ativo
+                    </div>
+                  </div>
+                  <span className="text-base font-bold font-mono text-emerald-400">
+                    {combatStats.vitality}
+                  </span>
+                </div>
+
+                <div className="flex gap-2 pt-1 border-t border-zinc-800/60">
+                  <button
+                    disabled={combatStats.unspentStatPoints < 1}
+                    onClick={() => handleAddStat('vitality', 1)}
+                    className="flex-1 py-1 bg-zinc-800 hover:bg-emerald-600 disabled:opacity-40 disabled:hover:bg-zinc-800 rounded text-xs font-mono font-bold text-white transition flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" /> 1
+                  </button>
+                  <button
+                    disabled={combatStats.unspentStatPoints < 5}
+                    onClick={() => handleAddStat('vitality', 5)}
+                    className="flex-1 py-1 bg-zinc-800 hover:bg-emerald-600 disabled:opacity-40 disabled:hover:bg-zinc-800 rounded text-xs font-mono font-bold text-white transition flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" /> 5
+                  </button>
+                  <button
+                    disabled={combatStats.unspentStatPoints < 1}
+                    onClick={() => handleAddStat('vitality', combatStats.unspentStatPoints)}
+                    className="flex-1 py-1 bg-emerald-950/80 hover:bg-emerald-600 border border-emerald-800 disabled:opacity-40 disabled:hover:bg-emerald-950/80 rounded text-xs font-mono font-bold text-emerald-300 hover:text-white transition cursor-pointer"
+                  >
+                    Max
+                  </button>
+                </div>
+              </div>
+
+              {/* Atributo 3: AGILIDADE (ESQUIVA DE GOLPES) */}
+              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-cyan-950/60 border border-cyan-700/60 flex items-center justify-center text-cyan-400 font-bold">
+                      💨
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-zinc-200">Agilidade (Esquiva)</h4>
+                      <span className="text-[10px] text-zinc-400 font-mono">
+                        Chance de Esquiva: <strong>{playerDodgeChance}%</strong> (Teto 75%)
                       </span>
-                    ) : (
-                      <span className="text-[10px] font-mono text-zinc-600 block flex items-center justify-end gap-1">
-                        <Lock className="w-2.5 h-2.5" /> Bloqueado
-                      </span>
-                    )}
-                    <span className="text-[10px] font-mono text-zinc-400 font-medium block">
-                      {formatBigNumber(boss.hp)} HP
+                    </div>
+                  </div>
+                  <span className="text-base font-bold font-mono text-cyan-400">
+                    {combatStats.agility}
+                  </span>
+                </div>
+
+                <div className="flex gap-2 pt-1 border-t border-zinc-800/60">
+                  <button
+                    disabled={combatStats.unspentStatPoints < 1}
+                    onClick={() => handleAddStat('agility', 1)}
+                    className="flex-1 py-1 bg-zinc-800 hover:bg-cyan-600 disabled:opacity-40 disabled:hover:bg-zinc-800 rounded text-xs font-mono font-bold text-white transition flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" /> 1
+                  </button>
+                  <button
+                    disabled={combatStats.unspentStatPoints < 5}
+                    onClick={() => handleAddStat('agility', 5)}
+                    className="flex-1 py-1 bg-zinc-800 hover:bg-cyan-600 disabled:opacity-40 disabled:hover:bg-zinc-800 rounded text-xs font-mono font-bold text-white transition flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" /> 5
+                  </button>
+                  <button
+                    disabled={combatStats.unspentStatPoints < 1}
+                    onClick={() => handleAddStat('agility', combatStats.unspentStatPoints)}
+                    className="flex-1 py-1 bg-cyan-950/80 hover:bg-cyan-600 border border-cyan-800 disabled:opacity-40 disabled:hover:bg-cyan-950/80 rounded text-xs font-mono font-bold text-cyan-300 hover:text-white transition cursor-pointer"
+                  >
+                    Max
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* =============================================================== */}
+          {/* ABA 2: PREVIEW DE DROPS E PROBABILIDADE % DO CHEFE SELECIONADO  */}
+          {/* =============================================================== */}
+          {activeSideTab === 'DROPS' && (
+            <div className="flex-1 flex flex-col overflow-y-auto space-y-3 custom-scrollbar pr-1">
+              <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-zinc-100">
+                    Recompensas de #{currentBoss.id} {currentBoss.name}
+                  </h4>
+                  <span className="text-[10px] font-mono text-zinc-500">
+                    Tabela Estocástica Oficial de Saque
+                  </span>
+                </div>
+                <Badge variant="chakra">Tier {currentBoss.tier}</Badge>
+              </div>
+
+              {/* Equipamento Raro com % Exata */}
+              <div className="p-3.5 rounded-xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-black border border-zinc-800 space-y-2 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider font-semibold">
+                    Equipamento Lendário / Astral
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-950/70 border border-amber-700/60 text-amber-300 font-mono text-[10px] font-bold">
+                    Chance: {dropRatePct}%
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center text-amber-400">
+                    <IconRenderer name={lootDef.equipment.iconName || 'Shield'} className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h5 className="text-xs font-bold text-zinc-100 truncate">
+                      {lootDef.equipment.name}
+                    </h5>
+                    <span className="text-[10px] font-mono text-zinc-400 block">
+                      Raridade: <strong className="text-amber-300">{lootDef.equipment.rarity}</strong> • Slot: {lootDef.equipment.type}
                     </span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+
+                <p className="text-[10px] font-mono text-zinc-400 leading-relaxed border-t border-zinc-800/80 pt-1.5">
+                  {lootDef.equipment.description}
+                </p>
+              </div>
+
+              {/* Material de Farm Garantido */}
+              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider font-semibold">
+                    Material de Farm
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-950/70 border border-emerald-700/60 text-emerald-300 font-mono text-[10px] font-bold">
+                    100% (1 a 5x)
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-cyan-400">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-semibold text-zinc-200">{lootDef.material.name}</h5>
+                    <span className="text-[10px] font-mono text-zinc-500">
+                      Raridade: {lootDef.material.rarity}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bônus de XP de Combate Shinobi */}
+              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-950/60 border border-amber-700/60 flex items-center justify-center text-amber-400">
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-semibold text-zinc-200">Experiência Shinobi</h5>
+                    <span className="text-[10px] font-mono text-zinc-500">
+                      Progresso direto de atributos
+                    </span>
+                  </div>
+                </div>
+                <span className="text-xs font-mono font-bold text-amber-300">
+                  +{formatBigNumber(bossXpReward)} XP
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* =============================================================== */}
+          {/* ABA 3: CRONOLOGIA COMPLETA DE OPONENTES                         */}
+          {/* =============================================================== */}
+          {activeSideTab === 'LIST' && (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Filtro e Busca */}
+              <div className="my-2 space-y-2">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Buscar oponente por nome ou #..."
+                    className="w-full pl-9 pr-3 py-1.5 bg-zinc-900/90 border border-zinc-800 rounded-lg text-xs font-mono text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1 overflow-x-auto pb-1 custom-scrollbar text-[10px] font-mono">
+                  {['Todos', 'Inicial / Chūnin', 'Jōnin / Invasões', 'Kage / Lendário', 'Continental / Divino'].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setTierFilter(t)}
+                      className={`px-2 py-0.5 rounded border whitespace-nowrap transition cursor-pointer ${
+                        tierFilter === t
+                          ? 'bg-zinc-800 border-zinc-700 text-zinc-100 font-semibold'
+                          : 'bg-zinc-900/40 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Lista com Rolagem Independente */}
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                {filteredBosses.map((boss) => {
+                  const isBossCleared = boss.id <= gauntlet.highestBossDefeated;
+                  const isBossActive = boss.id === gauntlet.currentActiveBossId;
+                  const isBossLocked = boss.id > gauntlet.currentActiveBossId;
+                  const isBossSelected = boss.id === selectedBossId;
+
+                  return (
+                    <div
+                      key={boss.id}
+                      onClick={() => setSelectedBossId(boss.id)}
+                      className={`p-2.5 rounded-xl border transition-all flex items-center justify-between cursor-pointer ${
+                        isBossSelected
+                          ? 'bg-zinc-800/90 border-rose-500/80 text-zinc-100 shadow-md'
+                          : isBossActive
+                          ? 'bg-rose-950/20 border-rose-900/50 hover:border-rose-700 text-zinc-300'
+                          : isBossCleared
+                          ? 'bg-zinc-900/50 border-zinc-800/80 hover:border-zinc-700 text-zinc-400'
+                          : isBossLocked
+                          ? 'opacity-50 bg-zinc-900/30 border-zinc-850 hover:border-zinc-800 text-zinc-500'
+                          : 'bg-zinc-900/40 border-zinc-800 text-zinc-500'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className={`w-8 h-8 rounded-lg border flex items-center justify-center flex-shrink-0 ${
+                            isBossCleared
+                              ? 'bg-emerald-950/40 border-emerald-800/50 text-emerald-400'
+                              : isBossActive
+                              ? 'bg-rose-950/60 border-rose-800 text-rose-400'
+                              : 'bg-zinc-900 border-zinc-800 text-zinc-500'
+                          }`}
+                        >
+                          <IconRenderer name={boss.avatar} className="w-4 h-4 stroke-[1.5]" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-mono text-zinc-500 font-bold">#{boss.id}</span>
+                            <h4 className="text-xs font-semibold text-zinc-200 truncate">{boss.name}</h4>
+                          </div>
+                          <span className="text-[10px] text-zinc-500 block truncate">{boss.level}</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right flex-shrink-0 ml-2">
+                        {isBossCleared ? (
+                          <span className="text-[10px] font-mono text-emerald-400 font-medium flex items-center justify-end gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Vencido
+                          </span>
+                        ) : isBossActive ? (
+                          <span className="text-[10px] font-mono text-rose-400 font-bold block">
+                            Alvo Ativo
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-mono text-zinc-600 block flex items-center justify-end gap-1">
+                            <Lock className="w-2.5 h-2.5" /> Bloqueado
+                          </span>
+                        )}
+                        <span className="text-[10px] font-mono text-zinc-400 font-medium block">
+                          {formatBigNumber(boss.hp)} HP
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </aside>
       </div>
     </div>

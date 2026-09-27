@@ -89,3 +89,26 @@ export interface ArenaOpponent {
   readonly qtePrompt: string;
   readonly qteDuration: number;
 }
+
+export const MAX_COMBAT_LEVEL = 700;
+export const POINTS_PER_LEVEL = 8;
+
+export interface ShinobiCombatStats {
+  level: number;              // Nível atual (1 até 700)
+  currentXp: Decimal;         // XP acumulado no nível atual
+  requiredXp: Decimal;        // XP necessário para o próximo nível
+  unspentStatPoints: number;  // Pontos de atributo livres para distribuição
+  strength: number;           // Força: Aumenta o Dano causado aos chefes
+  vitality: number;           // Vida: Aumenta a Vida Máxima (HP) do jogador
+  agility: number;            // Agilidade: Aumenta a Chance de Esquiva de golpes
+}
+
+export interface BossLootPreview {
+  equipmentName: string;
+  equipmentRarity: string;
+  equipmentDropChancePct: number;
+  materialName: string;
+  materialDropChancePct: number;
+  xpReward: Decimal;
+}
+
