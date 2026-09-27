@@ -15,7 +15,7 @@ import {
   Dice5,
 } from 'lucide-react';
 import { PRESTIGE_THRESHOLD, calculatePendingAncestralChakra } from '../../engine/formulas';
-import { getCurrentRank } from '../../constants/rankings';
+import { getCurrentRank, getNextPromotionMission } from '../../constants/rankings';
 
 export const OperationsPanel: React.FC = () => {
   const activeTab = useGameStore((s) => s.activeTab);
@@ -42,7 +42,6 @@ export const OperationsPanel: React.FC = () => {
         );
         const canPrestige = stats.totalChakraEarned.gte(PRESTIGE_THRESHOLD);
         const prestigeProgress = Math.min(100, Math.max(0, stats.totalChakraEarned.div(PRESTIGE_THRESHOLD).mul(100).toNumber()));
-        const isChuninEligible = stats.manualClicksAllTime >= 100;
         const isMissionRunning = !!(activeMission.activeMissionId && activeMission.resolvesAt && activeMission.resolvesAt > Date.now());
         const isMissionReady = !!(activeMission.activeMissionId && activeMission.resolvesAt && Date.now() >= activeMission.resolvesAt);
 
@@ -102,60 +101,58 @@ export const OperationsPanel: React.FC = () => {
               </div>
             </button>
 
-            {/* Card 3: Pavilhão de Exames Shinobi */}
-            <button
-              onClick={() => setView('CHUNIN_EXAM')}
-              className={`group p-2.5 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer border ${
-                passedExams['chunin']
-                  ? 'border-emerald-800/40 hover:border-emerald-500/60'
-                  : 'border-amber-900/30 hover:border-amber-500/60'
-              }`}
-            >
-              <div className="flex items-center justify-between w-full mb-1">
-                <div
-                  className={`w-6 h-6 rounded-md flex items-center justify-center group-hover:scale-105 transition-transform border ${
-                    passedExams['chunin']
-                      ? 'bg-emerald-950/60 border-emerald-800/60 text-emerald-400'
-                      : 'bg-amber-950/60 border-amber-800/60 text-amber-400'
+            {/* Card 3: Missões de Graduação & Patentes */}
+            {(() => {
+              const nextMission = getNextPromotionMission(passedExams);
+              const isEligible = nextMission
+                ? stats.manualClicksAllTime >= nextMission.requirements.minClicksAllTime &&
+                  stats.highestCPSRecord.gte(nextMission.requirements.minCPS)
+                : false;
+
+              return (
+                <button
+                  onClick={() => setView('CHUNIN_EXAM')}
+                  className={`group p-2.5 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer border ${
+                    isEligible
+                      ? 'border-emerald-500/70 hover:border-emerald-400 bg-emerald-950/20'
+                      : 'border-amber-900/30 hover:border-amber-500/60'
                   }`}
                 >
-                  <Scroll className="w-3.5 h-3.5" />
-                </div>
-                <span
-                  className={`text-[10px] font-mono font-bold ${
-                    passedExams['chunin'] ? 'text-emerald-400' : 'text-amber-400'
-                  }`}
-                >
-                  {passedExams['chunin'] ? 'Chūnin ✔' : '3 Fases'}
-                </span>
-              </div>
-              <div>
-                <h4
-                  className={`text-xs font-bold transition-colors ${
-                    passedExams['chunin']
-                      ? 'text-zinc-100 group-hover:text-emerald-300'
-                      : 'text-zinc-100 group-hover:text-amber-300'
-                  }`}
-                >
-                  {passedExams['chunin'] ? 'Exame Jōnin' : 'Exame Chūnin'}
-                </h4>
-                <p className="text-[9px] font-mono text-zinc-400 truncate">
-                  {passedExams['chunin']
-                    ? 'Próxima Graduação'
-                    : isChuninEligible
-                    ? 'Elegível'
-                    : '100 Cliques'}
-                </p>
-              </div>
-              <div className="mt-1 pt-1 border-t border-zinc-850/80 flex items-center justify-between text-[9px] font-mono text-zinc-500">
-                <span>{passedExams['chunin'] ? 'Pavilhão' : 'Torneio'}</span>
-                <ArrowUpRight
-                  className={`w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform ${
-                    passedExams['chunin'] ? 'text-emerald-400' : 'text-amber-400'
-                  }`}
-                />
-              </div>
-            </button>
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <div
+                      className={`w-6 h-6 rounded-md flex items-center justify-center group-hover:scale-105 transition-transform border ${
+                        isEligible
+                          ? 'bg-emerald-950/60 border-emerald-800/60 text-emerald-400'
+                          : 'bg-amber-950/60 border-amber-800/60 text-amber-400'
+                      }`}
+                    >
+                      <Scroll className="w-3.5 h-3.5" />
+                    </div>
+                    <span
+                      className={`text-[10px] font-mono font-bold ${
+                        isEligible ? 'text-emerald-400 animate-pulse' : 'text-amber-400'
+                      }`}
+                    >
+                      {nextMission ? (isEligible ? 'Pronto!' : 'Em Curso') : 'Max ✔'}
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold transition-colors text-zinc-100 group-hover:text-amber-300 truncate">
+                      {nextMission ? nextMission.title : 'Graduação Completa'}
+                    </h4>
+                    <p className="text-[9px] font-mono text-zinc-400 truncate">
+                      {nextMission ? `Alvo: ${nextMission.codename}` : 'Patente Máxima Alcançada'}
+                    </p>
+                  </div>
+                  <div className="mt-1 pt-1 border-t border-zinc-850/80 flex items-center justify-between text-[9px] font-mono text-zinc-500">
+                    <span>Graduação</span>
+                    <ArrowUpRight
+                      className="w-3 h-3 text-amber-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
+                    />
+                  </div>
+                </button>
+              );
+            })()}
 
             {/* Card 4: Hall da Fama */}
             <button
@@ -187,7 +184,7 @@ export const OperationsPanel: React.FC = () => {
         );
       })()}
 
-      {/* Abas Deslizantes Minimalistas: Clãs, Exame e Rankings */}
+      {/* Abas Deslizantes Minimalistas: Clãs e Rankings */}
       <nav className="flex items-center justify-between gap-1.5 pb-2 border-b border-zinc-800/80 overflow-x-auto custom-scrollbar flex-shrink-0">
         <div className="flex items-center gap-1">
           <button
@@ -199,17 +196,6 @@ export const OperationsPanel: React.FC = () => {
             }`}
           >
             <GitFork className="w-3 h-3 stroke-[1.75]" /> Clãs
-          </button>
-
-          <button
-            onClick={() => setActiveTab('exam')}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium whitespace-nowrap transition border ${
-              activeTab === 'exam'
-                ? 'bg-zinc-800 text-zinc-100 border-zinc-700 shadow-sm'
-                : 'bg-transparent text-zinc-400 hover:text-zinc-200 border-transparent hover:bg-zinc-800/40'
-            }`}
-          >
-            <Scroll className="w-3 h-3 stroke-[1.75]" /> Exame
           </button>
 
           <button
@@ -228,7 +214,6 @@ export const OperationsPanel: React.FC = () => {
         <button
           onClick={() => {
             if (activeTab === 'clans') setView('CLAN_TREE');
-            else if (activeTab === 'exam') setView('CHUNIN_EXAM');
             else if (activeTab === 'rankings') setView('RANKINGS');
           }}
           title="Expandir para Tela Cheia Dedicada"
@@ -387,43 +372,6 @@ export const OperationsPanel: React.FC = () => {
           </div>
         )}
 
-        {/* ================================================================= */}
-        {/* 2. ABA EXAME CHŪNIN                                              */}
-        {/* ================================================================= */}
-        {activeTab === 'exam' && (
-          <div className="space-y-3 p-1">
-            <div className="p-4 bg-zinc-950/60 border border-zinc-800/80 rounded-xl">
-              <h4 className="text-xs font-semibold text-zinc-200 uppercase tracking-wide mb-1 flex items-center gap-1.5">
-                <Scroll className="w-4 h-4 text-zinc-400 stroke-[1.75]" /> Exame Chūnin Oficial
-              </h4>
-              <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
-                Supere as três etapas do exame (Prova Teórica, Floresta da Morte e Torneio 1v1).
-              </p>
-
-              <div className="space-y-2 text-left text-xs mb-4 font-mono">
-                <div className="p-2.5 bg-zinc-900/60 rounded-md border border-zinc-800 flex items-center justify-between">
-                  <span className="text-zinc-300">1ª Fase: Prova Teórica</span>
-                  <Badge variant="neutral">Furtividade</Badge>
-                </div>
-                <div className="p-2.5 bg-zinc-900/60 rounded-md border border-zinc-800 flex items-center justify-between">
-                  <span className="text-zinc-300">2ª Fase: Floresta da Morte</span>
-                  <Badge variant="neutral">180s Limite</Badge>
-                </div>
-                <div className="p-2.5 bg-zinc-900/60 rounded-md border border-zinc-800 flex items-center justify-between">
-                  <span className="text-zinc-300">3ª Fase: Torneio na Arena</span>
-                  <Badge variant="chakra">QTE & Parry</Badge>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setView('CHUNIN_EXAM')}
-                className="w-full py-2 bg-zinc-800 hover:bg-zinc-750 text-zinc-100 font-mono text-xs rounded-md border border-zinc-700 shadow-sm transition cursor-pointer"
-              >
-                Abrir Pavilhão do Exame
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* ================================================================= */}
         {/* 3. ABA RANKINGS                                                  */}

@@ -5,11 +5,16 @@ import { ElementalAffinity, PlayerStats } from '../types/game';
 import { GeneratorItem, ShopMode, ShopQty } from '../types/economy';
 import { BossNavigationState } from '../types/combat';
 import { ShinobiUser } from '../types/auth';
-import { ShinobiRankId, ShinobiRankDefinition } from '../types/rankings';
+import { ShinobiRankId, ShinobiRankDefinition, ShinobiPromotionId } from '../types/rankings';
 import { ActiveGameView } from '../types/navigation';
 import { INITIAL_GENERATORS, INITIAL_UPGRADES, GATE_DATA, CLAN_NODES } from '../engine/data';
 import { TECHNIQUE_UPGRADES, UPGRADES_BY_ID } from '../constants/upgrades';
-import { SHINOBI_RANKS_MAP, SHINOBI_RANKS, getCurrentRank } from '../constants/rankings';
+import {
+  SHINOBI_RANKS_MAP,
+  SHINOBI_RANKS,
+  SHINOBI_PROMOTION_MISSIONS_MAP,
+  getCurrentRank,
+} from '../constants/rankings';
 import { ONLINE_PRESENCE_TIERS } from '../constants/rewards';
 import {
   calculateTotalCPS,
@@ -119,6 +124,11 @@ export interface GameStoreState {
   // Sistema de Exames Shinobi & Promoção de Patamares
   passedExams: Record<string, boolean>;
   completeExam: (examRankId: ShinobiRankId) => {
+    success: boolean;
+    message: string;
+    promotedRank: ShinobiRankDefinition;
+  };
+  completePromotion: (rankId: ShinobiRankId) => {
     success: boolean;
     message: string;
     promotedRank: ShinobiRankDefinition;
@@ -1022,41 +1032,58 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   },
 
   completeExam: (examRankId: ShinobiRankId) => {
-    const s = get();
-    const targetRank = SHINOBI_RANKS_MAP[examRankId] || SHINOBI_RANKS[0];
+    return get().completePromotion(examRankId);
+  },
 
-    // Se já passou, não duplica recompensa, apenas confirma
-    if (s.passedExams[examRankId]) {
+  completePromotion: (rankId: ShinobiRankId) => {
+    const s = get();
+    const targetRank = SHINOBI_RANKS_MAP[rankId] || SHINOBI_RANKS[0];
+
+    // Se já passou, não duplica recompensa, não pode repetir!
+    if (s.passedExams[rankId]) {
       return {
         success: false,
-        message: `Exame para ${targetRank.title} já foi oficializado anteriormente!`,
+        message: `A graduação para ${targetRank.title} já foi oficializada e não pode ser repetida!`,
         promotedRank: targetRank,
       };
     }
 
+    const mission = SHINOBI_PROMOTION_MISSIONS_MAP[rankId as ShinobiPromotionId];
     audio.playLevelUp();
 
-    let bonusChakra = D(0);
-    let bonusAncestral = D(0);
-    let bonusGachaTickets = 0;
-    let bonusForgeFragments = 0;
+    let bonusChakra = mission ? mission.bonusRewards.chakra : D(0);
+    let bonusAncestral = mission ? mission.bonusRewards.ancestral : D(0);
+    let bonusGachaTickets = mission ? mission.bonusRewards.gachaTickets : 0;
+    let bonusForgeFragments = mission ? mission.bonusRewards.forgeFragments : 0;
 
-    if (examRankId === 'chunin') {
-      bonusChakra = D(500000);
-      bonusAncestral = D(5);
-      bonusGachaTickets = 1;
-      bonusForgeFragments = 3;
-    } else if (examRankId === 'jonin') {
-      bonusChakra = D(10000000);
-      bonusAncestral = D(20);
-      bonusGachaTickets = 3;
-      bonusForgeFragments = 10;
+    // Fallbacks para ranks caso a missão não esteja no mapa
+    if (!mission) {
+      if (rankId === 'gennin') {
+        bonusChakra = D(25000);
+        bonusAncestral = D(1);
+        bonusGachaTickets = 1;
+        bonusForgeFragments = 2;
+      } else if (rankId === 'chunin') {
+        bonusChakra = D(500000);
+        bonusAncestral = D(5);
+        bonusGachaTickets = 1;
+        bonusForgeFragments = 5;
+      } else if (rankId === 'jonin') {
+        bonusChakra = D(10000000);
+        bonusAncestral = D(20);
+        bonusGachaTickets = 3;
+        bonusForgeFragments = 12;
+      }
     }
 
     set((state) => ({
       passedExams: {
         ...state.passedExams,
-        [examRankId]: true,
+        [rankId]: true,
+      },
+      claimedRankRewards: {
+        ...state.claimedRankRewards,
+        [rankId]: true, // Ativa automaticamente a recompensa e bônus de patente
       },
       chakra: state.chakra.add(bonusChakra),
       chakraAncestral: state.chakraAncestral.add(bonusAncestral),

@@ -8,7 +8,7 @@ import { AuthModal } from './components/auth/AuthModal';
 import { OnlineRewardsModal } from './components/common/OnlineRewardsModal';
 import { ChallengesView } from './components/views/ChallengesView';
 import { ClanTreeView } from './components/views/ClanTreeView';
-import { ChuninExamView } from './components/views/ChuninExamView';
+import { RankPromotionView } from './components/views/RankPromotionView';
 import { RankingsView } from './components/views/RankingsView';
 import { MissionsView } from './components/views/MissionsView';
 import { InventoryView } from './components/views/InventoryView';
@@ -66,10 +66,10 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* 4. JANELA DEDICADA 3: PAVILHÃO DO EXAME CHŪNIN */}
+      {/* 4. JANELA DEDICADA 3: QUARTEL DE GRADUAÇÃO & PROMOÇÕES SHINOBI */}
       {currentView === 'CHUNIN_EXAM' && (
         <div className="w-full h-full animate-in fade-in zoom-in-95 duration-300">
-          <ChuninExamView />
+          <RankPromotionView />
         </div>
       )}
 

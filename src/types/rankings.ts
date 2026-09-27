@@ -79,7 +79,51 @@ export interface GlobalLeaderboardEntry {
   updatedAt: string;
 }
 
-export type ShinobiExamId = 'chunin' | 'jonin';
+export type ShinobiExamId = 'chunin' | 'jonin' | ShinobiRankId;
+
+export type ShinobiPromotionId =
+  | 'gennin'
+  | 'chunin'
+  | 'tokubetsu_jonin'
+  | 'jonin'
+  | 'anbu'
+  | 'sannin'
+  | 'kage'
+  | 'rikudou';
+
+export interface PromotionRequirementValues {
+  readonly minClicksAllTime: number;
+  readonly minCPS: Decimal;
+  readonly minTotalChakra: Decimal;
+  readonly minPrestiges?: number;
+  readonly minBossesDefeated?: number;
+  readonly minGatesUnlocked?: number;
+}
+
+export interface PromotionBonusRewards {
+  readonly chakra: Decimal;
+  readonly ancestral: Decimal;
+  readonly gachaTickets: number;
+  readonly forgeFragments: number;
+  readonly permanentEffectDescription: string;
+}
+
+export interface ShinobiPromotionMission {
+  readonly id: ShinobiPromotionId;
+  readonly title: string;
+  readonly targetRankId: ShinobiRankId;
+  readonly requiredRankId: ShinobiRankId;
+  readonly codename: string;
+  readonly loreDescription: string;
+  readonly proctor: {
+    readonly name: string;
+    readonly title: string;
+    readonly avatarEmoji: string;
+    readonly quote: string;
+  };
+  readonly requirements: PromotionRequirementValues;
+  readonly bonusRewards: PromotionBonusRewards;
+}
 
 export interface ShinobiExamDefinition {
   readonly id: ShinobiExamId;
@@ -87,6 +131,7 @@ export interface ShinobiExamDefinition {
   readonly targetRankId: ShinobiRankId;
   readonly requiredRankId: ShinobiRankId;
   readonly loreDescription: string;
-  readonly phasesCount: number;
+  readonly phasesCount?: number;
   readonly rewardDescription: string;
 }
+
