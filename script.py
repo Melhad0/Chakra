@@ -491,6 +491,18 @@ def get_user_save_path(username: str) -> str:
         raise ValueError("Tentativa de Path Traversal detectada.")
     return target_path
 
+def is_react_v2_state(state):
+    if not isinstance(state, dict):
+        return False
+    if any(k in state for k in ("combatStats", "inventory", "activeMission", "gauntlet", "clanNodes", "lastSaveTimestamp")):
+        return True
+    gens = state.get("generators", {})
+    if isinstance(gens, dict) and gens:
+        first_val = next(iter(gens.values()), None)
+        if isinstance(first_val, dict):
+            return True
+    return False
+
 def load_user_save(username):
     safe_name = sanitize_username(username).lower()
     if DATABASE_URL:
@@ -502,6 +514,8 @@ def load_user_save(username):
                     row = cur.fetchone()
                     if row and row.get("state"):
                         state = row["state"]
+                        if is_react_v2_state(state):
+                            return state
                         for key, val in DEFAULT_STATE.items():
                             if key not in state:
                                 state[key] = copy.deepcopy(val)
@@ -521,6 +535,8 @@ def load_user_save(username):
             return copy.deepcopy(DEFAULT_STATE)
         with open(save_path, "r", encoding="utf-8") as f:
             state = json.load(f)
+            if is_react_v2_state(state):
+                return state
             for key, val in DEFAULT_STATE.items():
                 if key not in state:
                     state[key] = copy.deepcopy(val)
@@ -888,6 +904,20 @@ def load_game():
         return jsonify({"error": "User parameter required"}), 400
         
     state = load_user_save(username)
+    if not state:
+        return jsonify({"status": "not_found", "state": None}), 404
+        
+    if is_react_v2_state(state):
+        current_time_ms = time.time() * 1000
+        last_saved_ms = state.get("lastSaveTimestamp", 0)
+        offline_seconds = max(0.0, (current_time_ms - last_saved_ms) / 1000.0) if last_saved_ms > 0 else 0.0
+        return jsonify({
+            "status": "success",
+            "state": state,
+            "offline_seconds": offline_seconds,
+            "version": "v2"
+        })
+
     current_time = time.time()
     last_saved = state.get("last_saved_time", 0.0)
     
@@ -906,16 +936,18 @@ def load_game():
     write_user_save(username, state)
     
     return jsonify({
+        "status": "success",
         "state": state,
         "offline_seconds": offline_seconds,
         "offline_chakra": offline_chakra,
         "cps": calculate_cps(state),
-        "click_power": calculate_click_power(state, calculate_cps(state))
+        "click_power": calculate_click_power(state, calculate_cps(state)),
+        "version": "v1"
     })
 
 @app.route("/api/save", methods=["POST"])
 def save_game():
-    data = request.json
+    data = request.json or {}
     username = data.get("username", "").strip()
     client_state = data.get("state")
     
@@ -923,8 +955,49 @@ def save_game():
         return jsonify({"error": "Invalid payload"}), 400
         
     current_time = time.time()
-    client_state["last_saved_time"] = current_time
     
+    if is_react_v2_state(client_state):
+        client_state["lastSaveTimestamp"] = int(current_time * 1000)
+        write_user_save(username, client_state)
+        
+        # Sincroniza tabela rankings do Neon se houver dados de stats
+        safe_name = sanitize_username(username).lower()
+        if DATABASE_URL:
+            try:
+                stats = client_state.get("stats", {})
+                combat = client_state.get("combatStats", {})
+                manual_clicks = stats.get("manualClicksAllTime", 0)
+                highest_cps = str(stats.get("highestCPSRecord", "0"))
+                total_prestiges = stats.get("totalPrestiges", 0)
+                current_rank = f"Nível {combat.get('level', 1)}"
+                
+                conn = get_db()
+                if conn:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            INSERT INTO rankings (username_key, username, manual_clicks_all_time, highest_cps_record, total_prestiges, current_rank, updated_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                            ON CONFLICT (username_key) DO UPDATE SET
+                                username = EXCLUDED.username,
+                                manual_clicks_all_time = GREATEST(rankings.manual_clicks_all_time, EXCLUDED.manual_clicks_all_time),
+                                highest_cps_record = EXCLUDED.highest_cps_record,
+                                total_prestiges = GREATEST(rankings.total_prestiges, EXCLUDED.total_prestiges),
+                                current_rank = EXCLUDED.current_rank,
+                                updated_at = NOW();
+                        """, (safe_name, username, manual_clicks, highest_cps, total_prestiges, current_rank))
+                        conn.commit()
+                    conn.close()
+            except Exception as e:
+                print(f"[Neon Postgres] Erro ao sincronizar ranking no save v2: {e}")
+                
+        return jsonify({
+            "status": "success",
+            "state": client_state,
+            "version": "v2",
+            "saved_at": current_time
+        })
+
+    client_state["last_saved_time"] = current_time
     cps = calculate_cps(client_state)
     click_power = calculate_click_power(client_state, cps)
     new_achievements = check_achievements(client_state)
@@ -936,7 +1009,8 @@ def save_game():
         "state": client_state,
         "new_achievements": new_achievements,
         "cps": cps,
-        "click_power": click_power
+        "click_power": click_power,
+        "version": "v1"
     })
 
 @app.route("/api/rankings/sync", methods=["POST"])
@@ -1074,10 +1148,24 @@ def get_top_rankings():
 
 @app.route("/api/health", methods=["GET"])
 def health_check():
+    db_connected = False
+    if DATABASE_URL:
+        conn = get_db()
+        if conn:
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT 1;")
+                db_connected = True
+            except Exception:
+                pass
+            finally:
+                conn.close()
     return jsonify({
         "status": "healthy",
         "service": "Chakra Clicker API",
-        "storage": "neon_postgres" if DATABASE_URL else "local_json",
+        "storage": "neon_postgres" if db_connected else ("neon_config_error" if DATABASE_URL else "local_json"),
+        "db_connected": db_connected,
+        "is_vercel": IS_VERCEL,
         "timestamp": datetime.now(timezone.utc).isoformat()
     })
 

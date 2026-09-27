@@ -4,7 +4,7 @@ import { formatBigNumber, toggleNotationMode, getNotationMode } from '../../engi
 import { calculateTotalCPS } from '../../engine/formulas';
 import { usePlaytime } from '../../hooks/usePlaytime';
 import { audio } from '../../engine/audio';
-import { Volume2, VolumeX, Sparkles, Hash, Flame, SunMedium, User, ShieldCheck, LogOut, Gift, AlertTriangle, Swords, Clock, Scroll, Briefcase } from 'lucide-react';
+import { Volume2, VolumeX, Sparkles, Hash, Flame, SunMedium, User, ShieldCheck, LogOut, Gift, AlertTriangle, Swords, Clock, Scroll, Briefcase, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import { getCurrentRank } from '../../constants/rankings';
 
 export const Navbar: React.FC = () => {
@@ -32,6 +32,9 @@ export const Navbar: React.FC = () => {
   const missionPermanentCpsMult = useGameStore((s) => s.missionPermanentCpsMult);
   const missionBuffTimer = useGameStore((s) => s.missionBuffTimer);
   const missionBuffMult = useGameStore((s) => s.missionBuffMult);
+  const isCloudSyncing = useGameStore((s) => s.isCloudSyncing);
+  const cloudSyncStatus = useGameStore((s) => s.cloudSyncStatus);
+  const saveGame = useGameStore((s) => s.saveGame);
 
   const { rewardCountdown } = usePlaytime();
 
@@ -261,6 +264,36 @@ export const Navbar: React.FC = () => {
               </span>
               <span className="text-cyan-400 font-bold">#{currentUser.ninjaId}</span>
             </button>
+            {currentUser.username !== 'convidado' && (
+              <button
+                onClick={() => saveGame()}
+                title={
+                  isCloudSyncing
+                    ? 'Sincronizando com o Banco Neon Postgres...'
+                    : cloudSyncStatus === 'synced'
+                    ? 'Progresso seguro e salvo no Neon Postgres (Clique para salvar agora)'
+                    : 'Salvo localmente no navegador (Clique para sincronizar na nuvem)'
+                }
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-mono border transition ${
+                  isCloudSyncing
+                    ? 'bg-cyan-950/60 border-cyan-500/50 text-cyan-300 animate-pulse'
+                    : cloudSyncStatus === 'synced'
+                    ? 'bg-emerald-950/50 border-emerald-600/40 text-emerald-400 hover:bg-emerald-900/40'
+                    : 'bg-amber-950/40 border-amber-600/40 text-amber-300 hover:bg-amber-900/40'
+                }`}
+              >
+                {isCloudSyncing ? (
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                ) : cloudSyncStatus === 'synced' ? (
+                  <Cloud className="w-3 h-3 text-emerald-400" />
+                ) : (
+                  <CloudOff className="w-3 h-3 text-amber-400" />
+                )}
+                <span className="hidden md:inline">
+                  {isCloudSyncing ? 'Salvando...' : cloudSyncStatus === 'synced' ? 'Nuvem' : 'Local'}
+                </span>
+              </button>
+            )}
             <button
               onClick={logout}
               title="Encerrar Sessão (Voltar para Login)"

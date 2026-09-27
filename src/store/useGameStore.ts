@@ -56,6 +56,7 @@ import {
 import { normalizeItemRarity } from '../types/rarity';
 import { rollBossLoot } from '../constants/equipmentCatalog';
 import { audio } from '../engine/audio';
+import { apiUrl } from '../config/api';
 
 export interface FloatingNumber {
   id: number;
@@ -186,7 +187,11 @@ export interface GameStoreState {
   removeShockwave: (id: number) => void;
   tick: (dt: number) => void;
   saveGame: () => void;
-  loadGame: () => void;
+  loadGame: (targetUser?: ShinobiUser | null) => Promise<void>;
+  isCloudSyncing: boolean;
+  cloudSyncStatus: 'synced' | 'saving' | 'error' | 'local_only';
+  lastCloudSyncTimestamp: number | null;
+  syncCloudSave: () => Promise<boolean>;
 
   // Autenticação & Sessão Shinobi (IAM)
   currentUser: ShinobiUser | null;
@@ -198,8 +203,15 @@ export interface GameStoreState {
   logout: () => void;
 }
 
-const STORAGE_KEY = 'chakra_clicker_save_react_v2';
-const SHINOBI_USER_KEY = 'chakra_shinobi_user';
+export const STORAGE_KEY = 'chakra_clicker_save_react_v2';
+export const SHINOBI_USER_KEY = 'chakra_shinobi_user';
+
+export function getUserStorageKey(username?: string | null): string {
+  if (username && username.trim().toLowerCase() !== 'convidado') {
+    return `chakra_clicker_save_${username.trim().toLowerCase()}_v2`;
+  }
+  return STORAGE_KEY;
+}
 let nextFxId = 1;
 
 export const ALL_CANONICAL_ELEMENTS: ElementType[] = ['FIRE', 'WIND', 'LIGHTNING', 'EARTH', 'WATER'];
@@ -329,6 +341,94 @@ function deserializeInventory(raw: any): PlayerInventoryState {
   };
 }
 
+function restoreStateFromSaveData(state: GameStoreState, data: any): Partial<GameStoreState> {
+  if (!data || typeof data !== 'object') return {};
+
+  const restoredGenerators = { ...state.generators };
+  if (data.generators) {
+    for (const key in data.generators) {
+      if (restoredGenerators[key]) {
+        const genVal = data.generators[key];
+        const lvl = typeof genVal === 'object' && genVal !== null ? genVal.level : Number(genVal);
+        restoredGenerators[key] = {
+          ...restoredGenerators[key],
+          level: lvl || 0,
+          unlocked: typeof genVal === 'object' && genVal !== null ? !!genVal.unlocked : !!lvl,
+        };
+      }
+    }
+  }
+
+  return {
+    chakra: D(data.chakra || 0),
+    chakraAncestral: D(data.chakraAncestral || 0),
+    activeElement: data.activeElement || 'Fire',
+    inventory: deserializeInventory(data.inventory),
+    generators: restoredGenerators,
+    upgrades: { ...state.upgrades, ...(data.upgrades || {}) },
+    clanNodes: data.clanNodes || {},
+    claimedRankRewards: data.claimedRankRewards || {},
+    passedExams: data.passedExams || {},
+    gatesUnlocked: data.gatesUnlocked || 0,
+    exhaustionTimer: data.exhaustionTimer || 0,
+    clickExhaustionTimer: data.clickExhaustionTimer || 0,
+    onlinePresenceRewardsClaimed: data.onlinePresenceRewardsClaimed || {},
+    onlinePresenceBuffTimer: data.onlinePresenceBuffTimer || 0,
+    stableRollingCPS: D(data.stableRollingCPS || 0),
+    gachaTickets: data.gachaTickets || 0,
+    forgeFragments: data.forgeFragments || 0,
+    missionPermanentCpsMult: data.missionPermanentCpsMult || 1,
+    activeMission: data.activeMission
+      ? {
+          activeMissionId: data.activeMission.activeMissionId || null,
+          selectedChoiceId: data.activeMission.selectedChoiceId || null,
+          startedAt: data.activeMission.startedAt || null,
+          resolvesAt: data.activeMission.resolvesAt || null,
+          lastOutcome: data.activeMission.lastOutcome || null,
+          cooldownExpiresAt: data.activeMission.cooldownExpiresAt || null,
+        }
+      : state.activeMission,
+    gauntlet: data.gauntlet
+      ? {
+          currentActiveBossId: data.gauntlet.currentActiveBossId || 1,
+          highestBossDefeated:
+            data.gauntlet.highestBossDefeated ?? data.gauntlet.maxUnlockedBoss ?? 0,
+          maxUnlockedBoss:
+            data.gauntlet.highestBossDefeated ?? data.gauntlet.maxUnlockedBoss ?? 0,
+          cooldownExpiresAt: null,
+          isFighting: false,
+          bossCurrentHp: data.gauntlet.bossCurrentHp
+            ? D(data.gauntlet.bossCurrentHp)
+            : calculateBossHP(data.gauntlet.currentActiveBossId || 1),
+          bossTimeRemaining: data.gauntlet.bossTimeRemaining || 30,
+        }
+      : state.gauntlet,
+    combatStats: data.combatStats
+      ? {
+          level: Math.min(MAX_COMBAT_LEVEL, Math.max(1, data.combatStats.level || 1)),
+          currentXp: D(data.combatStats.currentXp || 0),
+          requiredXp: data.combatStats.requiredXp
+            ? D(data.combatStats.requiredXp)
+            : calculateRequiredXp(data.combatStats.level || 1),
+          unspentStatPoints: Math.max(0, data.combatStats.unspentStatPoints || 0),
+          strength: Math.max(10, data.combatStats.strength || 10),
+          vitality: Math.max(10, data.combatStats.vitality || 10),
+          agility: Math.max(5, data.combatStats.agility || 5),
+        }
+      : state.combatStats,
+    stats: {
+      ...state.stats,
+      manualClicksCurrentSession: 0,
+      manualClicksSession: 0,
+      manualClicksAllTime: data.stats?.manualClicksAllTime || 0,
+      highestCPSRecord: D(data.stats?.highestCPSRecord || 0),
+      totalPrestiges: data.stats?.totalPrestiges || 0,
+      playtimeSeconds: data.stats?.playtimeSeconds || 0,
+      totalChakraEarned: D(data.stats?.totalChakraEarned || 0),
+    },
+  };
+}
+
 export const useGameStore = create<GameStoreState>((set, get) => ({
   currentUser: (() => {
     try {
@@ -338,6 +438,15 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       return null;
     }
   })(),
+  isCloudSyncing: false,
+  cloudSyncStatus: 'local_only',
+  lastCloudSyncTimestamp: null,
+  syncCloudSave: async () => {
+    const s = get();
+    if (!s.currentUser || s.currentUser.username === 'convidado') return false;
+    s.saveGame();
+    return true;
+  },
   isAuthModalOpen: false,
   openAuthModal: () => set({ isAuthModalOpen: true }),
   closeAuthModal: () => set({ isAuthModalOpen: false }),
@@ -346,10 +455,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       try {
         localStorage.setItem(SHINOBI_USER_KEY, JSON.stringify(user));
       } catch {}
+      set({ currentUser: user });
+      get().loadGame(user);
     } else {
       localStorage.removeItem(SHINOBI_USER_KEY);
+      set({ currentUser: null, cloudSyncStatus: 'local_only' });
     }
-    set({ currentUser: user });
   },
   guestLogin: () => {
     const guestUser: ShinobiUser = {
@@ -363,8 +474,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     get().setCurrentUser(guestUser);
   },
   logout: () => {
+    get().saveGame();
     localStorage.removeItem(SHINOBI_USER_KEY);
-    set({ currentUser: null });
+    set({ currentUser: null, cloudSyncStatus: 'local_only' });
   },
 
   chakra: D(0),
@@ -1658,103 +1770,94 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         },
         lastSaveTimestamp: Date.now(),
       };
+      
+      const userKey = getUserStorageKey(s.currentUser?.username);
+      localStorage.setItem(userKey, JSON.stringify(serializable));
       localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
+
+      // Sincronização em nuvem se o usuário estiver autenticado (Neon Postgres)
+      if (s.currentUser && s.currentUser.username && s.currentUser.username !== 'convidado') {
+        set({ isCloudSyncing: true, cloudSyncStatus: 'saving' });
+        fetch(apiUrl('/api/save'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: s.currentUser.username,
+            state: serializable,
+          }),
+        })
+          .then((res) => {
+            if (res.ok) {
+              set({
+                isCloudSyncing: false,
+                cloudSyncStatus: 'synced',
+                lastCloudSyncTimestamp: Date.now(),
+              });
+            } else {
+              set({ isCloudSyncing: false, cloudSyncStatus: 'error' });
+            }
+          })
+          .catch(() => {
+            set({ isCloudSyncing: false, cloudSyncStatus: 'local_only' });
+          });
+      }
     } catch {
       // Safe fallback
     }
   },
 
-  loadGame: () => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const data = JSON.parse(raw);
+  loadGame: async (targetUser?: ShinobiUser | null) => {
+    const s = get();
+    const activeUser = targetUser !== undefined ? targetUser : s.currentUser;
+    const userStorageKey = getUserStorageKey(activeUser?.username);
 
-      set((state) => {
-        const restoredGenerators = { ...state.generators };
-        if (data.generators) {
-          for (const key in data.generators) {
-            if (restoredGenerators[key]) {
-              restoredGenerators[key] = {
-                ...restoredGenerators[key],
-                level: data.generators[key].level || 0,
-                unlocked: !!data.generators[key].unlocked,
-              };
+    let localData: any = null;
+    try {
+      const raw = localStorage.getItem(userStorageKey) || localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        localData = JSON.parse(raw);
+        set((st) => restoreStateFromSaveData(st, localData));
+      }
+    } catch (e) {
+      console.warn('Erro ao restaurar do localStorage:', e);
+    }
+
+    // Carregamento da nuvem no Neon Postgres
+    if (activeUser && activeUser.username && activeUser.username !== 'convidado') {
+      try {
+        set({ isCloudSyncing: true, cloudSyncStatus: 'saving' });
+        const res = await fetch(apiUrl(`/api/load?username=${encodeURIComponent(activeUser.username)}`));
+        if (res.ok) {
+          const payload = await res.json();
+          if (payload.status === 'success' && payload.state) {
+            const cloudState = payload.state;
+            const cloudTimestamp = cloudState.lastSaveTimestamp || (cloudState.last_saved_time ? cloudState.last_saved_time * 1000 : 0);
+            const localTimestamp = localData?.lastSaveTimestamp || 0;
+
+            if (cloudTimestamp >= localTimestamp || !localData) {
+              set((st) => ({
+                ...restoreStateFromSaveData(st, cloudState),
+                isCloudSyncing: false,
+                cloudSyncStatus: 'synced',
+                lastCloudSyncTimestamp: cloudTimestamp,
+              }));
+              try {
+                localStorage.setItem(userStorageKey, JSON.stringify(cloudState));
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudState));
+              } catch {}
+            } else if (localData && localTimestamp > cloudTimestamp) {
+              // Local possui progresso mais recente (ex: jogou offline), sincroniza para o Neon
+              get().saveGame();
+            } else {
+              set({ isCloudSyncing: false, cloudSyncStatus: 'synced' });
             }
+            return;
           }
         }
-
-        return {
-          chakra: D(data.chakra || 0),
-          chakraAncestral: D(data.chakraAncestral || 0),
-          activeElement: data.activeElement || 'Fire',
-          inventory: deserializeInventory(data.inventory),
-          generators: restoredGenerators,
-          upgrades: { ...state.upgrades, ...(data.upgrades || {}) },
-          clanNodes: data.clanNodes || {},
-          claimedRankRewards: data.claimedRankRewards || {},
-          passedExams: data.passedExams || {},
-          gatesUnlocked: data.gatesUnlocked || 0,
-          exhaustionTimer: data.exhaustionTimer || 0,
-          clickExhaustionTimer: data.clickExhaustionTimer || 0,
-          onlinePresenceRewardsClaimed: data.onlinePresenceRewardsClaimed || {},
-          onlinePresenceBuffTimer: data.onlinePresenceBuffTimer || 0,
-          stableRollingCPS: D(data.stableRollingCPS || 0),
-          gachaTickets: data.gachaTickets || 0,
-          forgeFragments: data.forgeFragments || 0,
-          missionPermanentCpsMult: data.missionPermanentCpsMult || 1,
-          activeMission: data.activeMission
-            ? {
-                activeMissionId: data.activeMission.activeMissionId || null,
-                selectedChoiceId: data.activeMission.selectedChoiceId || null,
-                startedAt: data.activeMission.startedAt || null,
-                resolvesAt: data.activeMission.resolvesAt || null,
-                lastOutcome: data.activeMission.lastOutcome || null,
-                cooldownExpiresAt: data.activeMission.cooldownExpiresAt || null,
-              }
-            : state.activeMission,
-          gauntlet: data.gauntlet
-            ? {
-                currentActiveBossId: data.gauntlet.currentActiveBossId || 1,
-                highestBossDefeated:
-                  data.gauntlet.highestBossDefeated ?? data.gauntlet.maxUnlockedBoss ?? 0,
-                maxUnlockedBoss:
-                  data.gauntlet.highestBossDefeated ?? data.gauntlet.maxUnlockedBoss ?? 0,
-                cooldownExpiresAt: null,
-                isFighting: false,
-                bossCurrentHp: data.gauntlet.bossCurrentHp
-                  ? D(data.gauntlet.bossCurrentHp)
-                  : calculateBossHP(data.gauntlet.currentActiveBossId || 1),
-                bossTimeRemaining: data.gauntlet.bossTimeRemaining || 30,
-              }
-            : state.gauntlet,
-          combatStats: data.combatStats
-            ? {
-                level: Math.min(MAX_COMBAT_LEVEL, Math.max(1, data.combatStats.level || 1)),
-                currentXp: D(data.combatStats.currentXp || 0),
-                requiredXp: data.combatStats.requiredXp
-                  ? D(data.combatStats.requiredXp)
-                  : calculateRequiredXp(data.combatStats.level || 1),
-                unspentStatPoints: Math.max(0, data.combatStats.unspentStatPoints || 0),
-                strength: Math.max(10, data.combatStats.strength || 10),
-                vitality: Math.max(10, data.combatStats.vitality || 10),
-                agility: Math.max(5, data.combatStats.agility || 5),
-              }
-            : state.combatStats,
-          stats: {
-            ...state.stats,
-            manualClicksCurrentSession: 0,
-            manualClicksSession: 0,
-            manualClicksAllTime: data.stats?.manualClicksAllTime || 0,
-            highestCPSRecord: D(data.stats?.highestCPSRecord || 0),
-            totalPrestiges: data.stats?.totalPrestiges || 0,
-            playtimeSeconds: data.stats?.playtimeSeconds || 0,
-            totalChakraEarned: D(data.stats?.totalChakraEarned || 0),
-          },
-        };
-      });
-    } catch {
-      // Fallback
+        set({ isCloudSyncing: false, cloudSyncStatus: 'local_only' });
+      } catch {
+        set({ isCloudSyncing: false, cloudSyncStatus: 'local_only' });
+      }
     }
   },
 }));
