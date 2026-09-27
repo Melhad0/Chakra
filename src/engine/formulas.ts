@@ -2,7 +2,7 @@ import Decimal from 'break_infinity.js';
 import { D } from './BigNumber';
 import { GeneratorItem } from '../types/economy';
 import { getGeneratorMilestoneEffects } from '../constants/upgrades';
-import { EquipmentItem, ElementType } from '../types/inventory';
+import { EquipmentItem, ElementType, EquippedGearSlots } from '../types/inventory';
 
 /**
  * Constantes de Inflação Hardcore por Segmento de Nível do Gerador
@@ -263,7 +263,8 @@ export function calculateTotalCPS(
   equippedWeapon?: EquipmentItem | null,
   unlockedElements?: ElementType[],
   elementalSacrificePenaltyMult: number = 1,
-  isAvatarShinobi: boolean = false
+  isAvatarShinobi: boolean = false,
+  equippedGear?: Partial<EquippedGearSlots> | null
 ): Decimal {
   let total = D(0);
 
@@ -342,30 +343,27 @@ export function calculateTotalCPS(
     total = total.mul(missionMultiplier);
   }
 
-  // 11. Multiplicadores de Equipamento (Armadura & Arma)
-  if (equippedArmor) {
-    if (equippedArmor.bonusCpsMult && equippedArmor.bonusCpsMult.gt(1)) {
-      total = total.mul(equippedArmor.bonusCpsMult);
+  // 11. Multiplicadores de Equipamento de Todos os Slots
+  const itemsToApply: EquipmentItem[] = [];
+  if (equippedGear) {
+    for (const item of Object.values(equippedGear)) {
+      if (item) itemsToApply.push(item);
     }
-    if (
-      equippedArmor.elementalAffinityReq &&
-      unlockedElements?.includes(equippedArmor.elementalAffinityReq) &&
-      equippedArmor.elementalBonusCpsMult
-    ) {
-      total = total.mul(equippedArmor.elementalBonusCpsMult);
-    }
+  } else {
+    if (equippedArmor) itemsToApply.push(equippedArmor);
+    if (equippedWeapon) itemsToApply.push(equippedWeapon);
   }
 
-  if (equippedWeapon) {
-    if (equippedWeapon.bonusCpsMult && equippedWeapon.bonusCpsMult.gt(1)) {
-      total = total.mul(equippedWeapon.bonusCpsMult);
+  for (const item of itemsToApply) {
+    if (item.bonusCpsMult && item.bonusCpsMult.gt(1)) {
+      total = total.mul(item.bonusCpsMult);
     }
     if (
-      equippedWeapon.elementalAffinityReq &&
-      unlockedElements?.includes(equippedWeapon.elementalAffinityReq) &&
-      equippedWeapon.elementalBonusCpsMult
+      item.elementalAffinityReq &&
+      unlockedElements?.includes(item.elementalAffinityReq) &&
+      item.elementalBonusCpsMult
     ) {
-      total = total.mul(equippedWeapon.elementalBonusCpsMult);
+      total = total.mul(item.elementalBonusCpsMult);
     }
   }
 
@@ -399,7 +397,8 @@ export function calculateClickPower(
   claimedRankRewards: Record<string, boolean> = {},
   equippedWeapon?: EquipmentItem | null,
   equippedArmor?: EquipmentItem | null,
-  unlockedElements?: ElementType[]
+  unlockedElements?: ElementType[],
+  equippedGear?: Partial<EquippedGearSlots> | null
 ): Decimal {
   const baseClick = D(1);
 
@@ -448,30 +447,27 @@ export function calculateClickPower(
     clickMult = clickMult.mul(10.0);
   }
 
-  // Multiplicadores de Equipamento (Arma e Armadura)
-  if (equippedWeapon) {
-    if (equippedWeapon.bonusClickMult && equippedWeapon.bonusClickMult.gt(1)) {
-      clickMult = clickMult.mul(equippedWeapon.bonusClickMult);
+  // Multiplicadores de Equipamento de Todos os Slots
+  const clickItemsToApply: EquipmentItem[] = [];
+  if (equippedGear) {
+    for (const item of Object.values(equippedGear)) {
+      if (item) clickItemsToApply.push(item);
     }
-    if (
-      equippedWeapon.elementalAffinityReq &&
-      unlockedElements?.includes(equippedWeapon.elementalAffinityReq) &&
-      equippedWeapon.elementalBonusClickMult
-    ) {
-      clickMult = clickMult.mul(equippedWeapon.elementalBonusClickMult);
-    }
+  } else {
+    if (equippedWeapon) clickItemsToApply.push(equippedWeapon);
+    if (equippedArmor) clickItemsToApply.push(equippedArmor);
   }
 
-  if (equippedArmor) {
-    if (equippedArmor.bonusClickMult && equippedArmor.bonusClickMult.gt(1)) {
-      clickMult = clickMult.mul(equippedArmor.bonusClickMult);
+  for (const item of clickItemsToApply) {
+    if (item.bonusClickMult && item.bonusClickMult.gt(1)) {
+      clickMult = clickMult.mul(item.bonusClickMult);
     }
     if (
-      equippedArmor.elementalAffinityReq &&
-      unlockedElements?.includes(equippedArmor.elementalAffinityReq) &&
-      equippedArmor.elementalBonusClickMult
+      item.elementalAffinityReq &&
+      unlockedElements?.includes(item.elementalAffinityReq) &&
+      item.elementalBonusClickMult
     ) {
-      clickMult = clickMult.mul(equippedArmor.elementalBonusClickMult);
+      clickMult = clickMult.mul(item.elementalBonusClickMult);
     }
   }
 

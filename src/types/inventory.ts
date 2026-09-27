@@ -1,7 +1,56 @@
 import Decimal from 'break_infinity.js';
 
-export type EquipmentSlotType = 'ARMOR' | 'WEAPON';
-export type WeaponCategory = 'SWORD' | 'SPEAR' | 'HEAVY' | 'BLADE';
+export type EquipmentSlotType =
+  | 'ARMOR' // Alias legado -> CHESTPLATE
+  | 'WEAPON' // Alias legado -> WEAPON_MELEE
+  | 'HELMET'
+  | 'CHESTPLATE'
+  | 'BOOTS'
+  | 'GLOVES'
+  | 'BACKPACK'
+  | 'WEAPON_MELEE'
+  | 'WEAPON_RANGED'
+  | 'CLOAK'
+  | 'MASK'
+  | 'NECKLACE'
+  | 'RUNE';
+
+export type GearSlotKey =
+  | 'HELMET'
+  | 'CHESTPLATE'
+  | 'BOOTS'
+  | 'GLOVES'
+  | 'BACKPACK'
+  | 'WEAPON_MELEE'
+  | 'WEAPON_RANGED'
+  | 'CLOAK'
+  | 'MASK'
+  | 'NECKLACE'
+  | 'RUNE';
+
+export type EquippedGearSlots = Record<GearSlotKey, EquipmentItem | null>;
+
+export const DEFAULT_EQUIPPED_GEAR: EquippedGearSlots = {
+  HELMET: null,
+  CHESTPLATE: null,
+  BOOTS: null,
+  GLOVES: null,
+  BACKPACK: null,
+  WEAPON_MELEE: null,
+  WEAPON_RANGED: null,
+  CLOAK: null,
+  MASK: null,
+  NECKLACE: null,
+  RUNE: null,
+};
+
+export function normalizeEquipmentSlot(slot: EquipmentSlotType): GearSlotKey {
+  if (slot === 'ARMOR') return 'CHESTPLATE';
+  if (slot === 'WEAPON') return 'WEAPON_MELEE';
+  return slot as GearSlotKey;
+}
+
+export type WeaponCategory = 'SWORD' | 'SPEAR' | 'HEAVY' | 'BLADE' | 'BOW' | 'SHURIKEN';
 export type ItemRarity = 'COMMON' | 'UNCOMMON' | 'RARE' | 'EPIC' | 'LEGENDARY' | 'MYTHIC';
 export type ElementType = 'FIRE' | 'WIND' | 'LIGHTNING' | 'EARTH' | 'WATER';
 
@@ -36,8 +85,9 @@ export interface FarmMaterialItem extends BaseItem {
 export type InventorySlotItem = EquipmentItem | FarmMaterialItem;
 
 export interface PlayerInventoryState {
-  equippedArmor: EquipmentItem | null;
-  equippedWeapon: EquipmentItem | null;
+  equippedArmor: EquipmentItem | null; // Retrocompatibilidade (alias para equippedGear.CHESTPLATE)
+  equippedWeapon: EquipmentItem | null; // Retrocompatibilidade (alias para equippedGear.WEAPON_MELEE)
+  equippedGear: EquippedGearSlots; // Todos os 11 slots de equipamento oficial
   unlockedElements: ElementType[]; // De 1 até os 5 elementos
   inventoryBag: (InventorySlotItem | null)[]; // Grade fixa (32 slots)
   elementalSacrificePenaltyMult: number; // Penalidades cumulativas de CPS (-25% por sacrifício)

@@ -41,6 +41,10 @@ import {
   ElementType,
   PlayerInventoryState,
   InventorySlotItem,
+  EquippedGearSlots,
+  GearSlotKey,
+  DEFAULT_EQUIPPED_GEAR,
+  normalizeEquipmentSlot,
 } from '../types/inventory';
 import { rollBossLoot } from '../constants/equipmentCatalog';
 import { audio } from '../engine/audio';
@@ -194,6 +198,7 @@ export function createInitialInventory(initialElement?: ElementType): PlayerInve
   return {
     equippedArmor: null,
     equippedWeapon: null,
+    equippedGear: { ...DEFAULT_EQUIPPED_GEAR },
     unlockedElements: [initialElement || getRandomNatalElement()],
     inventoryBag: Array(32).fill(null),
     elementalSacrificePenaltyMult: 1.0,
@@ -202,27 +207,33 @@ export function createInitialInventory(initialElement?: ElementType): PlayerInve
 }
 
 function serializeInventory(inv: PlayerInventoryState) {
+  const serializeEquip = (item: EquipmentItem | null) =>
+    item
+      ? {
+          ...item,
+          bonusCpsMult: item.bonusCpsMult.toString(),
+          bonusClickMult: item.bonusClickMult.toString(),
+          bonusCritMult: item.bonusCritMult ? item.bonusCritMult.toString() : undefined,
+          elementalBonusCpsMult: item.elementalBonusCpsMult ? item.elementalBonusCpsMult.toString() : undefined,
+          elementalBonusClickMult: item.elementalBonusClickMult ? item.elementalBonusClickMult.toString() : undefined,
+        }
+      : null;
+
+  const currentGear = inv.equippedGear || {
+    ...DEFAULT_EQUIPPED_GEAR,
+    CHESTPLATE: inv.equippedArmor,
+    WEAPON_MELEE: inv.equippedWeapon,
+  };
+
+  const serializedGear: Record<string, any> = {};
+  for (const [key, itm] of Object.entries(currentGear)) {
+    serializedGear[key] = serializeEquip(itm);
+  }
+
   return {
-    equippedArmor: inv.equippedArmor
-      ? {
-          ...inv.equippedArmor,
-          bonusCpsMult: inv.equippedArmor.bonusCpsMult.toString(),
-          bonusClickMult: inv.equippedArmor.bonusClickMult.toString(),
-          bonusCritMult: inv.equippedArmor.bonusCritMult ? inv.equippedArmor.bonusCritMult.toString() : undefined,
-          elementalBonusCpsMult: inv.equippedArmor.elementalBonusCpsMult ? inv.equippedArmor.elementalBonusCpsMult.toString() : undefined,
-          elementalBonusClickMult: inv.equippedArmor.elementalBonusClickMult ? inv.equippedArmor.elementalBonusClickMult.toString() : undefined,
-        }
-      : null,
-    equippedWeapon: inv.equippedWeapon
-      ? {
-          ...inv.equippedWeapon,
-          bonusCpsMult: inv.equippedWeapon.bonusCpsMult.toString(),
-          bonusClickMult: inv.equippedWeapon.bonusClickMult.toString(),
-          bonusCritMult: inv.equippedWeapon.bonusCritMult ? inv.equippedWeapon.bonusCritMult.toString() : undefined,
-          elementalBonusCpsMult: inv.equippedWeapon.elementalBonusCpsMult ? inv.equippedWeapon.elementalBonusCpsMult.toString() : undefined,
-          elementalBonusClickMult: inv.equippedWeapon.elementalBonusClickMult ? inv.equippedWeapon.elementalBonusClickMult.toString() : undefined,
-        }
-      : null,
+    equippedArmor: serializeEquip(inv.equippedArmor || currentGear.CHESTPLATE),
+    equippedWeapon: serializeEquip(inv.equippedWeapon || currentGear.WEAPON_MELEE),
+    equippedGear: serializedGear,
     unlockedElements: inv.unlockedElements,
     elementalSacrificePenaltyMult: inv.elementalSacrificePenaltyMult,
     isAvatarShinobi: inv.isAvatarShinobi,
@@ -234,14 +245,7 @@ function serializeInventory(inv: PlayerInventoryState) {
           baseGoldValue: item.baseGoldValue.toString(),
         };
       }
-      return {
-        ...item,
-        bonusCpsMult: item.bonusCpsMult.toString(),
-        bonusClickMult: item.bonusClickMult.toString(),
-        bonusCritMult: item.bonusCritMult ? item.bonusCritMult.toString() : undefined,
-        elementalBonusCpsMult: item.elementalBonusCpsMult ? item.elementalBonusCpsMult.toString() : undefined,
-        elementalBonusClickMult: item.elementalBonusClickMult ? item.elementalBonusClickMult.toString() : undefined,
-      };
+      return serializeEquip(item);
     }),
   };
 }
@@ -280,9 +284,27 @@ function deserializeInventory(raw: any): PlayerInventoryState {
       ? raw.unlockedElements
       : [getRandomNatalElement()];
 
+  const rawGear = raw.equippedGear || {};
+  const parsedGear: EquippedGearSlots = { ...DEFAULT_EQUIPPED_GEAR };
+
+  for (const key of Object.keys(DEFAULT_EQUIPPED_GEAR) as GearSlotKey[]) {
+    if (rawGear[key]) {
+      parsedGear[key] = parseItem(rawGear[key]) as EquipmentItem;
+    }
+  }
+
+  // Fallbacks para saves legados que só tinham equippedArmor / equippedWeapon
+  if (!parsedGear.CHESTPLATE && raw.equippedArmor) {
+    parsedGear.CHESTPLATE = parseItem(raw.equippedArmor) as EquipmentItem;
+  }
+  if (!parsedGear.WEAPON_MELEE && raw.equippedWeapon) {
+    parsedGear.WEAPON_MELEE = parseItem(raw.equippedWeapon) as EquipmentItem;
+  }
+
   return {
-    equippedArmor: raw.equippedArmor ? (parseItem(raw.equippedArmor) as EquipmentItem) : null,
-    equippedWeapon: raw.equippedWeapon ? (parseItem(raw.equippedWeapon) as EquipmentItem) : null,
+    equippedArmor: parsedGear.CHESTPLATE,
+    equippedWeapon: parsedGear.WEAPON_MELEE,
+    equippedGear: parsedGear,
     unlockedElements,
     inventoryBag: bag,
     elementalSacrificePenaltyMult: typeof raw.elementalSacrificePenaltyMult === 'number' ? raw.elementalSacrificePenaltyMult : 1.0,
@@ -349,39 +371,36 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const item = s.inventory.inventoryBag[slotIndex];
     if (!item || item.type === 'MATERIAL') return false;
 
+    const targetSlot = normalizeEquipmentSlot(item.type);
     const newBag = [...s.inventory.inventoryBag];
+    const currentGear = s.inventory.equippedGear || { ...DEFAULT_EQUIPPED_GEAR };
+    const prevEquipped = currentGear[targetSlot] || null;
 
-    if (item.type === 'ARMOR') {
-      const prevEquipped = s.inventory.equippedArmor;
-      newBag[slotIndex] = prevEquipped;
-      set((state) => ({
-        inventory: {
-          ...state.inventory,
-          equippedArmor: item,
-          inventoryBag: newBag,
-        },
-      }));
-      audio.playLevelUp();
-      return true;
-    } else if (item.type === 'WEAPON') {
-      const prevEquipped = s.inventory.equippedWeapon;
-      newBag[slotIndex] = prevEquipped;
-      set((state) => ({
-        inventory: {
-          ...state.inventory,
-          equippedWeapon: item,
-          inventoryBag: newBag,
-        },
-      }));
-      audio.playLevelUp();
-      return true;
-    }
-    return false;
+    newBag[slotIndex] = prevEquipped;
+
+    const newEquippedGear: EquippedGearSlots = {
+      ...currentGear,
+      [targetSlot]: item,
+    };
+
+    set((state) => ({
+      inventory: {
+        ...state.inventory,
+        equippedGear: newEquippedGear,
+        equippedArmor: newEquippedGear.CHESTPLATE,
+        equippedWeapon: newEquippedGear.WEAPON_MELEE,
+        inventoryBag: newBag,
+      },
+    }));
+    audio.playLevelUp();
+    return true;
   },
 
   unequipItem: (slotType: EquipmentSlotType) => {
     const s = get();
-    const itemToUnequip = slotType === 'ARMOR' ? s.inventory.equippedArmor : s.inventory.equippedWeapon;
+    const targetSlot = normalizeEquipmentSlot(slotType);
+    const currentGear = s.inventory.equippedGear || { ...DEFAULT_EQUIPPED_GEAR };
+    const itemToUnequip = currentGear[targetSlot];
     if (!itemToUnequip) return false;
 
     const newBag = [...s.inventory.inventoryBag];
@@ -391,11 +410,17 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     }
 
     newBag[freeSlotIdx] = itemToUnequip;
+    const newEquippedGear: EquippedGearSlots = {
+      ...currentGear,
+      [targetSlot]: null,
+    };
+
     set((state) => ({
       inventory: {
         ...state.inventory,
-        equippedArmor: slotType === 'ARMOR' ? null : state.inventory.equippedArmor,
-        equippedWeapon: slotType === 'WEAPON' ? null : state.inventory.equippedWeapon,
+        equippedGear: newEquippedGear,
+        equippedArmor: newEquippedGear.CHESTPLATE,
+        equippedWeapon: newEquippedGear.WEAPON_MELEE,
         inventoryBag: newBag,
       },
     }));
@@ -1164,7 +1189,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       s.inventory.equippedWeapon,
       s.inventory.unlockedElements,
       s.inventory.elementalSacrificePenaltyMult,
-      s.inventory.isAvatarShinobi
+      s.inventory.isAvatarShinobi,
+      s.inventory.equippedGear
     );
 
     const baseClickPower = calculateClickPower(
@@ -1175,7 +1201,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       s.claimedRankRewards,
       s.inventory.equippedWeapon,
       s.inventory.equippedArmor,
-      s.inventory.unlockedElements
+      s.inventory.unlockedElements,
+      s.inventory.equippedGear
     );
 
     // Chance de Crítico
@@ -1187,18 +1214,18 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     if (s.clanNodes['mangekyo_sharingan_lineage']) critMult = 3.0;
     if (s.upgrades['night_guy']) critMult *= 2.5;
 
-    // Bônus de Crítico por Equipamentos
-    if (s.inventory.equippedWeapon?.bonusCritChance) {
-      critChance += s.inventory.equippedWeapon.bonusCritChance;
-    }
-    if (s.inventory.equippedArmor?.bonusCritChance) {
-      critChance += s.inventory.equippedArmor.bonusCritChance;
-    }
-    if (s.inventory.equippedWeapon?.bonusCritMult) {
-      critMult *= s.inventory.equippedWeapon.bonusCritMult.toNumber();
-    }
-    if (s.inventory.equippedArmor?.bonusCritMult) {
-      critMult *= s.inventory.equippedArmor.bonusCritMult.toNumber();
+    // Bônus de Crítico por Equipamentos de Todos os Slots
+    const allEquippedItems = s.inventory.equippedGear
+      ? Object.values(s.inventory.equippedGear).filter((itm): itm is EquipmentItem => !!itm)
+      : [s.inventory.equippedArmor, s.inventory.equippedWeapon].filter((itm): itm is EquipmentItem => !!itm);
+
+    for (const eqItem of allEquippedItems) {
+      if (eqItem.bonusCritChance) {
+        critChance += eqItem.bonusCritChance;
+      }
+      if (eqItem.bonusCritMult) {
+        critMult *= eqItem.bonusCritMult.toNumber();
+      }
     }
 
     // Passiva Elemental: Fogo (Katon) - +15% de Dano Crítico
@@ -1427,7 +1454,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         state.inventory.equippedWeapon,
         state.inventory.unlockedElements,
         state.inventory.elementalSacrificePenaltyMult,
-        state.inventory.isAvatarShinobi
+        state.inventory.isAvatarShinobi,
+        state.inventory.equippedGear
       );
 
       // Média móvel estável dos últimos 60 segundos (EMA com tau = 60s)

@@ -51,7 +51,8 @@ export const ViewHeader: React.FC<ViewHeaderProps> = ({
       inventory?.equippedWeapon,
       inventory?.unlockedElements,
       inventory?.elementalSacrificePenaltyMult,
-      inventory?.isAvatarShinobi
+      inventory?.isAvatarShinobi,
+      inventory?.equippedGear
     );
   }, [
     generators,

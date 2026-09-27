@@ -3,6 +3,7 @@ import {
   EquipmentItem,
   FarmMaterialItem,
   ItemRarity,
+  GearSlotKey,
 } from '../types/inventory';
 
 export interface BossLootDefinition {
@@ -1215,17 +1216,60 @@ export function getBossLootDefinition(bossId: number): BossLootDefinition {
   const multCps = D(1 + bossId * 0.05);
   const multClick = D(1 + bossId * 0.08);
 
+  const proceduralSlots: GearSlotKey[] = [
+    'HELMET',
+    'CHESTPLATE',
+    'BOOTS',
+    'GLOVES',
+    'BACKPACK',
+    'WEAPON_MELEE',
+    'WEAPON_RANGED',
+    'CLOAK',
+    'MASK',
+    'NECKLACE',
+    'RUNE',
+  ];
+  const assignedSlot = proceduralSlots[bossId % proceduralSlots.length];
+
+  const slotIcons: Record<GearSlotKey, string> = {
+    HELMET: 'Crown',
+    CHESTPLATE: 'Shield',
+    BOOTS: 'Footprints',
+    GLOVES: 'Hand',
+    BACKPACK: 'Briefcase',
+    WEAPON_MELEE: 'Swords',
+    WEAPON_RANGED: 'Crosshair',
+    CLOAK: 'Feather',
+    MASK: 'Eye',
+    NECKLACE: 'CircleDot',
+    RUNE: 'Sparkles',
+  };
+
+  const slotNames: Record<GearSlotKey, string> = {
+    HELMET: 'Elmo Astral',
+    CHESTPLATE: 'Armadura Dimensional',
+    BOOTS: 'Botas do Vórtice',
+    GLOVES: 'Manoplas da Fúria',
+    BACKPACK: 'Bolsa Tática do Vazio',
+    WEAPON_MELEE: 'Lâmina do Caos',
+    WEAPON_RANGED: 'Disparador Cósmico',
+    CLOAK: 'Manto Dimensional',
+    MASK: 'Máscara do Eclipse',
+    NECKLACE: 'Colar de Singularidade',
+    RUNE: 'Runa do Infinito',
+  };
+
   return {
     bossId,
     bossName: `Chefe Imperial #${bossId}`,
     equipment: {
       id: `eq_procedural_boss_${bossId}`,
-      name: `Relíquia Dimensional de Boss #${bossId}`,
+      name: `${slotNames[assignedSlot]} de Boss #${bossId}`,
       rarity,
-      type: bossId % 2 === 0 ? 'WEAPON' : 'ARMOR',
+      type: assignedSlot,
       weaponCategory: 'SWORD',
       description: `Artefato raro deixado após a queda do colossal chefe da fase #${bossId}.`,
-      iconName: bossId % 2 === 0 ? 'Swords' : 'Shield',
+      iconName: slotIcons[assignedSlot],
       bonusCpsMult: multCps,
       bonusClickMult: multClick,
       bonusCritChance: 0.15,
