@@ -1,0 +1,349 @@
+================================================================================
+CATÁLOGO OFICIAL DE CHEFES DO GAUNTLET (FASES 1 A 40)
+Chakra Clicker: A Jornada Ninja — Sistema de Desafios & Batalhas
+================================================================================
+
+FÓRMULAS GERAIS DE COMBATE:
+- Vida Máxima (HP): HP(n) = 500 * (1.42)^(n - 1)
+- Recompensa de Chakra: 250 * (1.18)^(n - 1) (com teto em 40x CPS estável)
+- Dano do Chefe: 20 * (1.12)^(n - 1) + (n * 5)
+- Cadência de Golpe do Chefe: 3.0s (tempo de preparação telegrafado)
+- Experiência (XP): 250 * (n)^1.75
+- Chance de Drop de Item: max(0.5%, 25% * (0.96)^(n - 1))
+
+--------------------------------------------------------------------------------
+TIER 1: INICIAL / CHŪNIN (FASES 1 A 8)
+--------------------------------------------------------------------------------
+
+[FASE 01] Mizuki
+- Título: Forma Bestial - Poção de Fígado
+- Nível/Patamar: Chūnin Renegado
+- Arco: Clássico (Prólogo)
+- Tempo: 30s | Chakra Ancestral: 1
+- Mecânica: Poção de Fígado Mutagênica (-50% dano recebido nos primeiros 10s)
+- Drop: Colete da Academia Rasgado + Shuriken Gigante Enferrujada
+
+[FASE 02] Ebisu & Força Policial de Konoha
+- Título: Instrutor Especial & Patrulha da Folha
+- Nível/Patamar: Especialista / Chūnin
+- Arco: Clássico (Exame Chūnin)
+- Tempo: 25s | Chakra Ancestral: 1
+- Mecânica: Cronômetro Rigoroso (tempo reduzido para 25 segundos)
+- Drop: Bandana Ninja de Treinamento Especial
+
+[FASE 03] Kankurō
+- Título: Marionete Corvo / Veneno Oculto
+- Nível/Patamar: Chūnin de Sunagakure
+- Arco: Clássico (Invasão de Konoha)
+- Tempo: 30s | Chakra Ancestral: 1
+- Mecânica: Névoa Venenosa da Marionete (20% de chance de ataques errarem)
+- Drop: Capuz Negro das Areias + Frasco de Veneno Concentrado
+
+[FASE 04] Genno
+- Título: O Armadilheiro de Fumaça
+- Nível/Patamar: Chūnin / Especialista
+- Arco: Filler Clássico
+- Tempo: 30s | Chakra Ancestral: 2
+- Mecânica: Mestre em Selos Explosivos (Dano sustentado no combate)
+- Drop: Bolsa de Selos Detonadores
+
+[FASE 05] Amachi
+- Título: Cientista do País do Mar
+- Nível/Patamar: Jōnin Baixo
+- Arco: Filler Clássico
+- Tempo: 30s | Chakra Ancestral: 2
+- Mecânica: Fisiologia Quimérica (Pele anfíbia resistente a ataques leves)
+- Drop: Escamas Quiméricas do Oceano
+
+[FASE 06] Ishidate
+- Título: Mestre da Petrificação
+- Nível/Patamar: Jōnin Baixo
+- Arco: Filme: A Lua Crescente
+- Tempo: 30s | Chakra Ancestral: 2
+- Mecânica: Manopla de Pedra (Golpes pesados de petrificação e alta densidade)
+- Drop: Manopla Mecânica de Rocha
+
+[FASE 07] Dotō Kazahana
+- Título: Tirano do País da Neve
+- Nível/Patamar: Jōnin Regular
+- Arco: Filme: O País da Neve
+- Tempo: 30s | Chakra Ancestral: 3
+- Mecânica: Armadura Negra de Chakra (Alta absorção de rajadas elementais)
+- Drop: Colete de Chakra das Neves
+
+[FASE 08] Shiranami
+- Título: Mestre dos Selos do Clã Tsuchigumo
+- Nível/Patamar: Jōnin Regular
+- Arco: Filler Shippuden
+- Tempo: 30s | Chakra Ancestral: 3
+- Mecânica: Kanji de Contenção (Barreiras de escrita que bloqueiam avanços)
+- Drop: Amuleto Protetor Tsuchigumo
+
+--------------------------------------------------------------------------------
+TIER 2: JŌNIN / INVASÕES (FASES 9 A 21)
+--------------------------------------------------------------------------------
+
+[FASE 09] Jirōbō
+- Título: Selo Amaldiçoado Nível 2 / Prisão de Terra
+- Nível/Patamar: Jōnin / Quarteto do Som
+- Arco: Resgate de Sasuke
+- Tempo: 35s | Chakra Ancestral: 4
+- Mecânica: Prisão da Cúpula de Terra (Anula acertos críticos acima de 70% de vida)
+- Drop: Braçadeiras do Titã de Terra
+
+[FASE 10] Sakon e Ukon
+- Título: Selo Amaldiçoado Nível 2 / Fusão Celular
+- Nível/Patamar: Jōnin / Quarteto do Som
+- Arco: Resgate de Sasuke
+- Tempo: 35s | Chakra Ancestral: 4 | Bônus: 3 Fragmentos de Armas
+- Mecânica: Regeneração Celular (Cura 2% de vida por segundo se CPS for baixo)
+- Drop: Manto Duplo do Selo Amaldiçoado
+
+[FASE 11] Tayuya
+- Título: Selo Amaldiçoado Nível 2 / Três Ogros Doki
+- Nível/Patamar: Jōnin / Quarteto do Som
+- Arco: Resgate de Sasuke
+- Tempo: 35s | Chakra Ancestral: 4
+- Mecânica: Melodia Fantasma (Drena 1% do Chakra total do jogador a cada 5s)
+- Drop: Flauta Demoníaca dos Doki
+
+[FASE 12] Baki da Areia
+- Título: Lâmina de Vento Invisível
+- Nível/Patamar: Jōnin de Elite de Sunagakure
+- Arco: Clássico (Invasão de Konoha)
+- Tempo: 35s | Chakra Ancestral: 5
+- Mecânica: Corte de Vento Centrado (Apenas cliques no centro exato causam dano)
+- Drop: Lâmina de Vácuo Oculta
+
+[FASE 13] Haido
+- Título: Mestre de Gelel
+- Nível/Patamar: Jōnin Alto
+- Arco: Filme: A Pedra de Gelel
+- Tempo: 35s | Chakra Ancestral: 5
+- Mecânica: Regeneração Gelel (Alta densidade e regeneração muscular acelerada)
+- Drop: Runa Encantada de Gelel
+
+[FASE 14] Toroi da Nuvem
+- Título: Usuário do Jiton Magnético
+- Nível/Patamar: Jōnin de Elite
+- Arco: Quarta Guerra Ninja
+- Tempo: 35s | Chakra Ancestral: 5
+- Mecânica: Shurikens Magnéticas (Campos eletromagnéticos teleguiados)
+- Drop: Anel de Magnetismo Jiton
+
+[FASE 15] Gari da Pedra
+- Título: Punho de Bakuton Explosivo
+- Nível/Patamar: Jōnin de Elite
+- Arco: Quarta Guerra Ninja
+- Tempo: 35s | Chakra Ancestral: 6
+- Mecânica: Impacto Detonante (Explosões contínuas no solo)
+- Drop: Luvas de Detonação Bakuton
+
+[FASE 16] Kushimaru Kuriarare
+- Título: Lâmina Costuradora (Nuibari)
+- Nível/Patamar: Sete Espadachins da Névoa
+- Arco: Quarta Guerra Ninja
+- Tempo: 35s | Chakra Ancestral: 6
+- Mecânica: Costura Mortal (Fios ultrafinos que perfuram e prendem alvos)
+- Drop: Nuibari - A Agulha Costuradora
+
+[FASE 17] Jinpachi Munashi
+- Título: Espada Explosiva (Shibuki)
+- Nível/Patamar: Sete Espadachins da Névoa
+- Arco: Quarta Guerra Ninja
+- Tempo: 35s | Chakra Ancestral: 6
+- Mecânica: Rolo de Detonação (Detonações em cadeia contínuas no campo)
+- Drop: Shibuki - Lâmina Explosiva
+
+[FASE 18] Chiyo Reanimada
+- Título: Dez Marionetes de Monzaemon
+- Nível/Patamar: Veterana de Elite / Quase-Kage
+- Arco: Quarta Guerra Ninja
+- Tempo: 40s | Chakra Ancestral: 7
+- Mecânica: Esquadrão Branco (Invoca 10 marionetes antes de expor a vida)
+- Drop: Fios de Chakra da Marionetista
+
+[FASE 19] Pakura da Areia
+- Título: Heroína do Shakuton (Calor)
+- Nível/Patamar: Jōnin Superior (Kekkei Genkai)
+- Arco: Quarta Guerra Ninja
+- Tempo: 35s | Chakra Ancestral: 7
+- Mecânica: Esferas Incandescentes (Dessecação instantânea e vaporização de ar)
+- Drop: Orbe de Calor Solar Shakuton
+
+[FASE 20] Fū Yamanaka & Torune Aburame
+- Título: Guardiões da Raiz ANBU
+- Nível/Patamar: Elite da Fundação ANBU
+- Arco: Cúpula dos Cinco Kages
+- Tempo: 35s | Chakra Ancestral: 8 | Bônus: 5 Fragmentos + 1 Ticket
+- Mecânica: Nano-Insetos Tóxicos (Letalidade biológica em nível celular)
+- Drop: Máscara Tática da Raiz ANBU
+
+[FASE 21] Guren
+- Título: Mestra da Liberação de Cristal (Shōton)
+- Nível/Patamar: Pré-Kage
+- Arco: Filler Shippuden (Sanbi)
+- Tempo: 35s | Chakra Ancestral: 8
+- Mecânica: Labirinto de Cristal de Jade (Superfícies de cristal refratárias)
+- Drop: Armadura de Cristal Carmesim
+
+--------------------------------------------------------------------------------
+TIER 3: KAGE / LENDÁRIO (FASES 22 A 33)
+--------------------------------------------------------------------------------
+
+[FASE 22] Mifune
+- Título: Lâmina Kurosawa - Corte Iai
+- Nível/Patamar: Mestre Samurai Supremo / Nível Kage
+- Arco: Cúpula dos Kages / Quarta Guerra
+- Tempo: 40s | Chakra Ancestral: 10
+- Mecânica: Corte Iaidō (A cada 8s silencia jutsus e bônus de clique por 2s)
+- Drop: Katana Kurosawa dos Samurais
+
+[FASE 23] Shinnō
+- Título: Mestre do Chakra Escuro
+- Nível/Patamar: Kage Baixo
+- Arco: Filme: Kizuna (Laços)
+- Tempo: 40s | Chakra Ancestral: 10
+- Mecânica: Oito Portões Obscuros (Potência física extrema sem dano fatal)
+- Drop: Faixas dos Oito Portões Negros
+
+[FASE 24] Rasa
+- Título: Quarto Kazekage (Pó de Ouro)
+- Nível/Patamar: Kage Médio
+- Arco: Clássico / Guerra Ninja
+- Tempo: 40s | Chakra Ancestral: 12
+- Mecânica: Muralha de Sakin (Ouro denso que amortece impactos sucessivos)
+- Drop: Manto Cerimonial do Kazekage
+
+[FASE 25] Hiruko
+- Título: Quimera de Quatro Kekkei Genkai
+- Nível/Patamar: Kage Médio / Alto
+- Arco: Filme: Herdeiros da Vontade do Fogo
+- Tempo: 40s | Chakra Ancestral: 14
+- Mecânica: Síntese das 4 Linhagens (Absorção Meiton, aço Kōton e rajada Ranton)
+- Drop: Quimera Rúnica de Quatro Elementos
+
+[FASE 26] Danzō Shimura
+- Título: Liberação de Madeira Incompleta & Baku
+- Nível/Patamar: Kage Obscuro / Líder da Raiz
+- Arco: Cúpula dos Cinco Kages
+- Tempo: 40s | Chakra Ancestral: 16
+- Mecânica: Vórtice Faminto do Baku (Suga espaço impondo lentidão de ataque)
+- Drop: Bastão Oculto com Lâmina de Vento
+
+[FASE 27] Muku / Demônio Satori
+- Título: Terror da Prisão de Sangue
+- Nível/Patamar: Kage Alto / Quase-Bijuu
+- Arco: Filme: Blood Prison
+- Tempo: 40s | Chakra Ancestral: 18
+- Mecânica: Esquiva Empática (Prevê e esquiva de ataques sem energia natural)
+- Drop: Asas Corrompidas de Satori
+
+[FASE 28] Mukade
+- Título: Forma Ryūmyaku de Rōran
+- Nível/Patamar: Kage Alto / Fortaleza Móvel
+- Arco: Filme: A Torre Perdida
+- Tempo: 40s | Chakra Ancestral: 20
+- Mecânica: Manancial de Ryūmyaku (Auto-reparo contínuo via linhas energéticas)
+- Drop: Núcleo Energético de Ryūmyaku
+
+[FASE 29] Kinkaku & Ginkaku
+- Título: Manto da Raposa / Ferramentas Sagradas
+- Nível/Patamar: Kage Histórico / Pseudo-Jinchūriki
+- Arco: Quarta Guerra Ninja
+- Tempo: 40s | Chakra Ancestral: 22
+- Mecânica: Palavra Proibida (Clicar nos botões amaldiçoados consome 15% do tempo)
+- Drop: Corda da Clareza - Kōkinjō
+
+[FASE 30] Terceiro Raikage
+- Título: Armadura Raiton & Quatro Dedos
+- Nível/Patamar: Kage Lendário Supremo
+- Arco: Quarta Guerra Ninja
+- Tempo: 40s | Chakra Ancestral: 25 | Bônus: 8 Fragmentos + 1 Ticket
+- Mecânica: Armadura Raiton Indestrutível (Imunidade a dano passivo/CPS)
+- Drop: Manopla Relâmpago do Nukite
+
+[FASE 31] Muu
+- Título: Segundo Tsuchikage - Jinton / Fissão
+- Nível/Patamar: Kage Lendário
+- Arco: Quarta Guerra Ninja
+- Tempo: 45s | Chakra Ancestral: 28
+- Mecânica: Fissão de Poeira (Em 50% de HP divide-se em 2 barras de vida)
+- Drop: Manto de Poeira Invisível
+
+[FASE 32] Hanzō da Salamandra
+- Título: O Carrasco dos Três Sannin
+- Nível/Patamar: Kage Histórico Lendário
+- Arco: Segunda Guerra Ninja
+- Tempo: 40s | Chakra Ancestral: 30
+- Mecânica: Veneno de Ibuse (Névoa corrosiva que consome vitalidade contínua)
+- Drop: Foice Kusarigama Corrosiva
+
+[FASE 33] Gengetsu Hōzuki
+- Título: Segundo Mizukage (Jōki Boi)
+- Nível/Patamar: Kage Lendário
+- Arco: Quarta Guerra Ninja
+- Tempo: 40s | Chakra Ancestral: 35
+- Mecânica: Jōki Boi & Miragem do Marisco (Miragens com clones explosivos)
+- Drop: Selo da Miragem do Marisco Gigante
+
+--------------------------------------------------------------------------------
+TIER 4: CONTINENTAL / DIVINO (FASES 34 A 40)
+--------------------------------------------------------------------------------
+
+[FASE 34] Mōryō
+- Título: Demônio do Chakra Sombrio
+- Nível/Patamar: Ameaça Continental
+- Arco: Filme: Shippuden O Filme
+- Tempo: 45s | Chakra Ancestral: 40
+- Mecânica: Legião Espectral Ancestral (Exército de pedra com regeneração escura)
+- Drop: Coroa Espectral das Sombras
+
+[FASE 35] Shin Uchiha
+- Título: Telecinese de Lâminas & Múltiplos Mangekyōs
+- Nível/Patamar: Quase-Divino / Superior a Kage
+- Arco: Gaiden: O Sétimo Hokage
+- Tempo: 45s | Chakra Ancestral: 45
+- Mecânica: Dança das Lâminas Telecinéticas (Projéteis telecinéticos Sharingan)
+- Drop: Lâmina Telecinética Mangekyō
+
+[FASE 36] Menma Uzumaki
+- Título: Avatar das Sombras & Dai Rasenringu
+- Nível/Patamar: Bijuu Completo / Avatar das Sombras
+- Arco: Filme: Road to Ninja
+- Tempo: 45s | Chakra Ancestral: 50
+- Mecânica: Dai Rasenringu (Anel gravitacional colapsante de aniquilação)
+- Drop: Manto da Raposa Negra de Nove Caudas
+
+[FASE 37] Toneri Otsutsuki
+- Título: Modo Chakra do Tenseigan
+- Nível/Patamar: Divino Planetário (Otsutsuki)
+- Arco: O Filme: The Last
+- Tempo: 45s | Chakra Ancestral: 65
+- Mecânica: QTE Espada Lunar (Exige 3 cliques em 1s ou é derrota imediata!)
+- Drop: Esferas do Tenseigan Lunar
+
+[FASE 38] Urashiki Otsutsuki
+- Título: Pescador Celestial de Almas & Rinnegan
+- Nível/Patamar: Divino (Otsutsuki)
+- Arco: Boruto: Arco do Passado
+- Tempo: 45s | Chakra Ancestral: 80
+- Mecânica: Fisga Dimensional de Almas (Pesca e drena o chakra do oponente)
+- Drop: Vara de Pesca Celestial do Rinnegan
+
+[FASE 39] Kinshiki Otsutsuki
+- Título: Titã Forjador de Armas de Chakra
+- Nível/Patamar: Divino Máximo (Otsutsuki de Combate)
+- Arco: Boruto: Exame Chunin
+- Tempo: 45s | Chakra Ancestral: 100
+- Mecânica: Arsenal Vermelho dos Céus (Forja e impacto de alabardas gigantes)
+- Drop: Alabarda Escarlate de Kinshiki
+
+[FASE 40] Isshiki Otsutsuki
+- Título: Daikokuten / Cubos Negros de Compressão
+- Nível/Patamar: Divino Supremo Absoluto
+- Arco: Boruto: Arco de Kara
+- Tempo: 45s | Chakra Ancestral: 150 | Bônus: 10 Fragmentos + 2 Tickets
+- Mecânica: Cubos Negros (Monólitos que suprimem a Árvore de Clãs até serem quebrados)
+- Drop: Cubo Negro de Compressão Temporal
+================================================================================

@@ -58,8 +58,24 @@ export default {
         'parry-pulse': 'parryPulse 1.6s cubic-bezier(0.2, 0.8, 0.3, 1) infinite',
         'float-fade': 'floatFade 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards',
         'shockwave-pulse': 'shockwavePulse 0.5s ease-out forwards',
+        'shimmer': 'shimmerGradient 4s linear infinite',
+        'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
+        'starlight': 'starlightFlash 3s ease-in-out infinite alternate',
       },
       keyframes: {
+        shimmerGradient: {
+          '0%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+          '100%': { backgroundPosition: '0% 50%' },
+        },
+        pulseGlow: {
+          '0%, 100%': { filter: 'drop-shadow(0 0 6px rgba(168, 85, 247, 0.4))' },
+          '50%': { filter: 'drop-shadow(0 0 14px rgba(168, 85, 247, 0.8))' },
+        },
+        starlightFlash: {
+          '0%': { boxShadow: '0 0 8px #ffffff' },
+          '100%': { boxShadow: '0 0 20px #ffffff, 0 0 35px rgba(255,255,255,0.6)' },
+        },
         pulseSlow: {
           '0%': { transform: 'scale(0.98)' },
           '100%': { transform: 'scale(1.02)' },
@@ -118,6 +134,8 @@ export default {
         'chakra-glow': '0 0 25px rgba(0, 229, 255, 0.4)',
         'fire-glow': '0 0 25px rgba(255, 61, 0, 0.5)',
         'gold-glow': '0 0 25px rgba(255, 215, 0, 0.5)',
+        'adm-vacuum': '0 0 20px rgba(0, 0, 0, 0.9), inset 0 0 8px rgba(255, 255, 255, 0.25)',
+        'divine-star': '0 0 16px #ffffff, 0 0 30px rgba(255, 255, 255, 0.4)',
       },
     },
   },

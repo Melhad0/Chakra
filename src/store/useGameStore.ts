@@ -53,6 +53,7 @@ import {
   DEFAULT_EQUIPPED_GEAR,
   normalizeEquipmentSlot,
 } from '../types/inventory';
+import { normalizeItemRarity } from '../types/rarity';
 import { rollBossLoot } from '../constants/equipmentCatalog';
 import { audio } from '../engine/audio';
 
@@ -268,14 +269,17 @@ function deserializeInventory(raw: any): PlayerInventoryState {
 
   const parseItem = (item: any): InventorySlotItem | null => {
     if (!item) return null;
+    const normalizedRarity = normalizeItemRarity(item.rarity);
     if (item.type === 'MATERIAL') {
       return {
         ...item,
+        rarity: normalizedRarity,
         baseGoldValue: D(item.baseGoldValue || 0),
       };
     }
     return {
       ...item,
+      rarity: normalizedRarity,
       bonusCpsMult: D(item.bonusCpsMult || 1),
       bonusClickMult: D(item.bonusClickMult || 1),
       bonusCritMult: item.bonusCritMult ? D(item.bonusCritMult) : undefined,
@@ -507,7 +511,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       };
     }
 
-    // 4º Elemento: 5.000 CA + Sacrifício de Arma ÉPICA ou superior
+    // 4º Elemento: 5.000 CA + Sacrifício de Arma ÉPICA ou superior (Épica, Lendária, Mítica, Divina ou ADM)
     if (currentCount === 3) {
       if (s.chakraAncestral.lt(5000)) {
         return { success: false, message: 'Chakra Ancestral insuficiente. Requer 5.000 CA.' };
@@ -516,8 +520,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         return { success: false, message: 'Selecione uma arma de raridade Épica ou superior da mochila para sacrificar.' };
       }
       const weaponItem = s.inventory.inventoryBag[weaponSlotIndex];
-      if (!weaponItem || weaponItem.type !== 'WEAPON' || !['EPIC', 'LEGENDARY', 'MYTHIC'].includes(weaponItem.rarity)) {
-        return { success: false, message: 'O item selecionado não é uma arma Épica, Lendária ou Mítica válida.' };
+      const isWeapon =
+        weaponItem &&
+        (weaponItem.type === 'WEAPON' ||
+          weaponItem.type === 'WEAPON_MELEE' ||
+          weaponItem.type === 'WEAPON_RANGED');
+      if (!isWeapon || !['EPIC', 'LEGENDARY', 'MYTHIC', 'DIVINE', 'ADM'].includes(weaponItem.rarity)) {
+        return { success: false, message: 'O item selecionado não é uma arma Épica, Lendária, Mítica, Divina ou ADM válida.' };
       }
 
       set((state) => {
@@ -535,21 +544,26 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       audio.playLevelUp();
       return {
         success: true,
-        message: '4º Elemento despertado! A arma rara foi completamente incinerada no ritual de sacrifício.',
+        message: '4º Elemento despertado! A arma lendária foi completamente incinerada no ritual de sacrifício.',
       };
     }
 
-    // 5º Elemento: 50.000 CA + Arma LENDÁRIA/MÍTICA + Dreno de 40% do Chakra Atual (Avatar Shinobi)
+    // 5º Elemento: 50.000 CA + Arma LENDÁRIA, MÍTICA, DIVINA ou ADM + Dreno de 40% do Chakra Atual (Avatar Shinobi)
     if (currentCount === 4) {
       if (s.chakraAncestral.lt(50000)) {
         return { success: false, message: 'Chakra Ancestral insuficiente. Requer 50.000 CA.' };
       }
       if (weaponSlotIndex === undefined || weaponSlotIndex < 0 || weaponSlotIndex >= 32) {
-        return { success: false, message: 'Selecione uma arma Lendária ou Mítica para o sacrifício supremo.' };
+        return { success: false, message: 'Selecione uma arma Lendária, Mítica, Divina ou ADM para o sacrifício supremo.' };
       }
       const weaponItem = s.inventory.inventoryBag[weaponSlotIndex];
-      if (!weaponItem || weaponItem.type !== 'WEAPON' || !['LEGENDARY', 'MYTHIC'].includes(weaponItem.rarity)) {
-        return { success: false, message: 'O item selecionado não é uma arma Lendária ou Mítica válida.' };
+      const isWeapon =
+        weaponItem &&
+        (weaponItem.type === 'WEAPON' ||
+          weaponItem.type === 'WEAPON_MELEE' ||
+          weaponItem.type === 'WEAPON_RANGED');
+      if (!isWeapon || !['LEGENDARY', 'MYTHIC', 'DIVINE', 'ADM'].includes(weaponItem.rarity)) {
+        return { success: false, message: 'O item selecionado não é uma arma Lendária, Mítica, Divina ou ADM válida.' };
       }
 
       set((state) => {

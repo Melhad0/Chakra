@@ -15,6 +15,7 @@ import {
 } from '../../constants/bosses';
 import { BossData, MAX_COMBAT_LEVEL } from '../../types/combat';
 import { getBossLootDefinition, calculateBossDropProbability } from '../../constants/equipmentCatalog';
+import { getRarityConfig } from '../../types/rarity';
 import { Badge } from '../common/Badge';
 import { IconRenderer } from '../common/IconRenderer';
 import { ViewHeader } from './ViewHeader';
@@ -1220,19 +1221,38 @@ export const ChallengesView: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center text-amber-400">
-                    <IconRenderer name={lootDef.equipment.iconName || 'Shield'} className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <h5 className="text-xs font-bold text-zinc-100 truncate">
-                      {lootDef.equipment.name}
-                    </h5>
-                    <span className="text-[10px] font-mono text-zinc-400 block">
-                      Raridade: <strong className="text-amber-300">{lootDef.equipment.rarity}</strong> • Slot: {lootDef.equipment.type}
-                    </span>
-                  </div>
-                </div>
+                {(() => {
+                  const eqRarity = getRarityConfig(lootDef.equipment.rarity);
+                  return (
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-10 h-10 rounded-lg bg-zinc-900 border flex items-center justify-center flex-shrink-0 ${
+                          eqRarity.borderClass
+                        } ${eqRarity.glowClass} ${eqRarity.bgGradientClass || ''}`}
+                      >
+                        <IconRenderer
+                          name={lootDef.equipment.iconName || 'Swords'}
+                          className="w-5 h-5 text-zinc-100"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <h5 className={`text-xs font-bold truncate ${eqRarity.textClass}`}>
+                          {lootDef.equipment.name}
+                        </h5>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <span
+                            className={`text-[9px] font-mono px-1.5 py-0.5 rounded border uppercase font-bold ${eqRarity.badgeClass}`}
+                          >
+                            {eqRarity.label}
+                          </span>
+                          <span className="text-[10px] font-mono text-zinc-400">
+                            • {lootDef.equipment.weaponCategory || lootDef.equipment.type}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <p className="text-[10px] font-mono text-zinc-400 leading-relaxed border-t border-zinc-800/80 pt-1.5">
                   {lootDef.equipment.description}
@@ -1250,17 +1270,28 @@ export const ChallengesView: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-cyan-400">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h5 className="text-xs font-semibold text-zinc-200">{lootDef.material.name}</h5>
-                    <span className="text-[10px] font-mono text-zinc-500">
-                      Raridade: {lootDef.material.rarity}
-                    </span>
-                  </div>
-                </div>
+                {(() => {
+                  const matRarity = getRarityConfig(lootDef.material.rarity);
+                  return (
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={`w-8 h-8 rounded-lg bg-zinc-900 border flex items-center justify-center flex-shrink-0 text-cyan-400 ${
+                          matRarity.borderClass
+                        } ${matRarity.glowClass}`}
+                      >
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <h5 className="text-xs font-semibold text-zinc-200 truncate">{lootDef.material.name}</h5>
+                        <span
+                          className={`text-[9px] font-mono px-1 py-0.2 rounded border uppercase font-bold inline-block mt-0.5 ${matRarity.badgeClass}`}
+                        >
+                          {matRarity.label}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Bônus de XP de Combate Shinobi */}

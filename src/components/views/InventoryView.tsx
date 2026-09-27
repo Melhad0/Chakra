@@ -5,10 +5,10 @@ import {
   EquipmentItem,
   InventorySlotItem,
   ElementType,
-  ItemRarity,
   GearSlotKey,
   normalizeEquipmentSlot,
 } from '../../types/inventory';
+import { RARITY_CONFIG, getRarityConfig } from '../../types/rarity';
 import { ViewHeader } from './ViewHeader';
 import {
   Briefcase,
@@ -39,67 +39,6 @@ import {
   CircleDot,
   Layers,
 } from 'lucide-react';
-
-const RARITY_CONFIG: Record<
-  ItemRarity,
-  {
-    label: string;
-    badgeClass: string;
-    borderClass: string;
-    glowClass: string;
-    textClass: string;
-    colorHex: string;
-  }
-> = {
-  COMMON: {
-    label: 'Comum',
-    badgeClass: 'bg-zinc-800 text-zinc-300 border-zinc-700',
-    borderClass: 'border-zinc-700/80',
-    glowClass: 'shadow-[0_0_8px_rgba(255,255,255,0.05)]',
-    textClass: 'text-zinc-300',
-    colorHex: '#a1a1aa',
-  },
-  UNCOMMON: {
-    label: 'Incomum',
-    badgeClass: 'bg-emerald-950/60 text-emerald-300 border-emerald-600/60',
-    borderClass: 'border-emerald-500/70',
-    glowClass: 'shadow-[0_0_12px_rgba(16,185,129,0.3)]',
-    textClass: 'text-emerald-400',
-    colorHex: '#10b981',
-  },
-  RARE: {
-    label: 'Raro',
-    badgeClass: 'bg-cyan-950/60 text-cyan-300 border-cyan-500/70',
-    borderClass: 'border-cyan-400/80',
-    glowClass: 'shadow-[0_0_15px_rgba(6,182,212,0.4)]',
-    textClass: 'text-cyan-400',
-    colorHex: '#06b6d4',
-  },
-  EPIC: {
-    label: 'Épico',
-    badgeClass: 'bg-purple-950/60 text-purple-300 border-purple-500/80',
-    borderClass: 'border-purple-500/90',
-    glowClass: 'shadow-[0_0_18px_rgba(168,85,247,0.45)]',
-    textClass: 'text-purple-400',
-    colorHex: '#a855f7',
-  },
-  LEGENDARY: {
-    label: 'Lendário',
-    badgeClass: 'bg-amber-950/60 text-amber-300 border-amber-400',
-    borderClass: 'border-amber-400',
-    glowClass: 'shadow-[0_0_22px_rgba(251,191,36,0.55)]',
-    textClass: 'text-amber-400',
-    colorHex: '#f59e0b',
-  },
-  MYTHIC: {
-    label: 'Mítico',
-    badgeClass: 'bg-rose-950/60 text-rose-300 border-rose-500',
-    borderClass: 'border-rose-500',
-    glowClass: 'shadow-[0_0_25px_rgba(244,63,94,0.65)]',
-    textClass: 'text-rose-400',
-    colorHex: '#f43f5e',
-  },
-};
 
 const ELEMENT_CONFIG: Record<
   ElementType,
@@ -495,10 +434,17 @@ export const InventoryView: React.FC = () => {
   const currentCount = inventory.unlockedElements.length;
   const eligibleSacrificeWeapons = useMemo(() => {
     if (currentCount !== 3 && currentCount !== 4) return [];
-    const minRarities = currentCount === 3 ? ['EPIC', 'LEGENDARY', 'MYTHIC'] : ['LEGENDARY', 'MYTHIC'];
+    const minRarities =
+      currentCount === 3
+        ? ['EPIC', 'LEGENDARY', 'MYTHIC', 'DIVINE', 'ADM']
+        : ['LEGENDARY', 'MYTHIC', 'DIVINE', 'ADM'];
     const result: { item: EquipmentItem; slotIndex: number }[] = [];
     inventory.inventoryBag.forEach((slot, idx) => {
-      if (slot && slot.type !== 'MATERIAL' && minRarities.includes(slot.rarity)) {
+      const isWeapon =
+        slot &&
+        slot.type !== 'MATERIAL' &&
+        (slot.type === 'WEAPON' || slot.type === 'WEAPON_MELEE' || slot.type === 'WEAPON_RANGED');
+      if (isWeapon && minRarities.includes(slot.rarity)) {
         result.push({ item: slot as EquipmentItem, slotIndex: idx });
       }
     });
@@ -530,7 +476,7 @@ export const InventoryView: React.FC = () => {
     const item = currentGear[slotKey];
     const isSelected = selectedSlot?.source === 'GEAR' && selectedSlot.gearKey === slotKey;
     const isFilterTarget = selectedGearSlotFilter === slotKey;
-    const rarityStyle = item ? RARITY_CONFIG[item.rarity] : null;
+    const rarityStyle = item ? getRarityConfig(item.rarity) : null;
     const IconComponent = meta.icon;
 
     return (
@@ -551,7 +497,7 @@ export const InventoryView: React.FC = () => {
             : 'w-16 h-16 sm:w-18 sm:h-18 rounded-2xl border'
         } ${
           item && rarityStyle
-            ? `${rarityStyle.borderClass} ${rarityStyle.glowClass} bg-zinc-950/90 hover:scale-105 active:scale-95`
+            ? `${rarityStyle.borderClass} ${rarityStyle.glowClass} ${rarityStyle.bgGradientClass || 'bg-zinc-950/90'} hover:scale-105 active:scale-95`
             : isFilterTarget
             ? 'border-cyan-400 bg-cyan-950/30 ring-2 ring-cyan-400/50'
             : 'border-zinc-800/80 hover:border-purple-500/60 bg-zinc-950/60 hover:bg-zinc-900/80 border-dashed'
@@ -856,13 +802,15 @@ export const InventoryView: React.FC = () => {
                     );
                   }
 
-                  const rarityStyle = RARITY_CONFIG[item.rarity];
+                  const rarityStyle = item ? getRarityConfig(item.rarity) : RARITY_CONFIG.COMMON;
 
                   return (
                     <div
                       key={`slot-item-${item.id}-${index}`}
                       onClick={() => setSelectedSlot({ source: 'BAG', index })}
-                      className={`w-full aspect-square rounded-xl border flex items-center justify-center relative transition-all cursor-pointer bg-zinc-900/80 hover:scale-105 ${
+                      className={`w-full aspect-square rounded-xl border flex items-center justify-center relative transition-all cursor-pointer ${
+                        rarityStyle.bgGradientClass || 'bg-zinc-900/80'
+                      } hover:scale-105 ${
                         rarityStyle.borderClass
                       } ${rarityStyle.glowClass} ${
                         isSelected ? 'ring-2 ring-cyan-400 shadow-cyan-500/20 shadow-lg' : ''
@@ -889,7 +837,9 @@ export const InventoryView: React.FC = () => {
 
               {/* CARD DE DETALHES DINÂMICO DO ITEM INSPECIONADO */}
               <div className="mt-3 bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-3.5 flex-1 flex flex-col justify-between">
-                {inspectedItem ? (
+                {inspectedItem ? (() => {
+                  const inspectedRarity = getRarityConfig(inspectedItem.rarity);
+                  return (
                   <div className="flex flex-col h-full justify-between gap-2.5">
                     <div>
                       {/* Header do Item Inspecionado */}
@@ -897,8 +847,10 @@ export const InventoryView: React.FC = () => {
                         <div className="flex items-center gap-3">
                           <div
                             className={`w-11 h-11 rounded-xl bg-zinc-900 border flex items-center justify-center ${
-                              RARITY_CONFIG[inspectedItem.rarity].borderClass
-                            } ${RARITY_CONFIG[inspectedItem.rarity].glowClass}`}
+                              inspectedRarity.borderClass
+                            } ${inspectedRarity.glowClass} ${
+                              inspectedRarity.bgGradientClass || ''
+                            }`}
                           >
                             {renderItemIcon(inspectedItem.iconName, 'w-6 h-6 text-zinc-100')}
                           </div>
@@ -906,17 +858,17 @@ export const InventoryView: React.FC = () => {
                             <div className="flex items-center gap-2">
                               <h4
                                 className={`text-sm font-bold tracking-wide ${
-                                  RARITY_CONFIG[inspectedItem.rarity].textClass
+                                  inspectedRarity.textClass
                                 }`}
                               >
                                 {inspectedItem.name}
                               </h4>
                               <span
                                 className={`text-[9px] font-mono px-2 py-0.5 rounded border uppercase font-bold ${
-                                  RARITY_CONFIG[inspectedItem.rarity].badgeClass
+                                  inspectedRarity.badgeClass
                                 }`}
                               >
-                                {RARITY_CONFIG[inspectedItem.rarity].label}
+                                {inspectedRarity.label}
                               </span>
                             </div>
                             <span className="text-[10px] font-mono text-zinc-500">
@@ -1069,7 +1021,8 @@ export const InventoryView: React.FC = () => {
                       )}
                     </div>
                   </div>
-                ) : (
+                  );
+                })() : (
                   <div className="flex flex-col items-center justify-center text-center h-full text-zinc-500 gap-2 p-4">
                     <Briefcase className="w-7 h-7 text-zinc-700 stroke-[1.5]" />
                     <span className="text-xs font-semibold text-zinc-400">Nenhum Item em Inspeção</span>
@@ -1295,7 +1248,7 @@ export const InventoryView: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-between text-amber-300 border-t border-zinc-800 pt-1">
                     <span>Oferenda de Lâmina Divina:</span>
-                    <span className="font-bold">1x Arma Lendária ou Mítica</span>
+                    <span className="font-bold">1x Arma Lendária, Mítica, Divina ou ADM</span>
                   </div>
                 </>
               )}
@@ -1309,7 +1262,9 @@ export const InventoryView: React.FC = () => {
                 </span>
                 {eligibleSacrificeWeapons.length > 0 ? (
                   <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto custom-scrollbar">
-                    {eligibleSacrificeWeapons.map(({ item, slotIndex }) => (
+                    {eligibleSacrificeWeapons.map(({ item, slotIndex }) => {
+                      const itemRarity = getRarityConfig(item.rarity);
+                      return (
                       <div
                         key={`sac-weapon-${slotIndex}`}
                         onClick={() => setSelectedSacrificeWeaponSlot(slotIndex)}
@@ -1323,15 +1278,16 @@ export const InventoryView: React.FC = () => {
                           {renderItemIcon(item.iconName, 'w-4 h-4 text-zinc-200')}
                         </div>
                         <div className="truncate">
-                          <span className={`font-bold block truncate ${RARITY_CONFIG[item.rarity].textClass}`}>
+                          <span className={`font-bold block truncate ${itemRarity.textClass}`}>
                             {item.name}
                           </span>
                           <span className="text-[10px] text-zinc-500 uppercase">
-                            {RARITY_CONFIG[item.rarity].label}
+                            {itemRarity.label}
                           </span>
                         </div>
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
                 ) : (
                   <div className="p-3 rounded-lg bg-rose-950/30 border border-rose-900/60 text-xs font-mono text-rose-300 text-center">

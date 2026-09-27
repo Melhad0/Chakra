@@ -51,7 +51,8 @@ export function normalizeEquipmentSlot(slot: EquipmentSlotType): GearSlotKey {
 }
 
 export type WeaponCategory = 'SWORD' | 'SPEAR' | 'HEAVY' | 'BLADE' | 'BOW' | 'SHURIKEN';
-export type ItemRarity = 'COMMON' | 'UNCOMMON' | 'RARE' | 'EPIC' | 'LEGENDARY' | 'MYTHIC';
+import { ItemRarity } from './rarity';
+export type { ItemRarity };
 export type ElementType = 'FIRE' | 'WIND' | 'LIGHTNING' | 'EARTH' | 'WATER';
 
 export interface BaseItem {

@@ -51,12 +51,23 @@ O jogador canaliza Chakra através de selos manuais, recruta legiões de shinobi
 
 ### 🛡️ 4. Inventário & Paper Doll Rúnico de 11 Slots
 - **Interface Estilo ARPG Clássico**:
-  - 11 slots dedicados para equipar o shinobi: *Elmo/Bandana*, *Colar/Amuleto*, *Ombreiras*, *Colete Peitoral*, *Luvas/Manoplas*, *Braçadeiras/Cinto*, *Calças*, *Sandálias/Botas*, *Anel Ninja*, *Arma Principal* (espadas lendárias) e *Arma Secundária/Escudo* (kunais, leques e shurikens).
-- **Mochila Ninja com 32 Slots**: Organização visual de itens obtidos nos saques de chefes.
-- **Hierarquia de Raridades**: *Comum*, *Incomum*, *Raro*, *Épico*, *Lendário* e *Mítico*.
-- **Os 5 Grandes Elementos (Katon, Fuuton, Raiton, Doton e Suiton)**:
+  - 11 slots dedicados para equipar o shinobi: *Capacete/Protetor*, *Peitoral/Colete*, *Luvas/Manoplas*, *Botas/Sandálias*, *Arma Corpo a Corpo (Melee)*, *Arma de Longo Alcance (Ranged)*, *Máscara Shinobi*, *Capa/Manto*, *Mochila Tática*, *Colar/Amuleto* e *Runa/Magatama*.
+- **Mochila Ninja com 32 Slots**: Organização visual de equipamentos e materiais com badges, filtros dinâmicos e painel de inspeção detalhado.
+- **Sistema de 10 Tiers Oficiais de Raridade**:
+  - `01. Básico` (#71717A - Cinza Neutro, borda fosca)
+  - `02. Comum` (#15803D - Verde Terroso)
+  - `03. Incomum` (#22C55E - Verde Vívido Jade, brilho esmeralda)
+  - `04. Raro` (#1D4ED8 - Azul Safira Profundo)
+  - `05. Muito Raro` (#00F0FF - Azul Neon Cyan Glow)
+  - `06. Épico` (#A855F7 - Roxo Místico Astral)
+  - `07. Lendário` (#EAB308 - Âmbar Dourado Solar)
+  - `08. Mítico` (#EC4899 - Shimmer Prismático Arco-Íris Animado)
+  - `09. Divino` (#FFFFFF - Luz Celestial Branca Estelar)
+  - `10. ADM's` (#09090B - Vácuo Obsidiana Absoluta com Borda Cromada)
+- **Armas Canônicas Dedicadas para os 40 Chefes**: Cada um dos 40 chefes do Gauntlet possui sua arma temática exclusiva distribuída coerentemente nos 10 tiers (desde a *Shuriken Gigante* de Mizuki até a *Lança Daikokuten* de Isshiki Otsutsuki).
+- **Os 5 Grandes Elementos (Katon, Fūton, Raiton, Doton e Suiton)**:
   - Afinidade natal sorteada ao iniciar.
-  - Sub-aba dedicada aos 5 Elementos com sistema de **Sacrifício Elemental** de equipamentos excedentes para liberar novas naturezas de chakra.
+  - Sub-aba dedicada aos 5 Elementos com sistema de **Sacrifício Elemental** de armas excedentes (Épicas, Lendárias, Míticas, Divinas e ADM) para desbloquear novas naturezas de chakra.
   - Conquista do status primordial de **Shinobi Avatar**.
 
 ### 📜 5. Quadro de Missões Shinobi
