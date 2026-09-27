@@ -565,9 +565,6 @@ export const ChallengesView: React.FC = () => {
 
   return (
     <div className="w-full h-full bg-[#05070d] text-zinc-100 flex flex-col overflow-hidden select-none relative">
-      {/* CENÁRIO DE GUERRA ANIMADO DINÂMICO CONFORME O PODER DO CHEFE */}
-      <BattlefieldBackground bossId={currentBoss.id} isFighting={gauntlet.isFighting} />
-
       {/* CABEÇALHO DA ARENA */}
       <div className="relative z-10">
         <ViewHeader
@@ -585,15 +582,18 @@ export const ChallengesView: React.FC = () => {
       {/* ÁREA PRINCIPAL: PALCO DE BATALHA + PAINÉIS DE ATRIBUTOS E CATÁLOGO */}
       <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 overflow-hidden relative z-10">
         {/* ================================================================= */}
-        {/* 1. PALCO CENTRAL DE DUELO COM AMBIENTAÇÃO DE GUERRA               */}
+        {/* 1. PALCO CENTRAL DE DUELO COM CENÁRIO DE GUERRA (ESTILO PRINT 2)   */}
         {/* ================================================================= */}
-        <section className="flex-1 bg-zinc-950/70 backdrop-blur-md border border-zinc-800/90 rounded-2xl shadow-2xl p-5 flex flex-col justify-between overflow-y-auto custom-scrollbar relative">
+        <section className="flex-1 relative rounded-2xl overflow-hidden border border-zinc-800/80 bg-zinc-950/95 shadow-2xl p-5 flex flex-col justify-between overflow-y-auto custom-scrollbar select-none group/arena min-h-[520px]">
+          {/* Cenário de Guerra com God Rays, Radar e Orbes Encapsulado na Box */}
+          <BattlefieldBackground bossId={currentBoss.id} isFighting={gauntlet.isFighting} />
+
           {/* TOPO: Informações do Chefe */}
-          <div>
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 flex-wrap gap-2">
+          <div className="relative z-10">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 flex-wrap gap-2 bg-zinc-950/40 backdrop-blur-md p-3.5 rounded-xl border border-white/5 shadow-md">
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-12 h-12 rounded-xl bg-zinc-900/90 border flex items-center justify-center transition-all ${
+                  className={`w-12 h-12 rounded-xl bg-zinc-900/80 backdrop-blur-sm border flex items-center justify-center transition-all ${
                     isHit
                       ? 'border-rose-500 scale-95 text-rose-400'
                       : isCleared
@@ -620,7 +620,7 @@ export const ChallengesView: React.FC = () => {
                         <Swords className="w-3 h-3" /> ALVO ATIVO
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-zinc-900 border border-zinc-800 text-zinc-500">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-zinc-900/80 border border-zinc-800 text-zinc-500">
                         <Lock className="w-3 h-3" /> BLOQUEADO
                       </span>
                     )}
@@ -634,7 +634,7 @@ export const ChallengesView: React.FC = () => {
               {/* Distintivos & Recompensas em Destaque */}
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="neutral">{currentBoss.tier}</Badge>
-                <div className="px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-zinc-800 text-right font-mono text-xs shadow">
+                <div className="px-2.5 py-1 rounded-lg bg-zinc-900/80 backdrop-blur-sm border border-white/10 text-right font-mono text-xs shadow">
                   <span className="text-[10px] text-zinc-500 uppercase block">Recompensa</span>
                   <span className="text-orange-400 font-bold">+{formatBigNumber(effectiveRewardChakra)}</span>
                   <span className="text-amber-300 text-[10px] ml-1.5 font-semibold">+{currentBoss.bountyAncestral} Anc</span>
@@ -645,14 +645,14 @@ export const ChallengesView: React.FC = () => {
 
             {/* FEEDBACK BANNERS (VITÓRIA OU DERROTA) */}
             {victoryMessage && (
-              <div className="mt-3 p-3 rounded-xl bg-emerald-950/70 border border-emerald-700/80 text-emerald-300 text-xs font-mono flex items-center gap-2 shadow-lg animate-in fade-in">
+              <div className="mt-3 p-3 rounded-xl bg-emerald-950/80 backdrop-blur-md border border-emerald-700/80 text-emerald-300 text-xs font-mono flex items-center gap-2 shadow-lg animate-in fade-in">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                 <span className="whitespace-pre-line">{victoryMessage}</span>
               </div>
             )}
 
             {defeatMessage && (
-              <div className="mt-3 p-3 rounded-xl bg-rose-950/80 border border-rose-700/90 text-rose-300 text-xs font-mono flex items-center justify-between gap-3 shadow-lg animate-in fade-in">
+              <div className="mt-3 p-3 rounded-xl bg-rose-950/85 backdrop-blur-md border border-rose-700/90 text-rose-300 text-xs font-mono flex items-center justify-between gap-3 shadow-lg animate-in fade-in">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
                   <span className="whitespace-pre-line">{defeatMessage}</span>
@@ -667,7 +667,7 @@ export const ChallengesView: React.FC = () => {
             )}
 
             {/* DUAL COMBAT HUD: BARRA DO CHEFE + BARRA DO JOGADOR + CAST DE ATAQUE */}
-            <div className="mt-4 space-y-3 bg-zinc-950/60 p-3.5 rounded-xl border border-zinc-800/80">
+            <div className="mt-3 space-y-3 bg-zinc-950/45 backdrop-blur-md p-3.5 rounded-xl border border-white/10 shadow-lg">
               {/* 1. Barra de Vida do Chefe */}
               <div>
                 <div className="flex items-center justify-between text-xs font-mono mb-1">
@@ -678,7 +678,7 @@ export const ChallengesView: React.FC = () => {
                     {formatBigNumber(bossHp)} / {formatBigNumber(currentBoss.hp)} ({bossHpPercent.toFixed(1)}%)
                   </span>
                 </div>
-                <div className="w-full h-4 bg-zinc-950 rounded-lg overflow-hidden relative border border-zinc-800 p-0.5">
+                <div className="w-full h-4 bg-zinc-950/80 rounded-lg overflow-hidden relative border border-white/10 p-0.5 shadow-inner">
                   <div
                     style={{ width: `${bossGhostPercent}%` }}
                     className="absolute top-0.5 bottom-0.5 left-0.5 bg-amber-500/40 rounded-md transition-all duration-400"
@@ -692,7 +692,7 @@ export const ChallengesView: React.FC = () => {
                 </div>
               </div>
 
-              {/* 2. Barra de Telegraph do Golpe do Chefe (Cadência ~3.0s, mais lenta que o jogador) */}
+              {/* 2. Barra de Telegraph do Golpe do Chefe */}
               <div>
                 <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                   <span className="text-amber-400/90 flex items-center gap-1.5">
@@ -703,7 +703,7 @@ export const ChallengesView: React.FC = () => {
                     {gauntlet.isFighting ? `${Math.round(bossAttackProgress)}%` : 'Aguardando Início'}
                   </span>
                 </div>
-                <div className="w-full h-2 bg-zinc-950 rounded-md overflow-hidden border border-zinc-800/80 p-0.5">
+                <div className="w-full h-2 bg-zinc-950/80 rounded-md overflow-hidden border border-white/10 p-0.5">
                   <div
                     style={{ width: `${gauntlet.isFighting ? bossAttackProgress : 0}%` }}
                     className={`h-full rounded transition-all duration-75 ${
@@ -721,7 +721,7 @@ export const ChallengesView: React.FC = () => {
                     Sua Vida (Shinobi)
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-cyan-300 font-mono px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-800/60">
+                    <span className="text-[10px] text-cyan-300 font-mono px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-700/60 shadow">
                       💨 Esquiva: {playerDodgeChance}%
                     </span>
                     <span className="text-zinc-200 font-bold">
@@ -729,7 +729,7 @@ export const ChallengesView: React.FC = () => {
                     </span>
                   </div>
                 </div>
-                <div className="w-full h-3.5 bg-zinc-950 rounded-lg overflow-hidden relative border border-zinc-800 p-0.5">
+                <div className="w-full h-3.5 bg-zinc-950/80 rounded-lg overflow-hidden relative border border-white/10 p-0.5 shadow-inner">
                   <div
                     style={{ width: `${playerGhostPercent}%` }}
                     className="absolute top-0.5 bottom-0.5 left-0.5 bg-rose-500/40 rounded-md transition-all duration-400"
@@ -760,15 +760,15 @@ export const ChallengesView: React.FC = () => {
           </div>
 
           {/* CENTRO: ÁREA DE INTERAÇÃO OU DISPARO DE COMBATE */}
-          <div className="my-4 flex flex-col items-center justify-center">
+          <div className="relative z-10 my-4 flex flex-col items-center justify-center">
             {isLocked ? (
               /* Estado 1: Chefe Futuro Bloqueado */
-              <div className="text-center p-6 rounded-2xl bg-zinc-950/80 border border-zinc-800 max-w-md w-full shadow-xl">
-                <div className="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 mx-auto mb-3">
+              <div className="text-center p-6 rounded-2xl bg-zinc-950/50 backdrop-blur-md border border-white/10 max-w-md w-full shadow-2xl">
+                <div className="w-12 h-12 rounded-xl bg-zinc-900/80 border border-white/10 flex items-center justify-center text-zinc-500 mx-auto mb-3 shadow">
                   <Lock className="w-6 h-6 stroke-[1.75]" />
                 </div>
                 <h3 className="text-sm font-bold text-zinc-300 mb-1">Barreira Territorial Trancada</h3>
-                <p className="text-xs text-zinc-500 font-mono mb-4 leading-relaxed">
+                <p className="text-xs text-zinc-400 font-mono mb-4 leading-relaxed">
                   Supere o chefe #{gauntlet.currentActiveBossId} para ter acesso a este confronto da Grande Guerra.
                 </p>
                 <button
@@ -780,8 +780,8 @@ export const ChallengesView: React.FC = () => {
               </div>
             ) : !gauntlet.isFighting ? (
               /* Estado 2: Pronto para Iniciar Combate Manual */
-              <div className="text-center p-6 rounded-2xl bg-zinc-950/80 border border-zinc-800 max-w-md w-full shadow-2xl">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-950/60 to-orange-950/60 border border-rose-700/60 flex items-center justify-center text-rose-400 mx-auto mb-3 shadow-inner">
+              <div className="text-center p-6 rounded-2xl bg-zinc-950/50 backdrop-blur-md border border-white/10 max-w-md w-full shadow-2xl">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-950/80 to-orange-950/80 border border-rose-600/70 flex items-center justify-center text-rose-400 mx-auto mb-3 shadow-lg shadow-rose-950/50">
                   <Swords className="w-7 h-7 stroke-[1.75]" />
                 </div>
                 <h3 className="text-sm font-bold text-zinc-100 mb-1">
@@ -792,15 +792,15 @@ export const ChallengesView: React.FC = () => {
                 </p>
 
                 <div className="grid grid-cols-3 gap-2 mb-4 text-center font-mono text-[10px]">
-                  <div className="p-2 rounded-lg bg-zinc-900/80 border border-zinc-800">
+                  <div className="p-2 rounded-lg bg-zinc-900/70 backdrop-blur-sm border border-white/10">
                     <span className="text-zinc-500 block">Seu Dano</span>
                     <span className="text-amber-400 font-bold">{formatBigNumber(playerBaseDamage)}</span>
                   </div>
-                  <div className="p-2 rounded-lg bg-zinc-900/80 border border-zinc-800">
+                  <div className="p-2 rounded-lg bg-zinc-900/70 backdrop-blur-sm border border-white/10">
                     <span className="text-zinc-500 block">Sua Vida</span>
                     <span className="text-emerald-400 font-bold">{formatBigNumber(playerMaxHp)}</span>
                   </div>
-                  <div className="p-2 rounded-lg bg-zinc-900/80 border border-zinc-800">
+                  <div className="p-2 rounded-lg bg-zinc-900/70 backdrop-blur-sm border border-white/10">
                     <span className="text-zinc-500 block">Dano Chefe</span>
                     <span className="text-rose-400 font-bold">{bossAttackDamage}</span>
                   </div>
@@ -808,7 +808,7 @@ export const ChallengesView: React.FC = () => {
 
                 <button
                   onClick={handleStartFight}
-                  className="w-full py-3.5 px-4 rounded-xl text-xs font-mono font-bold uppercase tracking-wider bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-500 hover:to-orange-500 text-white border border-rose-500 shadow-xl shadow-rose-950/50 active:scale-95 transition cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-3.5 px-4 rounded-xl text-xs font-mono font-bold uppercase tracking-wider bg-gradient-to-r from-rose-600 via-orange-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white border border-rose-500 shadow-xl shadow-rose-950/60 active:scale-95 transition cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Swords className="w-4 h-4" /> Iniciar Batalha
                 </button>
@@ -841,21 +841,21 @@ export const ChallengesView: React.FC = () => {
                 {/* BOTÃO DE ATAQUE MANUAL DO JOGADOR */}
                 <button
                   onClick={() => handleAttackBoss(true)}
-                  className={`w-36 h-36 rounded-full bg-gradient-to-b from-rose-950 via-zinc-950 to-black border-2 flex flex-col items-center justify-center shadow-2xl transition-all duration-100 cursor-pointer active:scale-90 ${
-                    isHit ? 'border-rose-400 scale-95 shadow-rose-900/80' : 'border-rose-700/80 hover:border-rose-500 hover:scale-105'
+                  className={`relative z-10 w-36 h-36 rounded-full bg-gradient-to-b from-rose-950/90 via-zinc-950/90 to-black/95 backdrop-blur-md border-2 flex flex-col items-center justify-center shadow-2xl transition-all duration-100 cursor-pointer active:scale-90 ${
+                    isHit ? 'border-rose-400 scale-95 shadow-rose-900/90' : 'border-rose-700/80 hover:border-rose-500 hover:scale-105'
                   }`}
                 >
                   <Swords className="w-10 h-10 text-rose-400 stroke-[1.75]" />
                   <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-200 font-bold mt-2">
                     Golpear
                   </span>
-                  <span className="text-[9px] font-mono text-amber-400/90 font-semibold">
+                  <span className="text-[9px] font-mono text-amber-400 font-semibold">
                     ~{formatBigNumber(playerBaseDamage)} Dano
                   </span>
                 </button>
 
-                <span className="text-[10px] font-mono text-zinc-500 mt-2">
-                  (Auto-ataque rítmico a cada 0.8s + cliques manuais livres)
+                <span className="text-[10px] font-mono text-zinc-400 mt-2 bg-zinc-950/60 px-2 py-0.5 rounded-full border border-white/5">
+                  (Auto-ataque a cada 0.8s + cliques manuais livres)
                 </span>
 
                 {/* Botão de Borda para Mecânica do Baki */}
@@ -863,7 +863,7 @@ export const ChallengesView: React.FC = () => {
                   <div className="mt-3 flex gap-2">
                     <button
                       onClick={() => handleAttackBoss(false)}
-                      className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 text-zinc-500 text-xs font-mono rounded-lg hover:bg-zinc-800"
+                      className="px-3 py-1.5 bg-zinc-900/80 backdrop-blur-sm border border-white/10 text-zinc-400 text-xs font-mono rounded-lg hover:bg-zinc-800"
                     >
                       Golpe na Borda
                     </button>
@@ -878,7 +878,7 @@ export const ChallengesView: React.FC = () => {
 
                 {/* QTE Especial do Toneri */}
                 {toneriQteActive && (
-                  <div className="mt-3 p-3 rounded-xl bg-cyan-950/80 border border-cyan-600 flex items-center justify-between gap-3 w-full animate-pulse">
+                  <div className="mt-3 p-3 rounded-xl bg-cyan-950/90 backdrop-blur-md border border-cyan-500 flex items-center justify-between gap-3 w-full animate-pulse shadow-lg">
                     <div className="text-xs font-mono text-cyan-300 font-bold">
                       QTE: Bloqueie a Espada de Prata! ({toneriClicks}/3 cliques) • {toneriTimer.toFixed(1)}s
                     </div>
@@ -893,7 +893,7 @@ export const ChallengesView: React.FC = () => {
 
                 {/* Cubos de Daikokuten do Isshiki */}
                 {currentBoss.mechanic.type === 'isshiki_cubes' && isshikiCubes > 0 && (
-                  <div className="mt-3 p-3 rounded-xl bg-zinc-950/90 border border-zinc-800 flex items-center justify-between gap-3 w-full">
+                  <div className="mt-3 p-3 rounded-xl bg-zinc-950/90 backdrop-blur-md border border-white/10 flex items-center justify-between gap-3 w-full">
                     <div className="text-xs font-mono text-zinc-400">
                       Cubos Negros ({isshikiCubes}/3)
                     </div>
@@ -908,7 +908,7 @@ export const ChallengesView: React.FC = () => {
 
                 {/* Palavra Tabu de Kinkaku */}
                 {currentBoss.mechanic.type === 'kinkaku_words' && (
-                  <div className="mt-3 p-3 rounded-xl bg-purple-950/70 border border-purple-800/80 flex items-center justify-between gap-3 w-full">
+                  <div className="mt-3 p-3 rounded-xl bg-purple-950/80 backdrop-blur-md border border-purple-700/80 flex items-center justify-between gap-3 w-full">
                     <div className="text-xs font-mono text-purple-300">
                       Palavra Tabu: <strong>"{forbiddenWord}"</strong>
                     </div>
@@ -924,7 +924,7 @@ export const ChallengesView: React.FC = () => {
                 {/* Botão de Recuo Tático */}
                 <button
                   onClick={handleRetreat}
-                  className="mt-3 text-xs font-mono text-zinc-500 hover:text-zinc-300 underline cursor-pointer"
+                  className="mt-3 text-xs font-mono text-zinc-400 hover:text-zinc-200 underline cursor-pointer"
                 >
                   Recuar do Confronto
                 </button>
@@ -932,19 +932,19 @@ export const ChallengesView: React.FC = () => {
             )}
 
             {/* Mecânica do Chefe */}
-            <div className="mt-3 max-w-lg text-center px-4 py-2 rounded-xl bg-zinc-950/80 border border-zinc-850 text-xs text-zinc-400 font-mono shadow">
+            <div className="mt-3 max-w-lg text-center px-4 py-2 rounded-xl bg-zinc-950/50 backdrop-blur-md border border-white/10 text-xs text-zinc-300 font-mono shadow">
               <span className="text-zinc-200 font-semibold mr-1">[{currentBoss.mechanic.title}]:</span>
               <span>{currentBoss.mechanic.description}</span>
             </div>
           </div>
 
           {/* RODAPÉ DA ARENA: Navegação entre Chefes */}
-          <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between gap-3 flex-wrap">
+          <div className="relative z-10 pt-3 border-t border-white/10 flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <button
                 disabled={selectedBossId <= 1}
                 onClick={() => setSelectedBossId((prev) => Math.max(1, prev - 1))}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-xs font-mono disabled:opacity-30 disabled:cursor-not-allowed transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900/70 hover:bg-zinc-800 border border-white/10 text-xs font-mono disabled:opacity-30 disabled:cursor-not-allowed transition backdrop-blur-sm cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" /> Anterior
               </button>
@@ -952,7 +952,7 @@ export const ChallengesView: React.FC = () => {
               <button
                 disabled={selectedBossId >= GAUNTLET_BOSSES.length}
                 onClick={() => setSelectedBossId((prev) => Math.min(GAUNTLET_BOSSES.length, prev + 1))}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-xs font-mono disabled:opacity-30 disabled:cursor-not-allowed transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900/70 hover:bg-zinc-800 border border-white/10 text-xs font-mono disabled:opacity-30 disabled:cursor-not-allowed transition backdrop-blur-sm cursor-pointer"
               >
                 Próximo <ChevronRight className="w-4 h-4" />
               </button>
@@ -960,7 +960,7 @@ export const ChallengesView: React.FC = () => {
 
             <button
               onClick={() => setSelectedBossId(gauntlet.currentActiveBossId)}
-              className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-mono text-zinc-300 transition"
+              className="px-3 py-1.5 rounded-lg bg-zinc-900/70 hover:bg-zinc-800 border border-white/10 text-xs font-mono text-zinc-300 transition backdrop-blur-sm cursor-pointer"
             >
               Focar no Alvo Ativo (#{gauntlet.currentActiveBossId})
             </button>
