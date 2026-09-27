@@ -10,33 +10,11 @@ export const BattlefieldBackground: React.FC<BattlefieldBackgroundProps> = ({
   isFighting,
 }) => {
   // 4 Tiers temáticos de ambiente de guerra com base no chefe
-  const { tier, themeTitle, badgeColor } = useMemo(() => {
-    if (bossId >= 51) {
-      return {
-        tier: 4,
-        themeTitle: 'Ruína Otsutsuki • Vórtice Dimensional',
-        badgeColor: 'border-purple-600/60 bg-purple-950/80 text-purple-300',
-      };
-    }
-    if (bossId >= 26) {
-      return {
-        tier: 3,
-        themeTitle: 'Grande Guerra • Céu Carmesim',
-        badgeColor: 'border-rose-600/60 bg-rose-950/80 text-rose-300',
-      };
-    }
-    if (bossId >= 11) {
-      return {
-        tier: 2,
-        themeTitle: 'Trincheiras de Guerra • Chamas',
-        badgeColor: 'border-amber-600/60 bg-amber-950/80 text-amber-300',
-      };
-    }
-    return {
-      tier: 1,
-      themeTitle: 'Bosque Hostil • Névoa Tenebrosa',
-      badgeColor: 'border-emerald-600/60 bg-emerald-950/80 text-emerald-300',
-    };
+  const tier = useMemo(() => {
+    if (bossId >= 51) return 4;
+    if (bossId >= 26) return 3;
+    if (bossId >= 11) return 2;
+    return 1;
   }, [bossId]);
 
   // Partículas dinâmicas de cinzas e brasas incandescentes
@@ -384,17 +362,7 @@ export const BattlefieldBackground: React.FC<BattlefieldBackgroundProps> = ({
         ))}
       </div>
 
-      {/* =================================================================== */}
-      {/* 9. BADGE DE STATUS DO CENÁRIO NO CANTO SUPERIOR DIREITO             */}
-      {/* =================================================================== */}
-      <div className="absolute top-3.5 right-3.5 pointer-events-none z-20">
-        <div
-          className={`px-2.5 py-1 rounded-full border text-[10px] font-mono font-semibold flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-colors ${badgeColor}`}
-        >
-          <span className={`w-1.5 h-1.5 rounded-full ${isFighting ? 'bg-rose-400 animate-ping' : 'bg-current'}`} />
-          <span>{isFighting ? '⚔️ ' : ''}{themeTitle}</span>
-        </div>
-      </div>
+
 
       {/* =================================================================== */}
       {/* 10. VINHETA CINEMATOGRÁFICA SUAVE DE PROFUNDIDADE                  */}
