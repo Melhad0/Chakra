@@ -84,7 +84,6 @@ export const ActionStage: React.FC = () => {
   const exhaustionTimer = useGameStore((s) => s.exhaustionTimer);
   const clickExhaustionTimer = useGameStore((s) => s.clickExhaustionTimer);
   const onlinePresenceBuffTimer = useGameStore((s) => s.onlinePresenceBuffTimer);
-  const stageShaking = useGameStore((s) => s.stageShaking);
   const floatingNumbers = useGameStore((s) => s.floatingNumbers);
   const shockwaves = useGameStore((s) => s.shockwaves);
 
@@ -150,7 +149,7 @@ export const ActionStage: React.FC = () => {
         onClick={handleClick}
         className={`flex-1 w-full flex flex-col items-center justify-center relative ${
           clickExhaustionTimer > 0 ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
-        } ${stageShaking ? 'animate-[bounce_0.2s_ease-in-out_2]' : ''}`}
+        }`}
       >
         {/* Anéis de Precisão Técnica */}
         <div className="absolute w-[280px] h-[280px] rounded-full border border-dashed border-zinc-800/60 animate-spin-slow pointer-events-none" />

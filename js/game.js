@@ -787,7 +787,6 @@ export function setupClickAnimation() {
         if (isCrit) {
             clickVal = clickVal.mul(calculatedCritMult);
             sound.playCrit();
-            fx.triggerStageShake();
         } else {
             sound.playClick();
         }

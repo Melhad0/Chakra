@@ -1210,16 +1210,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         manualClicksAllTime: state.stats.manualClicksAllTime + 1,
         totalChakraEarned: state.stats.totalChakraEarned.add(finalAmount),
       },
-      stageShaking: isCrit && state.kineticMode,
+      stageShaking: false,
       floatingNumbers: newFloatingNumbers,
       shockwaves: newShockwaves,
     }));
-
-    if (isCrit && s.kineticMode) {
-      setTimeout(() => {
-        set({ stageShaking: false });
-      }, 250);
-    }
   },
 
   buyGenerator: (id: string) => {

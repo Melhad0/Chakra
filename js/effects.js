@@ -114,17 +114,8 @@ class VisualEffectsEngine {
      * Tremor de tela focalizado no palco do selo (sem sacudir a tela inteira)
      */
     triggerStageShake(intensity = 6, duration = 250) {
-        if (!this.kineticMode) return;
-        const target = this.stageContainer || document.getElementById("click-btn");
-        if (!target) return;
-
-        target.classList.remove("stage-shaking");
-        void target.offsetWidth; // Força reflow CSS
-        target.classList.add("stage-shaking");
-
-        setTimeout(() => {
-            target.classList.remove("stage-shaking");
-        }, duration);
+        // Desativado permanentemente para que o botão de clique não pule/trema em nenhum momento
+        return;
     }
 
     /**
