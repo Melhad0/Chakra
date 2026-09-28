@@ -90,7 +90,7 @@ export interface PlayerInventoryState {
   equippedWeapon: EquipmentItem | null; // Retrocompatibilidade (alias para equippedGear.WEAPON_MELEE)
   equippedGear: EquippedGearSlots; // Todos os 11 slots de equipamento oficial
   unlockedElements: ElementType[]; // De 1 até os 5 elementos
-  inventoryBag: (InventorySlotItem | null)[]; // Grade fixa (32 slots)
+  inventoryBag: (InventorySlotItem | null)[]; // Grade adaptativa de itens (expansível dinamicamente sob demanda)
   elementalSacrificePenaltyMult: number; // Penalidades cumulativas de CPS (-25% por sacrifício)
   isAvatarShinobi: boolean; // Despertou todos os 5 elementos (x3.0 CPS)
 }

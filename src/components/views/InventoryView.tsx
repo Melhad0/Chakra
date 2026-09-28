@@ -3,12 +3,14 @@ import { useGameStore } from '../../store/useGameStore';
 import { formatBigNumber } from '../../engine/BigNumber';
 import {
   EquipmentItem,
+  FarmMaterialItem,
   InventorySlotItem,
   ElementType,
   GearSlotKey,
+  ItemRarity,
   normalizeEquipmentSlot,
 } from '../../types/inventory';
-import { RARITY_CONFIG, getRarityConfig } from '../../types/rarity';
+import { getRarityConfig } from '../../types/rarity';
 import { ViewHeader } from './ViewHeader';
 import {
   Briefcase,
@@ -38,6 +40,8 @@ import {
   Hand,
   CircleDot,
   Layers,
+  PackageOpen,
+  Filter,
 } from 'lucide-react';
 
 const ELEMENT_CONFIG: Record<
@@ -332,6 +336,26 @@ const NinjaPaperdollSilhouette: React.FC = () => (
   </div>
 );
 
+export type ItemCategoryFilter = 'ALL' | 'WEAPON' | 'ARMOR' | 'ACCESSORY' | 'MATERIAL';
+export type ItemRarityFilter = 'ALL' | ItemRarity;
+
+const RARITY_PILLS: {
+  id: ItemRarityFilter;
+  label: string;
+  dotColor: string;
+  badgeActive: string;
+  badgeInactive: string;
+}[] = [
+  { id: 'ALL', label: 'Todas', dotColor: 'bg-zinc-400', badgeActive: 'bg-zinc-800 text-zinc-100 border-zinc-600', badgeInactive: 'text-zinc-400 hover:text-zinc-200 border-zinc-800 bg-zinc-950/40' },
+  { id: 'COMMON', label: 'Comum', dotColor: 'bg-zinc-400', badgeActive: 'bg-zinc-800 text-zinc-200 border-zinc-500 shadow-sm', badgeInactive: 'text-zinc-400 hover:text-zinc-200 border-zinc-800 bg-zinc-950/40' },
+  { id: 'UNCOMMON', label: 'Incomum', dotColor: 'bg-emerald-400', badgeActive: 'bg-emerald-950/80 text-emerald-200 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]', badgeInactive: 'text-emerald-500/80 hover:text-emerald-400 border-emerald-950/80 bg-zinc-950/40' },
+  { id: 'RARE', label: 'Raro', dotColor: 'bg-cyan-400', badgeActive: 'bg-cyan-950/80 text-cyan-200 border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.3)]', badgeInactive: 'text-cyan-500/80 hover:text-cyan-400 border-cyan-950/80 bg-zinc-950/40' },
+  { id: 'EPIC', label: 'Épico', dotColor: 'bg-purple-400', badgeActive: 'bg-purple-950/80 text-purple-200 border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.3)]', badgeInactive: 'text-purple-500/80 hover:text-purple-400 border-purple-950/80 bg-zinc-950/40' },
+  { id: 'LEGENDARY', label: 'Lendário', dotColor: 'bg-amber-400', badgeActive: 'bg-amber-950/80 text-amber-200 border-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.35)]', badgeInactive: 'text-amber-500/80 hover:text-amber-400 border-amber-950/80 bg-zinc-950/40' },
+  { id: 'MYTHIC', label: 'Mítico', dotColor: 'bg-rose-400', badgeActive: 'bg-rose-950/80 text-rose-200 border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.35)]', badgeInactive: 'text-rose-500/80 hover:text-rose-400 border-rose-950/80 bg-zinc-950/40' },
+  { id: 'DIVINE', label: 'Divino', dotColor: 'bg-white', badgeActive: 'bg-zinc-800 text-white border-cyan-300 shadow-[0_0_15px_rgba(255,255,255,0.4)] ring-1 ring-cyan-400/50', badgeInactive: 'text-zinc-300 hover:text-white border-zinc-800 bg-zinc-950/40' },
+];
+
 export const InventoryView: React.FC = () => {
   const inventory = useGameStore((s) => s.inventory);
   const equipItem = useGameStore((s) => s.equipItem);
@@ -349,8 +373,9 @@ export const InventoryView: React.FC = () => {
     gearKey?: GearSlotKey;
   } | null>(null);
 
-  // Filtro de inventário
-  const [filterType, setFilterType] = useState<'ALL' | 'EQUIPMENT' | 'MATERIAL'>('ALL');
+  // Filtros Avançados da Mochila (Classe e Raridade)
+  const [filterCategory, setFilterCategory] = useState<ItemCategoryFilter>('ALL');
+  const [filterRarity, setFilterRarity] = useState<ItemRarityFilter>('ALL');
   const [selectedGearSlotFilter, setSelectedGearSlotFilter] = useState<GearSlotKey | null>(null);
 
   // Modal de Sacrifício Elemental
@@ -394,10 +419,76 @@ export const InventoryView: React.FC = () => {
     return null;
   }, [selectedSlot, currentGear, inventory]);
 
-  // Contagem de ocupação da mochila
+  // Contagem de ocupação real da mochila adaptativa
   const occupiedSlotsCount = useMemo(() => {
     return inventory.inventoryBag.filter((slot) => slot !== null).length;
   }, [inventory.inventoryBag]);
+
+  // Contagens em tempo real por Raridade
+  const rarityCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      ALL: 0,
+      COMMON: 0,
+      UNCOMMON: 0,
+      RARE: 0,
+      EPIC: 0,
+      LEGENDARY: 0,
+      MYTHIC: 0,
+      DIVINE: 0,
+      ADM: 0,
+    };
+    for (const item of inventory.inventoryBag) {
+      if (item) {
+        counts.ALL++;
+        if (counts[item.rarity] !== undefined) {
+          counts[item.rarity]++;
+        }
+      }
+    }
+    return counts;
+  }, [inventory.inventoryBag]);
+
+  // Itens da mochila filtrados de forma estritamente adaptativa
+  const filteredBagItems = useMemo(() => {
+    return inventory.inventoryBag
+      .map((item, originalIndex) => ({ item, originalIndex }))
+      .filter((entry): entry is { item: InventorySlotItem; originalIndex: number } => {
+        const { item } = entry;
+        if (!item) return false;
+
+        // 1. Filtro por Raridade
+        if (filterRarity !== 'ALL' && item.rarity !== filterRarity) {
+          return false;
+        }
+
+        // 2. Filtro por Classe / Categoria
+        if (filterCategory === 'MATERIAL') {
+          if (item.type !== 'MATERIAL') return false;
+        } else if (filterCategory === 'WEAPON') {
+          if (
+            item.type !== 'WEAPON' &&
+            item.type !== 'WEAPON_MELEE' &&
+            item.type !== 'WEAPON_RANGED'
+          ) {
+            return false;
+          }
+        } else if (filterCategory === 'ARMOR') {
+          const armorTypes = ['HELMET', 'CHESTPLATE', 'BOOTS', 'GLOVES', 'CLOAK', 'ARMOR'];
+          if (!armorTypes.includes(item.type)) return false;
+        } else if (filterCategory === 'ACCESSORY') {
+          const accTypes = ['BACKPACK', 'MASK', 'NECKLACE', 'RUNE'];
+          if (!accTypes.includes(item.type)) return false;
+        }
+
+        // 3. Filtro específico do Paper Doll
+        if (selectedGearSlotFilter && item.type !== 'MATERIAL') {
+          const norm = normalizeEquipmentSlot(item.type);
+          if (norm !== selectedGearSlotFilter) return false;
+        }
+
+        return true;
+      });
+  }, [inventory.inventoryBag, filterRarity, filterCategory, selectedGearSlotFilter]);
 
   // Cálculo cumulativo dos atributos de todos os 11 slots equipados
   const totalGearStats = useMemo(() => {
@@ -563,7 +654,7 @@ export const InventoryView: React.FC = () => {
       <ViewHeader
         title="Arsenal Shinobi & Afinidades"
         subtitle="Paper Doll RPG, Gestão Modular de Mochila e Roda dos Cinco Elementos"
-        badgeText={`${occupiedSlotsCount}/32 Mochila • ${equippedCount}/11 Equipado`}
+        badgeText={`${occupiedSlotsCount} Mochila • ${equippedCount}/11 Equipado`}
         badgeVariant="cyan"
         icon={<Briefcase className="w-4 h-4 text-cyan-400 stroke-[2]" />}
       />
@@ -701,7 +792,7 @@ export const InventoryView: React.FC = () => {
           </div>
 
           {/* =======================================================================
-              COLUNA DIREITA: MOCHILA SHINOBI (GRADE 32 SLOTS & INSPECTOR CARD)
+              COLUNA DIREITA: MOCHILA SHINOBI ADAPTATIVA (FILTROS DE CLASSE/RARIDADE)
              ======================================================================= */}
           <div className="col-span-12 lg:col-span-6 flex flex-col gap-4 overflow-hidden">
             <div className="bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-5 shadow-lg flex flex-col flex-1 overflow-hidden">
@@ -710,22 +801,22 @@ export const InventoryView: React.FC = () => {
                 <div>
                   <h3 className="text-xs font-bold tracking-wider text-zinc-200 uppercase font-sans flex items-center gap-2">
                     <Briefcase className="w-3.5 h-3.5 text-cyan-400 stroke-[2]" />
-                    Mochila de Campo (Grade 8×4)
+                    Mochila Shinobi Adaptativa
                   </h3>
                   <span className="text-[10px] text-zinc-500 font-mono">
-                    {occupiedSlotsCount} de 32 slots ocupados • Clique no item para equipar
+                    {occupiedSlotsCount} {occupiedSlotsCount === 1 ? 'item carregado' : 'itens carregados'} • Capacidade dinâmica auto-expansível
                   </span>
                 </div>
 
-                {/* Filtros da Mochila */}
+                {/* Filtro por Categorias/Classes */}
                 <div className="flex items-center gap-1 bg-zinc-950/60 p-1 rounded-lg border border-zinc-800/80 text-[11px] font-mono">
                   <button
                     onClick={() => {
-                      setFilterType('ALL');
+                      setFilterCategory('ALL');
                       setSelectedGearSlotFilter(null);
                     }}
                     className={`px-2.5 py-0.5 rounded transition ${
-                      filterType === 'ALL' && !selectedGearSlotFilter
+                      filterCategory === 'ALL' && !selectedGearSlotFilter
                         ? 'bg-zinc-800 text-zinc-100 font-semibold'
                         : 'text-zinc-500 hover:text-zinc-300'
                     }`}
@@ -733,23 +824,43 @@ export const InventoryView: React.FC = () => {
                     Todos
                   </button>
                   <button
-                    onClick={() => setFilterType('EQUIPMENT')}
+                    onClick={() => setFilterCategory('WEAPON')}
                     className={`px-2.5 py-0.5 rounded transition ${
-                      filterType === 'EQUIPMENT'
-                        ? 'bg-zinc-800 text-cyan-300 font-semibold'
+                      filterCategory === 'WEAPON'
+                        ? 'bg-red-950/70 text-red-300 border border-red-800/60 font-semibold'
                         : 'text-zinc-500 hover:text-zinc-300'
                     }`}
                   >
-                    Equipamentos
+                    Armas
+                  </button>
+                  <button
+                    onClick={() => setFilterCategory('ARMOR')}
+                    className={`px-2.5 py-0.5 rounded transition ${
+                      filterCategory === 'ARMOR'
+                        ? 'bg-cyan-950/70 text-cyan-300 border border-cyan-800/60 font-semibold'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    Armaduras
+                  </button>
+                  <button
+                    onClick={() => setFilterCategory('ACCESSORY')}
+                    className={`px-2.5 py-0.5 rounded transition ${
+                      filterCategory === 'ACCESSORY'
+                        ? 'bg-purple-950/70 text-purple-300 border border-purple-800/60 font-semibold'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    Acessórios
                   </button>
                   <button
                     onClick={() => {
-                      setFilterType('MATERIAL');
+                      setFilterCategory('MATERIAL');
                       setSelectedGearSlotFilter(null);
                     }}
                     className={`px-2.5 py-0.5 rounded transition ${
-                      filterType === 'MATERIAL'
-                        ? 'bg-zinc-800 text-amber-300 font-semibold'
+                      filterCategory === 'MATERIAL'
+                        ? 'bg-amber-950/70 text-amber-300 border border-amber-800/60 font-semibold'
                         : 'text-zinc-500 hover:text-zinc-300'
                     }`}
                   >
@@ -758,281 +869,293 @@ export const InventoryView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Indicador de Filtro Ativo por Slot */}
+              {/* Barra de Filtros por Raridade com Contadores em Tempo Real */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 pt-0.5 mb-2.5 custom-scrollbar">
+                <span className="text-[10px] font-mono text-zinc-500 uppercase flex items-center gap-1 pl-0.5 pr-1 flex-shrink-0">
+                  <Filter className="w-3 h-3 text-zinc-400" />
+                  Raridade:
+                </span>
+                {RARITY_PILLS.map((pill) => {
+                  const isActive = filterRarity === pill.id;
+                  const count = rarityCounts[pill.id] ?? 0;
+                  return (
+                    <button
+                      key={`rarity-pill-${pill.id}`}
+                      onClick={() => setFilterRarity(pill.id)}
+                      className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono transition-all flex-shrink-0 cursor-pointer border ${
+                        isActive ? pill.badgeActive : pill.badgeInactive
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${pill.dotColor}`} />
+                      <span>{pill.label}</span>
+                      <span
+                        className={`text-[9px] px-1 rounded-full ${
+                          isActive
+                            ? 'bg-zinc-950/80 text-zinc-200'
+                            : 'bg-zinc-900 text-zinc-500'
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Indicador de Filtro Ativo por Slot do Paper Doll */}
               {selectedGearSlotFilter && (
                 <div className="mb-2 px-3 py-1 bg-cyan-950/40 border border-cyan-800/50 rounded-lg flex items-center justify-between text-xs font-mono text-cyan-300">
                   <span>Filtrando para o Slot: {GEAR_SLOTS_METADATA[selectedGearSlotFilter].label}</span>
                   <button
                     onClick={() => setSelectedGearSlotFilter(null)}
-                    className="text-zinc-400 hover:text-white"
+                    className="text-zinc-400 hover:text-white cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
               )}
 
-              {/* Grade de 32 Slots da Mochila */}
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 p-2.5 bg-zinc-950/70 border border-zinc-800/80 rounded-xl overflow-y-auto max-h-[260px] sm:max-h-[300px] custom-scrollbar">
-                {inventory.inventoryBag.map((item, index) => {
-                  const isSelected = selectedSlot?.source === 'BAG' && selectedSlot.index === index;
-                  let isVisible = true;
-
-                  if (filterType === 'EQUIPMENT') {
-                    isVisible = item !== null && item.type !== 'MATERIAL';
-                  } else if (filterType === 'MATERIAL') {
-                    isVisible = item !== null && item.type === 'MATERIAL';
-                  }
-
-                  if (selectedGearSlotFilter && item && item.type !== 'MATERIAL') {
-                    const norm = normalizeEquipmentSlot(item.type);
-                    if (norm !== selectedGearSlotFilter) isVisible = false;
-                  }
-
-                  if (!item) {
+              {/* Grade Adaptativa de Itens */}
+              {filteredBagItems.length > 0 ? (
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 p-2.5 bg-zinc-950/70 border border-zinc-800/80 rounded-xl overflow-y-auto max-h-[300px] custom-scrollbar">
+                  {filteredBagItems.map(({ item, originalIndex }) => {
+                    const isSelected = selectedSlot?.source === 'BAG' && selectedSlot.index === originalIndex;
+                    const rarityStyle = getRarityConfig(item.rarity);
                     return (
                       <div
-                        key={`empty-slot-${index}`}
-                        onClick={() => setSelectedSlot(null)}
-                        className={`w-full aspect-square rounded-xl border border-zinc-850/80 bg-zinc-900/30 flex items-center justify-center relative hover:border-zinc-700/60 transition-all ${
-                          filterType !== 'ALL' || selectedGearSlotFilter ? 'opacity-25' : ''
+                        key={`slot-item-${item.id}-${originalIndex}`}
+                        onClick={() => setSelectedSlot({ source: 'BAG', index: originalIndex })}
+                        className={`w-full aspect-square rounded-xl border flex items-center justify-center relative transition-all cursor-pointer ${
+                          rarityStyle.bgGradientClass || 'bg-zinc-900/80'
+                        } hover:scale-105 ${
+                          rarityStyle.borderClass
+                        } ${rarityStyle.glowClass} ${
+                          isSelected ? 'ring-2 ring-cyan-400 shadow-cyan-500/20 shadow-lg scale-105' : ''
                         }`}
+                        title={`${item.name} (${rarityStyle.label})`}
                       >
-                        <span className="text-[10px] font-mono text-zinc-700">{index + 1}</span>
+                        {renderItemIcon(item.iconName, 'w-6 h-6 text-zinc-200')}
+
+                        {/* Badge da Quantidade para Materiais */}
+                        {item.type === 'MATERIAL' && (
+                          <span className="absolute bottom-1 right-1 text-[9px] font-mono font-bold text-amber-300 bg-zinc-950/90 px-1 py-0.2 rounded border border-zinc-800">
+                            x{(item as FarmMaterialItem).stackCount}
+                          </span>
+                        )}
+
+                        {/* Indicador de Tipo de Equipamento */}
+                        {item.type !== 'MATERIAL' && (
+                          <span className="absolute top-1 left-1 w-2 h-2 rounded-full bg-cyan-400/80" />
+                        )}
                       </div>
                     );
-                  }
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center p-8 bg-zinc-950/50 border border-dashed border-zinc-800/80 rounded-xl text-zinc-500 gap-2">
+                  <PackageOpen className="w-8 h-8 text-zinc-600 stroke-[1.5]" />
+                  <span className="text-xs font-semibold text-zinc-400">
+                    {inventory.inventoryBag.length === 0
+                      ? 'Sua mochila está vazia no momento.'
+                      : 'Nenhum item corresponde aos filtros selecionados.'}
+                  </span>
+                  <span className="text-[10px] font-mono text-zinc-600">
+                    {inventory.inventoryBag.length === 0
+                      ? 'Derrote chefes ou complete missões para obter itens e equipamentos.'
+                      : 'Experimente alterar ou limpar os filtros de classe e raridade.'}
+                  </span>
+                </div>
+              )}
 
-                  const rarityStyle = item ? getRarityConfig(item.rarity) : RARITY_CONFIG.COMMON;
-
-                  return (
-                    <div
-                      key={`slot-item-${item.id}-${index}`}
-                      onClick={() => setSelectedSlot({ source: 'BAG', index })}
-                      className={`w-full aspect-square rounded-xl border flex items-center justify-center relative transition-all cursor-pointer ${
-                        rarityStyle.bgGradientClass || 'bg-zinc-900/80'
-                      } hover:scale-105 ${
-                        rarityStyle.borderClass
-                      } ${rarityStyle.glowClass} ${
-                        isSelected ? 'ring-2 ring-cyan-400 shadow-cyan-500/20 shadow-lg' : ''
-                      } ${!isVisible ? 'opacity-20' : ''}`}
-                      title={`${item.name} (${rarityStyle.label})`}
-                    >
-                      {renderItemIcon(item.iconName, 'w-6 h-6 text-zinc-200')}
-
-                      {/* Badge da Quantidade para Materiais */}
-                      {item.type === 'MATERIAL' && (
-                        <span className="absolute bottom-1 right-1 text-[9px] font-mono font-bold text-amber-300 bg-zinc-950/90 px-1 py-0.2 rounded border border-zinc-800">
-                          x{item.stackCount}
-                        </span>
-                      )}
-
-                      {/* Indicador de Tipo de Equipamento */}
-                      {item.type !== 'MATERIAL' && (
-                        <span className="absolute top-1 left-1 w-2 h-2 rounded-full bg-cyan-400/80" />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* CARD DE DETALHES DINÂMICO DO ITEM INSPECIONADO */}
-              <div className="mt-3 bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-3.5 flex-1 flex flex-col justify-between">
-                {inspectedItem ? (() => {
-                  const inspectedRarity = getRarityConfig(inspectedItem.rarity);
-                  return (
-                  <div className="flex flex-col h-full justify-between gap-2.5">
-                    <div>
-                      {/* Header do Item Inspecionado */}
-                      <div className="flex items-start justify-between gap-2 border-b border-zinc-800/80 pb-2">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-11 h-11 rounded-xl bg-zinc-900 border flex items-center justify-center ${
-                              inspectedRarity.borderClass
-                            } ${inspectedRarity.glowClass} ${
-                              inspectedRarity.bgGradientClass || ''
-                            }`}
-                          >
-                            {renderItemIcon(inspectedItem.iconName, 'w-6 h-6 text-zinc-100')}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h4
-                                className={`text-sm font-bold tracking-wide ${
-                                  inspectedRarity.textClass
-                                }`}
-                              >
-                                {inspectedItem.name}
-                              </h4>
-                              <span
-                                className={`text-[9px] font-mono px-2 py-0.5 rounded border uppercase font-bold ${
-                                  inspectedRarity.badgeClass
-                                }`}
-                              >
-                                {inspectedRarity.label}
-                              </span>
+              {/* CARD DE DETALHES DINÂMICO DO ITEM INSPECIONADO (EXIBIDO SOMENTE QUANDO HÁ ITEM SELECIONADO) */}
+              {inspectedItem && (() => {
+                const inspectedRarity = getRarityConfig(inspectedItem.rarity);
+                return (
+                  <div className="mt-3 bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-3.5 flex-1 flex flex-col justify-between">
+                    <div className="flex flex-col h-full justify-between gap-2.5">
+                      <div>
+                        {/* Header do Item Inspecionado */}
+                        <div className="flex items-start justify-between gap-2 border-b border-zinc-800/80 pb-2">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-11 h-11 rounded-xl bg-zinc-900 border flex items-center justify-center ${
+                                inspectedRarity.borderClass
+                              } ${inspectedRarity.glowClass} ${
+                                inspectedRarity.bgGradientClass || ''
+                              }`}
+                            >
+                              {renderItemIcon(inspectedItem.iconName, 'w-6 h-6 text-zinc-100')}
                             </div>
-                            <span className="text-[10px] font-mono text-zinc-500">
-                              {inspectedItem.type === 'MATERIAL'
-                                ? 'Mercadoria / Material de Farm'
-                                : `Slot de Destino: ${
-                                    GEAR_SLOTS_METADATA[normalizeEquipmentSlot(inspectedItem.type)]?.label ||
-                                    inspectedItem.type
-                                  }`}
-                              {inspectedItem.originBossName && ` • Drop de ${inspectedItem.originBossName}`}
-                            </span>
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => setSelectedSlot(null)}
-                          className="text-zinc-500 hover:text-zinc-300 p-1"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      {/* Lore */}
-                      <p className="text-xs text-zinc-300 font-sans italic my-2 leading-relaxed bg-zinc-900/30 p-2 rounded-lg border border-zinc-850/60">
-                        "{inspectedItem.description}"
-                      </p>
-
-                      {/* Atributos do Item */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono">
-                        {inspectedItem.type === 'MATERIAL' ? (
-                          <>
-                            <div className="bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
-                              <span className="text-[10px] text-zinc-500 block uppercase">Quantidade</span>
-                              <span className="text-amber-300 font-bold">{inspectedItem.stackCount}x</span>
-                            </div>
-                            <div className="bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
-                              <span className="text-[10px] text-zinc-500 block uppercase">Cotação Unitária</span>
-                              <span className="text-orange-400 font-bold">
-                                {formatBigNumber(inspectedItem.baseGoldValue)}
-                              </span>
-                            </div>
-                            <div className="bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
-                              <span className="text-[10px] text-zinc-500 block uppercase">Valor Total</span>
-                              <span className="text-emerald-400 font-bold">
-                                {formatBigNumber(inspectedItem.baseGoldValue.mul(inspectedItem.stackCount))}
-                              </span>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            {inspectedItem.bonusCpsMult && inspectedItem.bonusCpsMult.gt(1) && (
-                              <div className="bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
-                                <span className="text-[10px] text-zinc-500 block uppercase">Bônus de CPS</span>
-                                <span className="text-emerald-400 font-bold">
-                                  +{inspectedItem.bonusCpsMult.sub(1).mul(100).toFixed(0)}%
-                                </span>
-                              </div>
-                            )}
-                            {inspectedItem.bonusClickMult && inspectedItem.bonusClickMult.gt(1) && (
-                              <div className="bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
-                                <span className="text-[10px] text-zinc-500 block uppercase">Bônus de Clique</span>
-                                <span className="text-orange-400 font-bold">
-                                  +{inspectedItem.bonusClickMult.sub(1).mul(100).toFixed(0)}%
-                                </span>
-                              </div>
-                            )}
-                            {inspectedItem.bonusCritChance && inspectedItem.bonusCritChance > 0 && (
-                              <div className="bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
-                                <span className="text-[10px] text-zinc-500 block uppercase">Chance Crítica</span>
-                                <span className="text-purple-400 font-bold">
-                                  +{(inspectedItem.bonusCritChance * 100).toFixed(0)}%
-                                </span>
-                              </div>
-                            )}
-                            {inspectedItem.bonusCritMult && inspectedItem.bonusCritMult.gt(1) && (
-                              <div className="bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
-                                <span className="text-[10px] text-zinc-500 block uppercase">Dano Crítico</span>
-                                <span className="text-purple-400 font-bold">
-                                  +{inspectedItem.bonusCritMult.sub(1).mul(100).toFixed(0)}%
-                                </span>
-                              </div>
-                            )}
-                            {inspectedItem.elementalAffinityReq && (
-                              <div className="bg-zinc-900/50 p-2 rounded-lg border border-zinc-800 col-span-2">
-                                <span className="text-[10px] text-zinc-500 block uppercase">
-                                  Afinidade Elemental
-                                </span>
-                                <span
-                                  className={`font-bold flex items-center gap-1.5 ${
-                                    inventory.unlockedElements.includes(inspectedItem.elementalAffinityReq)
-                                      ? 'text-cyan-400'
-                                      : 'text-zinc-500'
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4
+                                  className={`text-sm font-bold tracking-wide ${
+                                    inspectedRarity.textClass
                                   }`}
                                 >
-                                  {ELEMENT_CONFIG[inspectedItem.elementalAffinityReq].name}:{' '}
-                                  {inventory.unlockedElements.includes(inspectedItem.elementalAffinityReq)
-                                    ? 'Ressonância Ativa'
-                                    : 'Elemento Não Desperto'}
+                                  {inspectedItem.name}
+                                </h4>
+                                <span
+                                  className={`text-[9px] font-mono px-2 py-0.5 rounded border uppercase font-bold ${
+                                    inspectedRarity.badgeClass
+                                  }`}
+                                >
+                                  {inspectedRarity.label}
                                 </span>
                               </div>
-                            )}
-                          </>
+                              <span className="text-[10px] font-mono text-zinc-500">
+                                {inspectedItem.type === 'MATERIAL'
+                                  ? 'Mercadoria / Material de Farm'
+                                  : `Slot de Destino: ${
+                                      GEAR_SLOTS_METADATA[normalizeEquipmentSlot(inspectedItem.type)]?.label ||
+                                      inspectedItem.type
+                                    }`}
+                                {inspectedItem.originBossName && ` • Drop de ${inspectedItem.originBossName}`}
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => setSelectedSlot(null)}
+                            className="text-zinc-500 hover:text-zinc-300 p-1 cursor-pointer"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Lore */}
+                        <p className="text-xs text-zinc-300 font-sans italic my-2 leading-relaxed bg-zinc-900/30 p-2 rounded-lg border border-zinc-850/60">
+                          "{inspectedItem.description}"
+                        </p>
+
+                        {/* Atributos do Item */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono">
+                          {inspectedItem.type === 'MATERIAL' ? (
+                            <>
+                              <div className="bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
+                                <span className="text-[10px] text-zinc-500 block uppercase">Quantidade</span>
+                                <span className="text-amber-300 font-bold">{inspectedItem.stackCount}x</span>
+                              </div>
+                              <div className="bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
+                                <span className="text-[10px] text-zinc-500 block uppercase">Cotação Unitária</span>
+                                <span className="text-orange-400 font-bold">
+                                  {formatBigNumber(inspectedItem.baseGoldValue)}
+                                </span>
+                              </div>
+                              <div className="bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
+                                <span className="text-[10px] text-zinc-500 block uppercase">Valor Total</span>
+                                <span className="text-emerald-400 font-bold">
+                                  {formatBigNumber(inspectedItem.baseGoldValue.mul(inspectedItem.stackCount))}
+                                </span>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              {inspectedItem.bonusCpsMult && inspectedItem.bonusCpsMult.gt(1) && (
+                                <div className="bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
+                                  <span className="text-[10px] text-zinc-500 block uppercase">Bônus de CPS</span>
+                                  <span className="text-emerald-400 font-bold">
+                                    +{inspectedItem.bonusCpsMult.sub(1).mul(100).toFixed(0)}%
+                                  </span>
+                                </div>
+                              )}
+                              {inspectedItem.bonusClickMult && inspectedItem.bonusClickMult.gt(1) && (
+                                <div className="bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
+                                  <span className="text-[10px] text-zinc-500 block uppercase">Bônus de Clique</span>
+                                  <span className="text-orange-400 font-bold">
+                                    +{inspectedItem.bonusClickMult.sub(1).mul(100).toFixed(0)}%
+                                  </span>
+                                </div>
+                              )}
+                              {inspectedItem.bonusCritChance && inspectedItem.bonusCritChance > 0 && (
+                                <div className="bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
+                                  <span className="text-[10px] text-zinc-500 block uppercase">Chance Crítica</span>
+                                  <span className="text-purple-400 font-bold">
+                                    +{(inspectedItem.bonusCritChance * 100).toFixed(0)}%
+                                  </span>
+                                </div>
+                              )}
+                              {inspectedItem.bonusCritMult && inspectedItem.bonusCritMult.gt(1) && (
+                                <div className="bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
+                                  <span className="text-[10px] text-zinc-500 block uppercase">Dano Crítico</span>
+                                  <span className="text-purple-400 font-bold">
+                                    +{inspectedItem.bonusCritMult.sub(1).mul(100).toFixed(0)}%
+                                  </span>
+                                </div>
+                              )}
+                              {inspectedItem.elementalAffinityReq && (
+                                <div className="bg-zinc-900/50 p-2 rounded-lg border border-zinc-800 col-span-2">
+                                  <span className="text-[10px] text-zinc-500 block uppercase">
+                                    Afinidade Elemental
+                                  </span>
+                                  <span
+                                    className={`font-bold flex items-center gap-1.5 ${
+                                      inventory.unlockedElements.includes(inspectedItem.elementalAffinityReq)
+                                        ? 'text-cyan-400'
+                                        : 'text-zinc-500'
+                                    }`}
+                                  >
+                                    {ELEMENT_CONFIG[inspectedItem.elementalAffinityReq].name}:{' '}
+                                    {inventory.unlockedElements.includes(inspectedItem.elementalAffinityReq)
+                                      ? 'Ressonância Ativa'
+                                      : 'Elemento Não Desperto'}
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Ações Táticas */}
+                      <div className="flex items-center gap-2 border-t border-zinc-800/80 pt-2">
+                        {inspectedItem.type !== 'MATERIAL' && selectedSlot?.source === 'BAG' && (
+                          <button
+                            onClick={() => {
+                              if (selectedSlot.index !== undefined) {
+                                const normSlot = normalizeEquipmentSlot(inspectedItem.type);
+                                equipItem(selectedSlot.index);
+                                setSelectedSlot({ source: 'GEAR', gearKey: normSlot });
+                              }
+                            }}
+                            className="flex-1 py-2 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-zinc-950 font-bold text-xs font-mono transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Check className="w-4 h-4 stroke-[2]" />
+                            Equipar no Slot ({GEAR_SLOTS_METADATA[normalizeEquipmentSlot(inspectedItem.type)]?.shortLabel || 'Gear'})
+                          </button>
+                        )}
+
+                        {selectedSlot?.source === 'GEAR' && selectedSlot.gearKey && (
+                          <button
+                            onClick={() => {
+                              unequipItem(selectedSlot.gearKey!);
+                              setSelectedSlot(null);
+                            }}
+                            className="flex-1 py-2 px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs font-mono transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            Desequipar ({GEAR_SLOTS_METADATA[selectedSlot.gearKey].shortLabel})
+                          </button>
+                        )}
+
+                        {selectedSlot?.source === 'BAG' && (
+                          <button
+                            onClick={() => {
+                              if (selectedSlot.index !== undefined) {
+                                discardItem(selectedSlot.index);
+                                setSelectedSlot(null);
+                              }
+                            }}
+                            title="Descartar item da mochila"
+                            className="p-2 rounded-lg bg-zinc-900 hover:bg-rose-950/60 border border-zinc-800 hover:border-rose-900/80 text-zinc-400 hover:text-rose-400 transition cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         )}
                       </div>
                     </div>
-
-                    {/* Ações Táticas */}
-                    <div className="flex items-center gap-2 border-t border-zinc-800/80 pt-2">
-                      {inspectedItem.type !== 'MATERIAL' && selectedSlot?.source === 'BAG' && (
-                        <button
-                          onClick={() => {
-                            if (selectedSlot.index !== undefined) {
-                              const normSlot = normalizeEquipmentSlot(inspectedItem.type);
-                              equipItem(selectedSlot.index);
-                              setSelectedSlot({ source: 'GEAR', gearKey: normSlot });
-                            }
-                          }}
-                          className="flex-1 py-2 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-zinc-950 font-bold text-xs font-mono transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                          <Check className="w-4 h-4 stroke-[2]" />
-                          Equipar no Slot ({GEAR_SLOTS_METADATA[normalizeEquipmentSlot(inspectedItem.type)]?.shortLabel || 'Gear'})
-                        </button>
-                      )}
-
-                      {selectedSlot?.source === 'GEAR' && selectedSlot.gearKey && (
-                        <button
-                          onClick={() => {
-                            unequipItem(selectedSlot.gearKey!);
-                            setSelectedSlot(null);
-                          }}
-                          className="flex-1 py-2 px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs font-mono transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                          Desequipar ({GEAR_SLOTS_METADATA[selectedSlot.gearKey].shortLabel})
-                        </button>
-                      )}
-
-                      {selectedSlot?.source === 'BAG' && (
-                        <button
-                          onClick={() => {
-                            if (selectedSlot.index !== undefined) {
-                              discardItem(selectedSlot.index);
-                              setSelectedSlot(null);
-                            }
-                          }}
-                          title="Descartar item da mochila"
-                          className="p-2 rounded-lg bg-zinc-900 hover:bg-rose-950/60 border border-zinc-800 hover:border-rose-900/80 text-zinc-400 hover:text-rose-400 transition cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
                   </div>
-                  );
-                })() : (
-                  <div className="flex flex-col items-center justify-center text-center h-full text-zinc-500 gap-2 p-4">
-                    <Briefcase className="w-7 h-7 text-zinc-700 stroke-[1.5]" />
-                    <span className="text-xs font-semibold text-zinc-400">Nenhum Item em Inspeção</span>
-                    <p className="text-[10px] font-mono text-zinc-500 max-w-xs">
-                      Clique em um quadrado da mochila para equipar ou num dos 11 slots do Paper Doll
-                      para visualizar seus bônus de combate.
-                    </p>
-                  </div>
-                )}
-              </div>
+                );
+              })()}
             </div>
           </div>
         </div>

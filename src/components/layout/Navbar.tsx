@@ -247,7 +247,7 @@ export const Navbar: React.FC = () => {
           <Briefcase className="w-3.5 h-3.5 text-cyan-400 stroke-[1.75]" />
           <span className="font-semibold hidden sm:inline">Inventário</span>
           <span className="px-1.5 py-0.5 rounded bg-zinc-950/70 text-[10px] text-zinc-400 border border-zinc-800 font-mono">
-            {inventory ? inventory.inventoryBag.filter(Boolean).length : 0}/32
+            {inventory ? inventory.inventoryBag.filter(Boolean).length : 0} Itens
           </span>
         </button>
 

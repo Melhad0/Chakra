@@ -236,7 +236,7 @@ export function createInitialInventory(initialElement?: ElementType): PlayerInve
     equippedWeapon: null,
     equippedGear: { ...DEFAULT_EQUIPPED_GEAR },
     unlockedElements: [initialElement || getRandomNatalElement()],
-    inventoryBag: Array(32).fill(null),
+    inventoryBag: [],
     elementalSacrificePenaltyMult: 1.0,
     isAvatarShinobi: false,
   };
@@ -273,7 +273,7 @@ function serializeInventory(inv: PlayerInventoryState) {
     unlockedElements: inv.unlockedElements,
     elementalSacrificePenaltyMult: inv.elementalSacrificePenaltyMult,
     isAvatarShinobi: inv.isAvatarShinobi,
-    inventoryBag: inv.inventoryBag.map((item) => {
+    inventoryBag: inv.inventoryBag.filter(Boolean).map((item) => {
       if (!item) return null;
       if (item.type === 'MATERIAL') {
         return {
@@ -311,10 +311,13 @@ function deserializeInventory(raw: any): PlayerInventoryState {
   };
 
   const rawBag = Array.isArray(raw.inventoryBag) ? raw.inventoryBag : [];
-  const bag: (InventorySlotItem | null)[] = Array(32).fill(null);
-  for (let i = 0; i < 32; i++) {
+  const bag: InventorySlotItem[] = [];
+  for (let i = 0; i < rawBag.length; i++) {
     if (rawBag[i]) {
-      bag[i] = parseItem(rawBag[i]);
+      const parsed = parseItem(rawBag[i]);
+      if (parsed) {
+        bag.push(parsed);
+      }
     }
   }
 
@@ -506,7 +509,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   equipItem: (slotIndex: number) => {
     const s = get();
-    if (slotIndex < 0 || slotIndex >= 32) return false;
+    if (slotIndex < 0 || slotIndex >= s.inventory.inventoryBag.length) return false;
     const item = s.inventory.inventoryBag[slotIndex];
     if (!item || item.type === 'MATERIAL') return false;
 
@@ -515,7 +518,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const currentGear = s.inventory.equippedGear || { ...DEFAULT_EQUIPPED_GEAR };
     const prevEquipped = currentGear[targetSlot] || null;
 
-    newBag[slotIndex] = prevEquipped;
+    if (prevEquipped) {
+      // Substituição direta no mesmo slot
+      newBag[slotIndex] = prevEquipped;
+    } else {
+      // Item foi equipado e nada estava equipado: remove da mochila adaptativa
+      newBag.splice(slotIndex, 1);
+    }
 
     const newEquippedGear: EquippedGearSlots = {
       ...currentGear,
@@ -543,12 +552,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     if (!itemToUnequip) return false;
 
     const newBag = [...s.inventory.inventoryBag];
-    const freeSlotIdx = newBag.findIndex((slot) => slot === null);
-    if (freeSlotIdx === -1) {
-      return false; // Inventário cheio
-    }
+    // Mochila adaptativa: anexa diretamente o item de volta aos slots existentes
+    newBag.push(itemToUnequip);
 
-    newBag[freeSlotIdx] = itemToUnequip;
     const newEquippedGear: EquippedGearSlots = {
       ...currentGear,
       [targetSlot]: null,
@@ -568,10 +574,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   },
 
   discardItem: (slotIndex: number) => {
-    if (slotIndex < 0 || slotIndex >= 32) return;
+    const s = get();
+    if (slotIndex < 0 || slotIndex >= s.inventory.inventoryBag.length) return;
     set((state) => {
       const newBag = [...state.inventory.inventoryBag];
-      newBag[slotIndex] = null;
+      newBag.splice(slotIndex, 1); // Remoção adaptativa imediata
       return {
         inventory: {
           ...state.inventory,
@@ -638,7 +645,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       if (s.chakraAncestral.lt(5000)) {
         return { success: false, message: 'Chakra Ancestral insuficiente. Requer 5.000 CA.' };
       }
-      if (weaponSlotIndex === undefined || weaponSlotIndex < 0 || weaponSlotIndex >= 32) {
+      if (weaponSlotIndex === undefined || weaponSlotIndex < 0 || weaponSlotIndex >= s.inventory.inventoryBag.length) {
         return { success: false, message: 'Selecione uma arma de raridade Épica ou superior da mochila para sacrificar.' };
       }
       const weaponItem = s.inventory.inventoryBag[weaponSlotIndex];
@@ -653,7 +660,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
       set((state) => {
         const newBag = [...state.inventory.inventoryBag];
-        newBag[weaponSlotIndex] = null; // Destruição irrevogável
+        newBag.splice(weaponSlotIndex, 1); // Remoção adaptativa
         return {
           chakraAncestral: state.chakraAncestral.sub(5000),
           inventory: {
@@ -675,7 +682,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       if (s.chakraAncestral.lt(50000)) {
         return { success: false, message: 'Chakra Ancestral insuficiente. Requer 50.000 CA.' };
       }
-      if (weaponSlotIndex === undefined || weaponSlotIndex < 0 || weaponSlotIndex >= 32) {
+      if (weaponSlotIndex === undefined || weaponSlotIndex < 0 || weaponSlotIndex >= s.inventory.inventoryBag.length) {
         return { success: false, message: 'Selecione uma arma Lendária, Mítica, Divina ou ADM para o sacrifício supremo.' };
       }
       const weaponItem = s.inventory.inventoryBag[weaponSlotIndex];
@@ -690,7 +697,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
       set((state) => {
         const newBag = [...state.inventory.inventoryBag];
-        newBag[weaponSlotIndex] = null; // Destruição suprema
+        newBag.splice(weaponSlotIndex, 1); // Remoção adaptativa
         return {
           chakra: state.chakra.mul(0.60), // Dreno de 40%
           chakraAncestral: state.chakraAncestral.sub(50000),
@@ -732,20 +739,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         };
         addedMaterial = true;
       } else {
-        const freeSlotIdx = newBag.findIndex((slot) => slot === null);
-        if (freeSlotIdx !== -1) {
-          newBag[freeSlotIdx] = { ...loot.farmMaterial };
-          addedMaterial = true;
-        }
+        // Mochila adaptativa: anexa novo material sem restrição
+        newBag.push({ ...loot.farmMaterial });
+        addedMaterial = true;
       }
 
       // 2. Processa Peça de Equipamento (se dropou com sucesso)
       if (loot.equipmentDrop) {
-        const freeSlotIdx = newBag.findIndex((slot) => slot === null);
-        if (freeSlotIdx !== -1) {
-          newBag[freeSlotIdx] = { ...loot.equipmentDrop };
-          addedEquipment = true;
-        }
+        // Mochila adaptativa: anexa o novo equipamento diretamente sem limite artificial!
+        newBag.push({ ...loot.equipmentDrop });
+        addedEquipment = true;
       }
 
       return {
