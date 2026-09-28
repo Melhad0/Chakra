@@ -15,6 +15,8 @@ export type UpgradeEffectType =
   | 'gate_bonus'
   | 'elemental_synergy';
 
+export type JutsuTier = 1 | 2 | 3;
+
 export interface TechniqueUpgrade {
   readonly id: string;
   readonly name: string;
@@ -27,6 +29,9 @@ export interface TechniqueUpgrade {
   readonly targetGenerator?: string;
   readonly requiredBossId?: number;
   readonly customFogChakra?: Decimal;
+  readonly tier?: JutsuTier;
+  readonly seriesId?: string;
+  readonly requiredUpgradeId?: string;
 }
 
 export interface GeneratorMilestoneEffect {

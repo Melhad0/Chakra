@@ -66,9 +66,12 @@ export function getGeneratorCostDiscount(
   if (upgrades['four_symbols_seal']) discount += 0.04;
   if (upgrades['eight_trigrams_seal']) discount += 0.06;
   if (upgrades['adamantine_chains']) discount += 0.08;
+  if (upgrades['reaper_seal']) discount += 0.08;
   if (upgrades['karma_seal']) discount += 0.10;
   if (upgrades['uzumaki_adamantine_domain']) discount += 0.10;
+  if (upgrades['uzumaki_creation_temple_v3']) discount += 0.15;
   if (upgrades['amenotejikara_shift']) discount += 0.15;
+  if (upgrades['shibai_divine_domain_v3']) discount += 0.20;
 
   // Recompensa de Promoção Jōnin (-3%)
   if (claimedRankRewards['jonin']) discount += 0.03;
@@ -282,18 +285,27 @@ export function calculateTotalCPS(
     if (key === 'academy_student' && upgrades['tree_climbing']) genMultiplier = genMultiplier.mul(2.0);
     if (key === 'shadow_clone' && upgrades['shadow_clone_scroll']) genMultiplier = genMultiplier.mul(1.5);
     if (key === 'shadow_clone' && upgrades['ninja_food_pill']) genMultiplier = genMultiplier.mul(2.0);
+    if (key === 'shadow_clone' && upgrades['tajuu_shadow_clone_v2']) genMultiplier = genMultiplier.mul(3.5);
+    if ((key === 'shadow_clone' || key === 'six_paths_clone') && upgrades['six_paths_clones_v3']) genMultiplier = genMultiplier.mul(8.0);
     if (key === 'genin' && upgrades['fire_ball_jutsu']) genMultiplier = genMultiplier.mul(2.5);
     if ((key === 'genin' || key === 'chunin') && upgrades['gravity_training']) genMultiplier = genMultiplier.mul(2.0);
+    if ((key === 'genin' || key === 'chunin') && upgrades['katon_dragon_fire_v2']) genMultiplier = genMultiplier.mul(5.0);
+    if ((key === 'chunin' || key === 'jonin') && upgrades['katon_great_fire_annihilation_v3']) genMultiplier = genMultiplier.mul(10.0);
     if ((key === 'jonin' || key === 'anbu') && upgrades['sharingan']) genMultiplier = genMultiplier.mul(2.0);
+    if ((key === 'kage' || key === 'uchiha_elite') && upgrades['choku_tomoe']) genMultiplier = genMultiplier.mul(2.0);
     if (key === 'sannin' && upgrades['summoning_scroll']) genMultiplier = genMultiplier.mul(2.0);
     if (key === 'seven_swordsmen' && upgrades['water_dragon']) genMultiplier = genMultiplier.mul(3.0);
-    if (key === 'kage' && upgrades['choku_tomoe']) genMultiplier = genMultiplier.mul(2.0);
-    if (key === 'akatsuki_member' && upgrades['chidori_stream']) genMultiplier = genMultiplier.mul(2.5);
-    if (key === 'jinchuriki' && upgrades['edo_tensei']) genMultiplier = genMultiplier.mul(2.0);
+    if (key === 'seven_swordsmen' && upgrades['water_shark_bomb_v2']) genMultiplier = genMultiplier.mul(6.0);
+    if ((key === 'seven_swordsmen' || key === 'akatsuki_member') && upgrades['water_great_shark_bullet_v3']) genMultiplier = genMultiplier.mul(12.0);
+    if ((key === 'akatsuki_member' || key === 'taka_member') && upgrades['chidori_stream']) genMultiplier = genMultiplier.mul(2.5);
     if ((key === 'jonin' || key === 'anbu') && upgrades['kirin_thunder']) genMultiplier = genMultiplier.mul(5.0);
+    if ((key === 'jonin' || key === 'anbu') && upgrades['kamui_raikiri_v3']) genMultiplier = genMultiplier.mul(10.0);
+    if (key === 'jinchuriki' && upgrades['edo_tensei']) genMultiplier = genMultiplier.mul(2.0);
+    if ((key === 'jinchuriki' || key === 'sound_five') && upgrades['shinra_tensei_v1']) genMultiplier = genMultiplier.mul(2.5);
     if ((key === 'akatsuki_member' || key === 'taka_member') && upgrades['c4_karura']) genMultiplier = genMultiplier.mul(4.0);
-    if ((key === 'jinchuriki' || key === 'rinnegan_six_paths') && upgrades['chibaku_tensei_planetary']) genMultiplier = genMultiplier.mul(8.0);
-    if ((key === 'senju_elite' || key === 'hamura_incarnate' || key === 'wood_golem_senju') && upgrades['senpo_shinsu_senju']) genMultiplier = genMultiplier.mul(10.0);
+    if ((key === 'bijuu_manifestation' || key === 'six_paths_clone' || key === 'rinnegan_six_paths') && upgrades['chibaku_tensei_planetary']) genMultiplier = genMultiplier.mul(8.0);
+    if ((key === 'rinnegan_six_paths' || key === 'juubi_primordial') && upgrades['tengai_shinsei_meteor_v3']) genMultiplier = genMultiplier.mul(16.0);
+    if ((key === 'senju_elite' || key === 'hamura_guardian' || key === 'wood_golem_senju') && upgrades['senpo_shinsu_senju']) genMultiplier = genMultiplier.mul(10.0);
 
     const genCPS = gen.baseCPS.mul(gen.level).mul(genMultiplier);
     total = total.add(genCPS);
@@ -303,21 +315,31 @@ export function calculateTotalCPS(
   if (upgrades['sealing_scroll']) total = total.mul(1.10);
   if (upgrades['tactical_kunai']) total = total.mul(1.15);
   if (upgrades['ninja_sandals']) total = total.mul(1.20);
+  if (upgrades['uzumaki_adamantine_domain']) total = total.mul(1.30);
+  if (upgrades['uzumaki_creation_temple_v3']) total = total.mul(1.75);
+  if (upgrades['shibai_divine_domain_v3']) total = total.mul(2.0);
 
   // 4. Multiplicadores Globais de Senjutsu & Transformações
   if (upgrades['sage_mode']) total = total.mul(1.50);
+  if (upgrades['sage_mode_hashirama_v2']) total = total.mul(3.0);
   if (upgrades['kurama_mode']) total = total.mul(2.50);
+  if (upgrades['baryon_fission_strike']) total = total.mul(5.0);
+  if (upgrades['susanoo_ribcage_v1']) total = total.mul(2.0);
+  if (upgrades['susanoo_armored_v2']) total = total.mul(3.50);
+  if (upgrades['perfect_susanoo']) total = total.mul(6.0);
+  if (upgrades['amaterasu_flames_v1']) total = total.mul(2.0);
+  if (upgrades['amaterasu_enteraphy']) total = total.mul(3.0);
+  if (upgrades['amaterasu_inferno_domain_v3']) total = total.mul(6.0);
+  if (upgrades['mangekyo_kamui_v3']) total = total.mul(5.0);
   if (upgrades['six_paths_sage']) total = total.mul(5.0);
+  if (upgrades['six_paths_senjutsu']) total = total.mul(5.0);
+  if (upgrades['kamui_dimension']) total = total.mul(3.50);
   if (upgrades['infinite_tsukuyomi']) total = total.mul(2.0);
   if (upgrades['otsutsuki_power']) total = total.mul(6.0);
   if (upgrades['sage_art_wood']) total = total.mul(4.0);
   if (upgrades['divine_tree']) total = total.mul(8.0);
   if (upgrades['creation_all_things']) total = total.mul(10.0);
-  if (upgrades['six_paths_senjutsu']) total = total.mul(5.0);
-  if (upgrades['kamui_dimension']) total = total.mul(3.50);
-  if (upgrades['amaterasu_enteraphy']) total = total.mul(3.0);
   if (upgrades['creation_rebirth']) total = total.mul(4.50);
-  if (upgrades['uzumaki_adamantine_domain']) total = total.mul(1.30);
 
   // 5. Clãs Ancestrais
   if (clanNodes['primordial_chakra']) total = total.mul(1.50);
@@ -414,14 +436,16 @@ export function calculateClickPower(
 
   // Somatório dos coeficientes alpha (nerfados em 60% para conter avalanche)
   let alpha = 0;
-  if (upgrades['kyuubi_cloak']) alpha += 0.002; // de 0.005 -> 0.002
-  if (upgrades['reaper_seal']) alpha += 0.008; // de 0.020 -> 0.008
-  if (upgrades['daytime_tiger']) alpha += 0.010; // de 0.025 -> 0.010
-  if (upgrades['perfect_susanoo']) alpha += 0.012; // de 0.030 -> 0.012
+  if (upgrades['kyuubi_cloak']) alpha += 0.002;
+  if (upgrades['reaper_seal']) alpha += 0.008;
+  if (upgrades['daytime_tiger']) alpha += 0.010;
+  if (upgrades['rasen_shuriken_v3']) alpha += 0.010;
+  if (upgrades['perfect_susanoo']) alpha += 0.012;
   if (upgrades['amaterasu_enteraphy']) alpha += 0.015;
+  if (upgrades['amaterasu_inferno_domain_v3']) alpha += 0.030;
   if (upgrades['baryon_fission_strike']) alpha += 0.025;
-  if (clanNodes['mangekyo_sharingan_lineage']) alpha += 0.012; // de 0.030 -> 0.012
-  if (claimedRankRewards['sannin']) alpha += 0.004; // de 0.010 -> 0.004
+  if (clanNodes['mangekyo_sharingan_lineage']) alpha += 0.012;
+  if (claimedRankRewards['sannin']) alpha += 0.004;
 
   // Marco Nível 100 dos Geradores: +0.2% de alpha por gerador
   for (const key in generators) {
@@ -442,14 +466,20 @@ export function calculateClickPower(
   // Multiplicadores de Clique Manual (MultClique)
   let clickMult = D(1);
   if (upgrades['leaf_hurricane']) clickMult = clickMult.mul(2.0);
+  if (upgrades['leaf_great_hurricane_v2']) clickMult = clickMult.mul(3.5);
+  if (upgrades['leaf_dragon_whirlwind_v3']) clickMult = clickMult.mul(6.0);
   if (upgrades['bandana_genin']) clickMult = clickMult.mul(1.5);
   if (upgrades['blade_storm']) clickMult = clickMult.mul(1.3);
   if (upgrades['rasengan_mastery']) clickMult = clickMult.mul(2.0);
+  if (upgrades['rasengan_oodama_v2']) clickMult = clickMult.mul(4.0);
+  if (upgrades['rasen_shuriken_v3']) clickMult = clickMult.mul(8.0);
   if (upgrades['morning_peacock']) clickMult = clickMult.mul(3.0);
   if (upgrades['truth_seeking_orbs']) clickMult = clickMult.mul(3.0);
   if (upgrades['otsutsuki_power']) clickMult = clickMult.mul(4.0);
   if (upgrades['creation_all_things']) clickMult = clickMult.mul(5.0);
   if (upgrades['flying_raijin_slice']) clickMult = clickMult.mul(2.5);
+  if (upgrades['flying_raijin_guiding_thunder_v2']) clickMult = clickMult.mul(5.0);
+  if (upgrades['flying_raijin_jikuukan_v3']) clickMult = clickMult.mul(12.0);
   if (upgrades['night_guy_dragon']) clickMult = clickMult.mul(10.0);
 
   // Recompensas de Promoção de Patente (Clique)

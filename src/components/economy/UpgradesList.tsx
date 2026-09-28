@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useGameStore } from '../../store/useGameStore';
-import { TECHNIQUE_UPGRADES } from '../../constants/upgrades';
+import { TECHNIQUE_UPGRADES, UPGRADES_BY_ID } from '../../constants/upgrades';
 import { UpgradeCategory, TechniqueUpgrade } from '../../types/upgrades';
 import { UpgradeCard } from './UpgradeCard';
 import { formatBigNumber } from '../../engine/BigNumber';
@@ -39,6 +39,7 @@ export const UpgradesList: React.FC = () => {
   const buyAllAffordableUpgrades = useGameStore((s) => s.buyAllAffordableUpgrades);
 
   const [activeCategory, setActiveCategory] = useState<UpgradeCategory | 'all'>('all');
+  const [activeTier, setActiveTier] = useState<'all' | 1 | 2 | 3>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const currentCPS = useMemo(() => {
@@ -84,7 +85,7 @@ export const UpgradesList: React.FC = () => {
     return Math.min(100, Math.floor((purchasedCount / TECHNIQUE_UPGRADES.length) * 100));
   }, [purchasedCount]);
 
-  // Névoa de Descoberta: Upgrades visíveis quando atingir 20% do custo ou derrotar o chefe requerido
+  // Névoa de Descoberta: Upgrades visíveis quando atingir 20% do custo, ou requisito de chefe, ou se o pré-requisito V1 já foi adquirido
   const visibleUpgrades = useMemo(() => {
     return TECHNIQUE_UPGRADES.filter((upg) => {
       // Se já foi comprado, permanece sempre visível
@@ -95,17 +96,28 @@ export const UpgradesList: React.FC = () => {
         return true;
       }
 
-      // Regra de 20% de custo acumulado ou disponível
+      // Se requer um upgrade anterior que já foi comprado, facilita a visibilidade
+      if (upg.requiredUpgradeId && upgrades[upg.requiredUpgradeId]) {
+        const relaxedThreshold = upg.cost.mul(0.15);
+        if (chakra.gte(relaxedThreshold) || totalChakraEarned.gte(relaxedThreshold)) {
+          return true;
+        }
+      }
+
+      // Regra geral de 20% de custo acumulado ou disponível
       const threshold = upg.customFogChakra || upg.cost.mul(0.2);
       return chakra.gte(threshold) || totalChakraEarned.gte(threshold);
     });
   }, [upgrades, chakra, totalChakraEarned, gauntlet.maxUnlockedBoss]);
 
-  // Filtro por Categoria Selecionada e Busca Textual
+  // Filtro por Categoria Selecionada, Tier (V1, V2, V3) e Busca Textual
   const filteredUpgrades = useMemo(() => {
     let list = visibleUpgrades;
     if (activeCategory !== 'all') {
       list = list.filter((u) => u.category === activeCategory);
+    }
+    if (activeTier !== 'all') {
+      list = list.filter((u) => u.tier === activeTier);
     }
     const query = searchQuery.trim().toLowerCase();
     if (query) {
@@ -117,9 +129,9 @@ export const UpgradesList: React.FC = () => {
       );
     }
     return list;
-  }, [visibleUpgrades, activeCategory, searchQuery]);
+  }, [visibleUpgrades, activeCategory, activeTier, searchQuery]);
 
-  // Contagem de Upgrades Acessíveis para o botão "Buy All"
+  // Contagem de Upgrades Acessíveis para o botão "Buy All" (respeitando pré-requisitos encadeados)
   const affordableUpgrades = useMemo(() => {
     const unbought = visibleUpgrades
       .filter((u) => !upgrades[u.id])
@@ -129,6 +141,15 @@ export const UpgradesList: React.FC = () => {
     const affordableList: TechniqueUpgrade[] = [];
 
     for (const u of unbought) {
+      // Bloqueio por pré-requisito
+      if (
+        u.requiredUpgradeId &&
+        !upgrades[u.requiredUpgradeId] &&
+        !affordableList.some((item) => item.id === u.requiredUpgradeId)
+      ) {
+        continue;
+      }
+
       if (availableChakra.gte(u.cost)) {
         availableChakra = availableChakra.sub(u.cost);
         affordableList.push(u);
@@ -223,6 +244,34 @@ export const UpgradesList: React.FC = () => {
         )}
       </div>
 
+      {/* Seletor de Tiers V1 / V2 / V3 */}
+      <div className="flex items-center justify-between px-1 py-1 rounded-lg bg-zinc-950/50 border border-zinc-850/80 flex-shrink-0">
+        <span className="text-[10px] font-mono uppercase text-zinc-400 font-medium px-1">Patamar:</span>
+        <div className="flex items-center gap-1">
+          {(['all', 1, 2, 3] as const).map((tier) => {
+            const isActive = activeTier === tier;
+            const tierLabel = tier === 'all' ? 'Todos' : `V${tier}`;
+            return (
+              <button
+                key={tier}
+                onClick={() => setActiveTier(tier)}
+                className={`px-2 py-0.5 rounded text-[10px] font-mono transition border ${
+                  isActive
+                    ? tier === 3
+                      ? 'bg-amber-950/80 text-amber-300 border-amber-500/70 font-bold shadow-sm shadow-amber-950/50'
+                      : tier === 2
+                      ? 'bg-cyan-950/80 text-cyan-300 border-cyan-500/70 font-semibold shadow-sm shadow-cyan-950/50'
+                      : 'bg-zinc-800 text-zinc-100 border-zinc-650 font-semibold'
+                    : 'bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 border-zinc-800/80 hover:bg-zinc-850'
+                }`}
+              >
+                {tierLabel}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Seletor Segmentado de Árvores de Domínio */}
       <div className="flex items-center gap-1 pb-1 overflow-x-auto custom-scrollbar flex-shrink-0">
         {categories.map((cat) => {
@@ -256,25 +305,36 @@ export const UpgradesList: React.FC = () => {
         {filteredUpgrades.length === 0 ? (
           <div className="py-12 text-center bg-zinc-950/40 rounded-xl border border-dashed border-zinc-800/80">
             <Sparkles className="w-7 h-7 text-zinc-600 mx-auto mb-2 stroke-[1.5]" />
-            <p className="text-xs text-zinc-400 font-medium">Nenhum jutsu visível nesta categoria.</p>
+            <p className="text-xs text-zinc-400 font-medium">Nenhum jutsu visível neste filtro.</p>
             <p className="text-[10px] text-zinc-600 mt-1">
-              Acumule mais chakra ou vença novos chefes para dissipar a névoa de descoberta.
+              Acumule mais chakra ou domine os jutsus anteriores para dissipar a névoa.
             </p>
           </div>
         ) : (
-          filteredUpgrades.map((upgrade) => (
-            <UpgradeCard
-              key={upgrade.id}
-              upgrade={upgrade}
-              purchased={!!upgrades[upgrade.id]}
-              canAfford={chakra.gte(upgrade.cost)}
-              currentChakra={chakra}
-              currentCPS={currentCPS}
-              onBuy={buyUpgrade}
-            />
-          ))
+          filteredUpgrades.map((upgrade) => {
+            const isPrereqMet =
+              !upgrade.requiredUpgradeId || !!upgrades[upgrade.requiredUpgradeId];
+            const prereqName = upgrade.requiredUpgradeId
+              ? UPGRADES_BY_ID[upgrade.requiredUpgradeId]?.name
+              : undefined;
+
+            return (
+              <UpgradeCard
+                key={upgrade.id}
+                upgrade={upgrade}
+                purchased={!!upgrades[upgrade.id]}
+                canAfford={chakra.gte(upgrade.cost)}
+                currentChakra={chakra}
+                currentCPS={currentCPS}
+                prerequisiteMet={isPrereqMet}
+                prerequisiteName={prereqName}
+                onBuy={buyUpgrade}
+              />
+            );
+          })
         )}
       </div>
     </div>
   );
 };
+

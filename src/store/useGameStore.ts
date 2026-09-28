@@ -1652,6 +1652,15 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     let count = 0;
 
     for (const upg of unbought) {
+      // Bloqueio por pré-requisito (ex: V2 requer V1, V3 requer V2)
+      if (
+        upg.requiredUpgradeId &&
+        !s.upgrades[upg.requiredUpgradeId] &&
+        !newPurchased[upg.requiredUpgradeId]
+      ) {
+        continue;
+      }
+
       if (currentChakra.gte(upg.cost)) {
         currentChakra = currentChakra.sub(upg.cost);
         newPurchased[upg.id] = true;
@@ -1834,6 +1843,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const s = get();
     const upg = UPGRADES_BY_ID[id] || INITIAL_UPGRADES[id];
     if (!upg || s.upgrades[id]) return;
+
+    // Se requer técnica anterior (V1 para V2 ou V2 para V3)
+    if (upg.requiredUpgradeId && !s.upgrades[upg.requiredUpgradeId]) return;
 
     if (s.chakra.gte(upg.cost)) {
       audio.playLevelUp();
