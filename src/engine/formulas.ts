@@ -3,6 +3,7 @@ import { D } from './BigNumber';
 import { GeneratorItem } from '../types/economy';
 import { getGeneratorMilestoneEffects } from '../constants/upgrades';
 import { EquipmentItem, ElementType, EquippedGearSlots } from '../types/inventory';
+import { CLAN_NODES } from './data';
 
 /**
  * Constantes de Inflação Hardcore por Segmento de Nível do Gerador
@@ -341,11 +342,15 @@ export function calculateTotalCPS(
   if (upgrades['creation_all_things']) total = total.mul(10.0);
   if (upgrades['creation_rebirth']) total = total.mul(4.50);
 
-  // 5. Clãs Ancestrais
-  if (clanNodes['primordial_chakra']) total = total.mul(1.50);
-  if (clanNodes['uzumaki_vitality']) total = total.mul(2.0);
-  if (clanNodes['senju_wood_release']) total = total.mul(3.0);
-  if (clanNodes['chakra_fruit']) total = total.mul(5.0);
+  // 5. Clãs Ancestrais (Multiplicadores Dinâmicos de Todos os Nós Despertos)
+  for (const id in clanNodes) {
+    if (clanNodes[id]) {
+      const node = CLAN_NODES[id];
+      if (node && node.cpsMultiplier && node.cpsMultiplier > 1) {
+        total = total.mul(node.cpsMultiplier);
+      }
+    }
+  }
 
   // 6. Recompensas de Promoção de Patentes Ninja
   if (claimedRankRewards['gennin']) total = total.mul(1.05); // +5%
@@ -486,9 +491,14 @@ export function calculateClickPower(
   if (claimedRankRewards['chunin']) clickMult = clickMult.mul(1.10); // +10%
   if (claimedRankRewards['anbu']) clickMult = clickMult.mul(1.25); // +25%
 
-  // Clã Uchiha Susano'o Primordial
-  if (clanNodes['perfect_susanoo_lineage']) {
-    clickMult = clickMult.mul(10.0);
+  // Clãs Ancestrais: Multiplicadores de Poder de Clique de Todos os Nós Despertos
+  for (const id in clanNodes) {
+    if (clanNodes[id]) {
+      const node = CLAN_NODES[id];
+      if (node && node.clickMultiplier && node.clickMultiplier > 1) {
+        clickMult = clickMult.mul(node.clickMultiplier);
+      }
+    }
   }
 
   // Multiplicadores de Equipamento de Todos os Slots

@@ -1738,7 +1738,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // Chance de Crítico
     let critChance = 0.05;
     let critMult = 2.0;
-    if (s.clanNodes['sharingan_awakening']) critChance += 0.10;
+    for (const id in s.clanNodes) {
+      if (s.clanNodes[id] && CLAN_NODES[id]?.critChanceBonus) {
+        critChance += CLAN_NODES[id].critChanceBonus! / 100;
+      }
+    }
     if (s.claimedRankRewards['tokubetsu_jonin']) critChance += 0.05;
     if (s.upgrades['lion_combo']) critChance += 0.05;
     if (s.clanNodes['mangekyo_sharingan_lineage']) critMult = 3.0;

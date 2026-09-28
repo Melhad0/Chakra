@@ -8,6 +8,11 @@ export interface ClanNode {
   readonly cost: number;
   readonly desc: string;
   readonly parent: string | null;
+  readonly cpsMultiplier?: number;
+  readonly clickMultiplier?: number;
+  readonly critChanceBonus?: number;
+  readonly critDamageMultiplier?: number;
+  readonly rewardMultiplier?: number;
 }
 
 export interface ClanBranch {

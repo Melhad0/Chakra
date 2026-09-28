@@ -54,6 +54,7 @@ export const OperationsPanel: React.FC = () => {
 
       {/* 4 CARTÕES DE ACESSO RÁPIDO AOS MÓDULOS DEDICADOS EM TELA CHEIA */}
       {(() => {
+        const totalClanNodesCount = Object.keys(CLAN_NODES).length;
         const unlockedClanNodesCount = Object.keys(clanNodes).filter((k) => clanNodes[k]).length;
         const currentRank = getCurrentRank(
           stats.manualClicksAllTime,
@@ -86,7 +87,7 @@ export const OperationsPanel: React.FC = () => {
                   Clãs
                 </h4>
                 <p className="text-[9px] font-mono text-zinc-400 truncate">
-                  {unlockedClanNodesCount}/8 Linhagens
+                  {unlockedClanNodesCount}/{totalClanNodesCount} Linhagens
                 </p>
               </div>
               <div className="mt-1 pt-1 border-t border-zinc-850/80 flex items-center justify-between text-[9px] font-mono text-zinc-500">
@@ -336,7 +337,9 @@ export const OperationsPanel: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              {Object.values(CLAN_NODES).map((node) => {
+              {Object.values(CLAN_NODES)
+                .filter((node) => !node.parent || !!clanNodes[node.parent])
+                .map((node) => {
                 const isUnlocked = !!clanNodes[node.id];
                 const canAfford = chakraAncestral.gte(node.cost);
 

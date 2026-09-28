@@ -1,6 +1,5 @@
 import { D } from './BigNumber';
 import { GeneratorItem, UpgradeItem } from '../types/economy';
-import { ClanNode } from '../types/prestige';
 
 export const INITIAL_GENERATORS: Record<string, GeneratorItem> = {
   // --- TIER: INICIANTE (Academia até Elite de Konoha) ---
@@ -514,77 +513,5 @@ export const GATE_DATA = [
   { id: 8, name: 'Portão da Morte', cost: 250000000 },
 ];
 
-export const CLAN_NODES: Record<string, ClanNode> = {
-  primordial_chakra: {
-    id: 'primordial_chakra',
-    name: 'Chakra Primordial',
-    branch: 'root',
-    icon: 'primordial_chakra',
-    cost: 1,
-    desc: 'O despertar da centelha original de Hagoromo Otsutsuki. +50% em todo o CPS global.',
-    parent: null,
-  },
-  uzumaki_vitality: {
-    id: 'uzumaki_vitality',
-    name: 'Linhagem Uzumaki (Vitalidade Infinita)',
-    branch: 'senju',
-    icon: 'uzumaki_vitality',
-    cost: 3,
-    desc: 'Força vital e regeneração extraordinárias. Dobra todo o CPS global permanentemente.',
-    parent: 'primordial_chakra',
-  },
-  senju_wood_release: {
-    id: 'senju_wood_release',
-    name: 'Liberação de Madeira (Mokuton)',
-    branch: 'senju',
-    icon: 'senju_wood_release',
-    cost: 8,
-    desc: 'A fusão da terra com a água que molda florestas divinas. Triplica o CPS global.',
-    parent: 'uzumaki_vitality',
-  },
-  sharingan_awakening: {
-    id: 'sharingan_awakening',
-    name: 'Despertar do Sharingan',
-    branch: 'uchiha',
-    icon: 'sharingan_awakening',
-    cost: 3,
-    desc: 'O poder visual do Clã Uchiha. Aumenta a chance de acerto crítico de clique em +10%.',
-    parent: 'primordial_chakra',
-  },
-  mangekyo_sharingan_lineage: {
-    id: 'mangekyo_sharingan_lineage',
-    name: 'Mangekyō Sharingan Eterno',
-    branch: 'uchiha',
-    icon: 'mangekyo_sharingan_lineage',
-    cost: 8,
-    desc: 'O olho que reflete o coração. O clique manual passa a gerar +3% do seu CPS global.',
-    parent: 'sharingan_awakening',
-  },
-  perfect_susanoo_lineage: {
-    id: 'perfect_susanoo_lineage',
-    name: 'Susano\'o Perfeito Divino',
-    branch: 'uchiha',
-    icon: 'perfect_susanoo_lineage',
-    cost: 20,
-    desc: 'Armadura do Deus das Tempestades. Multiplica o poder de clique manual por 10x.',
-    parent: 'mangekyo_sharingan_lineage',
-  },
-  byakugan_vision: {
-    id: 'byakugan_vision',
-    name: 'Visão dos 360 Graus (Byakugan)',
-    branch: 'hyuga',
-    icon: 'byakugan_vision',
-    cost: 3,
-    desc: 'Leitura dos pontos de chakra (Tenketsu). +50% nas recompensas de missões e minigames.',
-    parent: 'primordial_chakra',
-  },
-  chakra_fruit: {
-    id: 'chakra_fruit',
-    name: 'Fruto Proibido do Clã Divino',
-    branch: 'otsutsuki',
-    icon: 'chakra_fruit',
-    cost: 30,
-    desc: 'Consumo do fruto primordial de chakra. Multiplica todo o CPS global em 5x.',
-    parent: 'primordial_chakra',
-  },
-};
+export { CLAN_NODES } from '../constants/clanNodes';
+
