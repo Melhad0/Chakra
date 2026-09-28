@@ -14,6 +14,10 @@ import {
   Maximize2,
   Dice5,
   PanelRightClose,
+  Swords,
+  Briefcase,
+  Clock,
+  Flame,
 } from 'lucide-react';
 import { PRESTIGE_THRESHOLD, calculatePendingAncestralChakra } from '../../engine/formulas';
 import { getCurrentRank, getNextPromotionMission } from '../../constants/rankings';
@@ -25,11 +29,29 @@ export const OperationsPanel: React.FC = () => {
   const clanNodes = useGameStore((s) => s.clanNodes);
   const buyClanNode = useGameStore((s) => s.buyClanNode);
   const activeMission = useGameStore((s) => s.activeMission);
+  const gauntlet = useGameStore((s) => s.gauntlet);
+  const inventory = useGameStore((s) => s.inventory);
   const stats = useGameStore((s) => s.stats);
   const passedExams = useGameStore((s) => s.passedExams);
   const performPrestige = useGameStore((s) => s.performPrestige);
   const setView = useGameStore((s) => s.setView);
   const toggleRightSidebar = useGameStore((s) => s.toggleRightSidebar);
+
+  const [cooldownRemaining, setCooldownRemaining] = React.useState<number>(0);
+
+  React.useEffect(() => {
+    const updateCooldown = () => {
+      if (gauntlet.cooldownExpiresAt && gauntlet.cooldownExpiresAt > Date.now()) {
+        const remaining = Math.max(0, Math.ceil((gauntlet.cooldownExpiresAt - Date.now()) / 1000));
+        setCooldownRemaining(remaining);
+      } else {
+        setCooldownRemaining(0);
+      }
+    };
+    updateCooldown();
+    const interval = setInterval(updateCooldown, 1000);
+    return () => clearInterval(interval);
+  }, [gauntlet.cooldownExpiresAt]);
 
   return (
     <aside className="h-full bg-zinc-900/40 backdrop-blur-md border border-zinc-800/80 hover:border-zinc-700/80 transition-colors rounded-xl p-3.5 flex flex-col overflow-hidden shadow-sm">
@@ -52,7 +74,7 @@ export const OperationsPanel: React.FC = () => {
         </button>
       </div>
 
-      {/* 4 CARTÕES DE ACESSO RÁPIDO AOS MÓDULOS DEDICADOS EM TELA CHEIA */}
+      {/* 6 CARTÕES DE ACESSO RÁPIDO AOS MÓDULOS DE OPERAÇÕES SHINOBI */}
       {(() => {
         const totalClanNodesCount = Object.keys(CLAN_NODES).length;
         const unlockedClanNodesCount = Object.keys(clanNodes).filter((k) => clanNodes[k]).length;
@@ -66,17 +88,108 @@ export const OperationsPanel: React.FC = () => {
         const prestigeProgress = Math.min(100, Math.max(0, stats.totalChakraEarned.div(PRESTIGE_THRESHOLD).mul(100).toNumber()));
         const isMissionRunning = !!(activeMission.activeMissionId && activeMission.resolvesAt && activeMission.resolvesAt > Date.now());
         const isMissionReady = !!(activeMission.activeMissionId && activeMission.resolvesAt && Date.now() >= activeMission.resolvesAt);
+        const inventoryItemCount = inventory ? inventory.inventoryBag.filter(Boolean).length : 0;
 
         return (
-          <div className="grid grid-cols-2 gap-2 mb-3 flex-shrink-0">
-            {/* Card 1: Árvore de Clãs */}
+          <div className="grid grid-cols-2 gap-2 mb-3 flex-shrink-0 max-h-[260px] overflow-y-auto custom-scrollbar pr-0.5">
+            {/* Card 1: Arena de Desafios (Gauntlet) */}
+            <button
+              onClick={() => setView('CHALLENGES')}
+              className="group p-2 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 border border-rose-900/30 hover:border-rose-500/60 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer"
+            >
+              <div className="flex items-center justify-between w-full mb-1">
+                <div className="w-6 h-6 rounded-md bg-rose-950/60 border border-rose-800/60 flex items-center justify-center text-rose-400 group-hover:scale-105 transition-transform">
+                  <Swords className="w-3.5 h-3.5 stroke-[1.75]" />
+                </div>
+                <span className="text-[10px] font-mono font-bold text-rose-400">
+                  #{gauntlet.currentActiveBossId}
+                </span>
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-zinc-100 group-hover:text-rose-300 transition-colors">
+                  Desafios
+                </h4>
+                <p className="text-[9px] font-mono text-zinc-400 truncate">
+                  Gauntlet de Chefes
+                </p>
+              </div>
+              <div className="mt-1 pt-1 border-t border-zinc-850/80 flex items-center justify-between text-[9px] font-mono text-zinc-500">
+                <span className={cooldownRemaining > 0 ? 'text-amber-400 font-semibold flex items-center gap-1' : 'text-zinc-400'}>
+                  {cooldownRemaining > 0 && <Clock className="w-2.5 h-2.5 animate-spin" />}
+                  {cooldownRemaining > 0 ? `${cooldownRemaining}s` : 'Batalhar'}
+                </span>
+                <ArrowUpRight className="w-3 h-3 text-rose-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </div>
+            </button>
+
+            {/* Card 2: Quadro de Missões Shinobi */}
+            <button
+              onClick={() => setView('MISSIONS')}
+              className={`group p-2 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer border ${
+                isMissionReady
+                  ? 'border-emerald-500/70 bg-emerald-950/20'
+                  : 'border-emerald-900/30 hover:border-emerald-500/60'
+              }`}
+            >
+              <div className="flex items-center justify-between w-full mb-1">
+                <div className="w-6 h-6 rounded-md bg-emerald-950/60 border border-emerald-800/60 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
+                  <Dice5 className="w-3.5 h-3.5 stroke-[1.75]" />
+                </div>
+                <span className={`text-[10px] font-mono font-bold ${isMissionReady ? 'text-emerald-300 animate-pulse' : 'text-emerald-400'}`}>
+                  {isMissionReady ? 'Pronto!' : isMissionRunning ? 'Incursão' : '14 Missões'}
+                </span>
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-zinc-100 group-hover:text-emerald-300 transition-colors">
+                  Missões
+                </h4>
+                <p className="text-[9px] font-mono text-zinc-400 truncate">
+                  {isMissionReady ? 'Recompensas prontas!' : isMissionRunning ? 'Em andamento...' : 'Ranks E a SS'}
+                </p>
+              </div>
+              <div className="mt-1 pt-1 border-t border-zinc-850/80 flex items-center justify-between text-[9px] font-mono text-zinc-500">
+                <span className={isMissionReady ? 'text-emerald-400 font-bold' : ''}>
+                  {isMissionReady ? 'Revelar' : isMissionRunning ? 'Verificar' : 'Mural'}
+                </span>
+                <ArrowUpRight className="w-3 h-3 text-emerald-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </div>
+            </button>
+
+            {/* Card 3: Inventário & Arsenal */}
+            <button
+              onClick={() => setView('INVENTORY')}
+              className="group p-2 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 border border-cyan-900/30 hover:border-cyan-500/60 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer"
+            >
+              <div className="flex items-center justify-between w-full mb-1">
+                <div className="w-6 h-6 rounded-md bg-cyan-950/60 border border-cyan-800/60 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform">
+                  <Briefcase className="w-3.5 h-3.5 stroke-[1.75]" />
+                </div>
+                <span className="text-[10px] font-mono font-bold text-cyan-400">
+                  {inventoryItemCount} Itens
+                </span>
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-zinc-100 group-hover:text-cyan-300 transition-colors">
+                  Inventário
+                </h4>
+                <p className="text-[9px] font-mono text-zinc-400 truncate">
+                  Arsenal & Afinidade
+                </p>
+              </div>
+              <div className="mt-1 pt-1 border-t border-zinc-850/80 flex items-center justify-between text-[9px] font-mono text-zinc-500">
+                <span>Equipar</span>
+                <ArrowUpRight className="w-3 h-3 text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </div>
+            </button>
+
+            {/* Card 4: Árvore de Clãs */}
             <button
               onClick={() => setView('CLAN_TREE')}
-              className="group p-2.5 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 border border-purple-900/30 hover:border-purple-500/60 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer"
+              className="group p-2 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 border border-purple-900/30 hover:border-purple-500/60 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer"
             >
               <div className="flex items-center justify-between w-full mb-1">
                 <div className="w-6 h-6 rounded-md bg-purple-950/60 border border-purple-800/60 flex items-center justify-center text-purple-400 group-hover:scale-105 transition-transform">
-                  <GitFork className="w-3.5 h-3.5" />
+                  <GitFork className="w-3.5 h-3.5 stroke-[1.75]" />
                 </div>
                 <span className="text-[10px] font-mono font-bold text-purple-400">
                   {chakraAncestral.toString()}
@@ -96,34 +209,7 @@ export const OperationsPanel: React.FC = () => {
               </div>
             </button>
 
-            {/* Card 2: Quadro de Missões Shinobi */}
-            <button
-              onClick={() => setView('MISSIONS')}
-              className="group p-2.5 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 border border-emerald-900/30 hover:border-emerald-500/60 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer"
-            >
-              <div className="flex items-center justify-between w-full mb-1">
-                <div className="w-6 h-6 rounded-md bg-emerald-950/60 border border-emerald-800/60 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
-                  <Dice5 className="w-3.5 h-3.5" />
-                </div>
-                <span className="text-[10px] font-mono font-bold text-emerald-400">
-                  14 Missões
-                </span>
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-zinc-100 group-hover:text-emerald-300 transition-colors">
-                  Missões
-                </h4>
-                <p className="text-[9px] font-mono text-zinc-400 truncate">
-                  {isMissionReady ? 'Pronto para Desfecho!' : isMissionRunning ? 'Em Incursão...' : 'Ranks E a SS'}
-                </p>
-              </div>
-              <div className="mt-1 pt-1 border-t border-zinc-850/80 flex items-center justify-between text-[9px] font-mono text-zinc-500">
-                <span>{isMissionReady ? 'Revelar!' : isMissionRunning ? 'Operando' : 'Mural Shinobi'}</span>
-                <ArrowUpRight className="w-3 h-3 text-emerald-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </div>
-            </button>
-
-            {/* Card 3: Missões de Graduação & Patentes */}
+            {/* Card 5: Missões de Graduação & Patentes */}
             {(() => {
               const nextMission = getNextPromotionMission(passedExams);
               const isEligible = nextMission
@@ -134,7 +220,7 @@ export const OperationsPanel: React.FC = () => {
               return (
                 <button
                   onClick={() => setView('CHUNIN_EXAM')}
-                  className={`group p-2.5 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer border ${
+                  className={`group p-2 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer border ${
                     isEligible
                       ? 'border-emerald-500/70 hover:border-emerald-400 bg-emerald-950/20'
                       : 'border-amber-900/30 hover:border-amber-500/60'
@@ -148,7 +234,7 @@ export const OperationsPanel: React.FC = () => {
                           : 'bg-amber-950/60 border-amber-800/60 text-amber-400'
                       }`}
                     >
-                      <Scroll className="w-3.5 h-3.5" />
+                      <Flame className="w-3.5 h-3.5 stroke-[1.75]" />
                     </div>
                     <span
                       className={`text-[10px] font-mono font-bold ${
@@ -163,7 +249,7 @@ export const OperationsPanel: React.FC = () => {
                       {nextMission ? nextMission.title : 'Graduação Completa'}
                     </h4>
                     <p className="text-[9px] font-mono text-zinc-400 truncate">
-                      {nextMission ? `Alvo: ${nextMission.codename}` : 'Patente Máxima Alcançada'}
+                      {nextMission ? `Alvo: ${nextMission.codename}` : 'Patente Máxima'}
                     </p>
                   </div>
                   <div className="mt-1 pt-1 border-t border-zinc-850/80 flex items-center justify-between text-[9px] font-mono text-zinc-500">
@@ -176,21 +262,21 @@ export const OperationsPanel: React.FC = () => {
               );
             })()}
 
-            {/* Card 4: Hall da Fama */}
+            {/* Card 6: Hall da Fama */}
             <button
               onClick={() => setView('RANKINGS')}
-              className="group p-2.5 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 border border-cyan-900/30 hover:border-cyan-500/60 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer"
+              className="group p-2 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 border border-yellow-900/30 hover:border-yellow-500/60 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer"
             >
               <div className="flex items-center justify-between w-full mb-1">
-                <div className="w-6 h-6 rounded-md bg-cyan-950/60 border border-cyan-800/60 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform">
-                  <Trophy className="w-3.5 h-3.5" />
+                <div className="w-6 h-6 rounded-md bg-yellow-950/60 border border-yellow-800/60 flex items-center justify-center text-yellow-400 group-hover:scale-105 transition-transform">
+                  <Trophy className="w-3.5 h-3.5 stroke-[1.75]" />
                 </div>
-                <span className="text-[10px] font-mono font-bold text-cyan-400">
+                <span className="text-[10px] font-mono font-bold text-yellow-400">
                   Top 100
                 </span>
               </div>
               <div>
-                <h4 className="text-xs font-bold text-zinc-100 group-hover:text-cyan-300 transition-colors">
+                <h4 className="text-xs font-bold text-zinc-100 group-hover:text-yellow-300 transition-colors">
                   Rankings
                 </h4>
                 <p className="text-[9px] font-mono text-zinc-400 truncate">
@@ -199,7 +285,7 @@ export const OperationsPanel: React.FC = () => {
               </div>
               <div className="mt-1 pt-1 border-t border-zinc-850/80 flex items-center justify-between text-[9px] font-mono text-zinc-500">
                 <span>Placar</span>
-                <ArrowUpRight className="w-3 h-3 text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                <ArrowUpRight className="w-3 h-3 text-yellow-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </div>
             </button>
           </div>
