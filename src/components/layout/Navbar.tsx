@@ -36,7 +36,7 @@ export const Navbar: React.FC = () => {
   const cloudSyncStatus = useGameStore((s) => s.cloudSyncStatus);
   const saveGame = useGameStore((s) => s.saveGame);
 
-  const { rewardCountdown } = usePlaytime();
+  const { rewardCountdown, readyToClaimCount } = usePlaytime();
 
   const [isMuted, setIsMuted] = React.useState(audio.isMuted());
   const [notation, setNotation] = React.useState(getNotationMode());
@@ -317,13 +317,25 @@ export const Navbar: React.FC = () => {
         <button
           onClick={openOnlineRewardModal}
           title="Abrir Provisões de Presença Shinobi"
-          className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800 hover:border-amber-600/50 text-[11px] font-mono text-zinc-300 rounded-md transition cursor-pointer"
+          className={`relative flex items-center gap-1.5 px-2.5 py-1 rounded-md transition cursor-pointer border text-[11px] font-mono ${
+            readyToClaimCount > 0
+              ? 'bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/50 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+              : 'bg-zinc-900/60 hover:bg-zinc-800/80 border-zinc-800 hover:border-amber-600/50 text-zinc-300'
+          }`}
         >
-          <Gift className="w-3.5 h-3.5 stroke-[1.75] text-amber-400" />
+          <Gift className={`w-3.5 h-3.5 stroke-[1.75] ${readyToClaimCount > 0 ? 'text-amber-400 animate-bounce' : 'text-amber-400'}`} />
           <span className="hidden sm:inline">Provisões</span>
-          <span className="text-zinc-500 font-normal">({rewardCountdown})</span>
-          {onlinePresenceBuffTimer > 0 && (
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+          <span className={readyToClaimCount > 0 ? 'text-amber-300 font-semibold' : 'text-zinc-500 font-normal'}>
+            ({rewardCountdown})
+          </span>
+          {readyToClaimCount > 0 && (
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+            </span>
+          )}
+          {onlinePresenceBuffTimer > 0 && readyToClaimCount === 0 && (
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
           )}
         </button>
 

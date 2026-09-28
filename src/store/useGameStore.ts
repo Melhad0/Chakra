@@ -97,6 +97,7 @@ export interface GameStoreState {
   openOnlineRewardModal: () => void;
   closeOnlineRewardModal: () => void;
   claimOnlinePresenceReward: (tierId: string) => { success: boolean; message: string };
+  claimAllOnlinePresenceRewards: () => { success: boolean; message: string; count: number };
 
   // Prestígio & Renascimento Shinobi
   performPrestige: () => { success: boolean; points: number };
@@ -1196,6 +1197,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       return {
         chakra: state.chakra.add(rewardChakra),
         chakraAncestral: nextAncestral,
+        gachaTickets: state.gachaTickets + (tier.gachaTickets || 0),
+        forgeFragments: state.forgeFragments + (tier.weaponFragments || 0),
         onlinePresenceBuffTimer: nextBuffTimer,
         onlinePresenceRewardsClaimed: {
           ...state.onlinePresenceRewardsClaimed,
@@ -1204,7 +1207,100 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       };
     });
 
-    return { success: true, message: `Resgate concluído! +${formatBigNumber(rewardChakra)} Chakra recebido.` };
+    const rewardsList: string[] = [];
+    if (rewardChakra.gt(0)) {
+      rewardsList.push(`+${formatBigNumber(rewardChakra)} Chakra`);
+    }
+    if (tier.ancestralChakra) {
+      rewardsList.push(`+${tier.ancestralChakra} Chakra Ancestral`);
+    }
+    if (tier.gachaTickets) {
+      rewardsList.push(`+${tier.gachaTickets} Bilhete(s) Gacha`);
+    }
+    if (tier.weaponFragments) {
+      rewardsList.push(`+${tier.weaponFragments} Fragmento(s) de Forja`);
+    }
+    if (tier.buffDurationSeconds) {
+      rewardsList.push(`+${tier.buffCpsPct || 10}% CPS (${Math.round(tier.buffDurationSeconds / 60)}m)`);
+    }
+
+    return {
+      success: true,
+      message: `Provisão [${tier.title}] resgatada! ${rewardsList.join(', ')}`,
+    };
+  },
+
+  claimAllOnlinePresenceRewards: () => {
+    const s = get();
+    const currentRank = getCurrentRank(
+      s.stats.manualClicksAllTime,
+      s.stats.highestCPSRecord,
+      s.stats.totalPrestiges,
+      s.passedExams
+    );
+    const currentIndex = SHINOBI_RANKS.findIndex((r) => r.id === currentRank.id);
+
+    const eligibleTiers = ONLINE_PRESENCE_TIERS.filter((tier) => {
+      if (s.onlinePresenceRewardsClaimed[tier.id]) return false;
+      if (s.stats.playtimeSeconds < tier.timeSeconds) return false;
+      if (tier.minRank) {
+        const requiredIndex = SHINOBI_RANKS.findIndex((r) => r.id === tier.minRank);
+        if (requiredIndex !== -1 && currentIndex < requiredIndex) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    if (eligibleTiers.length === 0) {
+      return { success: false, message: 'Nenhuma provisão pronta para resgate no momento.', count: 0 };
+    }
+
+    let totalRewardChakra = D(0);
+    let totalAncestral = 0;
+    let totalTickets = 0;
+    let totalFragments = 0;
+    let maxBuffTimer = 0;
+    const newClaimed = { ...s.onlinePresenceRewardsClaimed };
+
+    for (const tier of eligibleTiers) {
+      const rewardChakra = calculatePresenceRewardChakra(
+        tier.cpsSeconds,
+        s.stableRollingCPS,
+        s.generators
+      );
+      totalRewardChakra = totalRewardChakra.add(rewardChakra);
+      if (tier.ancestralChakra) totalAncestral += tier.ancestralChakra;
+      if (tier.gachaTickets) totalTickets += tier.gachaTickets;
+      if (tier.weaponFragments) totalFragments += tier.weaponFragments;
+      if (tier.buffDurationSeconds && tier.buffDurationSeconds > maxBuffTimer) {
+        maxBuffTimer = tier.buffDurationSeconds;
+      }
+      newClaimed[tier.id] = true;
+    }
+
+    audio.playLevelUp();
+
+    set((state) => ({
+      chakra: state.chakra.add(totalRewardChakra),
+      chakraAncestral: state.chakraAncestral.add(totalAncestral),
+      gachaTickets: state.gachaTickets + totalTickets,
+      forgeFragments: state.forgeFragments + totalFragments,
+      onlinePresenceBuffTimer: Math.max(state.onlinePresenceBuffTimer, maxBuffTimer),
+      onlinePresenceRewardsClaimed: newClaimed,
+    }));
+
+    const summaryParts: string[] = [];
+    if (totalRewardChakra.gt(0)) summaryParts.push(`+${formatBigNumber(totalRewardChakra)} Chakra`);
+    if (totalAncestral > 0) summaryParts.push(`+${totalAncestral} Chakra Ancestral`);
+    if (totalTickets > 0) summaryParts.push(`+${totalTickets} Bilhetes Gacha`);
+    if (totalFragments > 0) summaryParts.push(`+${totalFragments} Frag. Forja`);
+
+    return {
+      success: true,
+      message: `${eligibleTiers.length} provisões resgatadas com sucesso! ${summaryParts.join(', ')}`,
+      count: eligibleTiers.length,
+    };
   },
 
   performPrestige: () => {
