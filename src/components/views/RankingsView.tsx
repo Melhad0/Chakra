@@ -257,13 +257,13 @@ export const RankingsView: React.FC = () => {
       return `${formatBigNumber(D(entry.highestCPS))} CPS`;
     }
     if (activeLeaderboard === 'totalTroops') {
-      return `${entry.totalTroops.toLocaleString('pt-BR')} Tropas`;
+      return `${formatBigNumber(entry.totalTroops)} Tropas`;
     }
     if (activeLeaderboard === 'gauntletBoss') {
       const boss = GAUNTLET_BOSSES.find((b) => b.id === entry.gauntletBoss);
       return boss ? `Chefe #${entry.gauntletBoss} (${boss.name})` : `Chefe #${entry.gauntletBoss}`;
     }
-    return `${entry.allTimeClicks.toLocaleString('pt-BR')} clq`;
+    return `${formatBigNumber(entry.allTimeClicks)} clq`;
   };
 
   return (
@@ -378,9 +378,9 @@ export const RankingsView: React.FC = () => {
               </span>
               <strong className="text-amber-300 text-sm">
                 {activeLeaderboard === 'peakCps' && `${formatBigNumber(highestCPS)} CPS`}
-                {activeLeaderboard === 'totalTroops' && `${totalTroops.toLocaleString('pt-BR')} Tropas`}
+                {activeLeaderboard === 'totalTroops' && `${formatBigNumber(totalTroops)} Tropas`}
                 {activeLeaderboard === 'gauntletBoss' && `Chefe #${gauntletBossMax}`}
-                {activeLeaderboard === 'allTimeClicks' && `${allTimeClicks.toLocaleString('pt-BR')} cliques`}
+                {activeLeaderboard === 'allTimeClicks' && `${formatBigNumber(allTimeClicks)} cliques`}
               </strong>
             </div>
           </div>

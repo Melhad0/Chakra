@@ -4,14 +4,51 @@ export type NotationMode = 'suffix' | 'scientific';
 
 let currentNotation: NotationMode = 'suffix';
 
-const SUFFIXES = [
-  '', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc',
-  'UDc', 'DDc', 'TDc', 'QaDc', 'QiDc', 'SxDc', 'SpDc', 'OcDc', 'NoDc', 'Vg',
-  'UVg', 'DVg', 'TVg', 'QaVg', 'QiVg', 'SxVg', 'SpVg', 'OcVg', 'NoVg', 'Tg',
-  'UTg', 'DTg', 'TTg', 'QaTg', 'QiTg', 'SxTg', 'SpTg', 'OcTg', 'NoTg', 'Qd',
-  'UQd', 'DQd', 'TQd', 'QaQd', 'QiQd', 'SxQd', 'SpQd', 'OcQd', 'NoQd', 'Qn',
-  'SxG', 'SpG', 'OcG', 'NoG', 'Cent'
-];
+const BASE_SUFFIXES = ['', 'K', 'M', 'B', 'T'];
+
+/**
+ * Retorna o sufixo numérico de acordo com a ordem de grandeza (exp / 3):
+ * 0: '' (<1,000)
+ * 1: 'K' (10^3)
+ * 2: 'M' (10^6)
+ * 3: 'B' (10^9)
+ * 4: 'T' (10^12 - Teto da notação tradicional)
+ * 5: 'AA' (10^15 - Início da notação alfabética simples)
+ * 6: 'AB' (10^18)
+ * ...
+ * 30: 'AZ' (10^90)
+ * 31: 'BA' (10^93)
+ * ...
+ * 680: 'ZZ' (10^2040)
+ * >680: 'AAA', 'AAB'... (escala infinita)
+ */
+export function getSuffix(suffixIndex: number): string {
+  if (suffixIndex <= 0) return '';
+  if (suffixIndex < BASE_SUFFIXES.length) {
+    return BASE_SUFFIXES[suffixIndex];
+  }
+
+  // A partir de suffixIndex = 5 (10^15), segue o alfabeto duplo: AA, AB, AC ... AZ, BA ... ZZ
+  let offset = suffixIndex - BASE_SUFFIXES.length;
+
+  if (offset < 26 * 26) {
+    const firstChar = String.fromCharCode(65 + Math.floor(offset / 26));
+    const secondChar = String.fromCharCode(65 + (offset % 26));
+    return `${firstChar}${secondChar}`;
+  }
+
+  // Para valores extremos além de ZZ (> 10^2040): 3 ou mais letras dinamicamente
+  let remaining = offset - 26 * 26;
+  const chars: string[] = [];
+  while (remaining >= 0) {
+    chars.unshift(String.fromCharCode(65 + (remaining % 26)));
+    remaining = Math.floor(remaining / 26) - 1;
+  }
+  while (chars.length < 3) {
+    chars.unshift('A');
+  }
+  return chars.join('');
+}
 
 export function D(value: Decimal | number | string): Decimal {
   if (value instanceof Decimal) return value;
@@ -32,16 +69,22 @@ export function toggleNotationMode(): NotationMode {
 }
 
 export function formatBigNumber(val: Decimal | number | string, forceScientific = false): string {
+  if (val === null || val === undefined) return '0';
   const d = D(val);
   if (Number.isNaN(d.mantissa) || !Number.isFinite(d.mantissa) || !Number.isFinite(d.exponent)) {
     return '0';
   }
 
+  if (d.lt(0)) {
+    return '-' + formatBigNumber(d.abs(), forceScientific);
+  }
+
   if (d.lt(1000)) {
     const num = d.toNumber();
-    return num < 10 && num > 0 && !Number.isInteger(num)
-      ? num.toFixed(1)
-      : Math.floor(num).toString();
+    if (num > 0 && num < 10 && !Number.isInteger(num)) {
+      return num.toFixed(1);
+    }
+    return Number.isInteger(num) ? num.toString() : num.toFixed(1);
   }
 
   if (currentNotation === 'scientific' || forceScientific) {
@@ -51,13 +94,17 @@ export function formatBigNumber(val: Decimal | number | string, forceScientific 
   }
 
   const exp = d.exponent;
-  const suffixIndex = Math.floor(exp / 3);
+  let suffixIndex = Math.floor(exp / 3);
+  const scale = Math.pow(10, exp % 3);
+  let scaled = d.mantissa * scale;
 
-  if (suffixIndex < SUFFIXES.length) {
-    const scale = Math.pow(10, exp % 3);
-    const scaled = d.mantissa * scale;
-    return `${scaled.toFixed(2)} ${SUFFIXES[suffixIndex]}`;
+  // Evita erro de arredondamento onde 999.995+ renderizaria como "1000.00 K"
+  if (scaled >= 999.995) {
+    scaled /= 1000;
+    suffixIndex += 1;
   }
 
-  return `${d.mantissa.toFixed(2)}e${exp}`;
+  const suffix = getSuffix(suffixIndex);
+  return `${scaled.toFixed(2)} ${suffix}`.trim();
 }
+

@@ -143,7 +143,7 @@ export const ViewHeader: React.FC<ViewHeaderProps> = ({
           </span>
           <span className="text-xs sm:text-sm font-mono font-medium text-purple-400 leading-tight flex items-center gap-1 justify-end">
             <Sparkles className="w-3 h-3 text-purple-400" />
-            {chakraAncestral.toString()}
+            {formatBigNumber(chakraAncestral)}
           </span>
         </div>
       </div>

@@ -47,6 +47,7 @@ import {
   getFavoriteNinjaById,
 } from '../../constants/profileCustomization';
 import { useGameStore } from '../../store/useGameStore';
+import { formatBigNumber } from '../../engine/BigNumber';
 import { getCurrentRank } from '../../constants/rankings';
 
 interface AuthModalProps {
@@ -809,7 +810,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         Cliques Totais
                       </span>
                       <span className="text-sm font-mono font-bold text-amber-300">
-                        {stats.manualClicksAllTime.toLocaleString('pt-BR')}
+                        {formatBigNumber(stats.manualClicksAllTime)}
                       </span>
                     </div>
 

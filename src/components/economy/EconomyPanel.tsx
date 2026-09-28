@@ -335,7 +335,7 @@ export const EconomyPanel: React.FC = () => {
               <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Recrutas</span>
             </div>
             <span className="text-xs font-mono font-semibold text-cyan-300">
-              {totalTroopsRecruited.toLocaleString('pt-BR')}
+              {formatBigNumber(totalTroopsRecruited)}
             </span>
           </div>
         </div>

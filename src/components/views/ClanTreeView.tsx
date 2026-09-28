@@ -91,7 +91,7 @@ export const ClanTreeView: React.FC = () => {
                   Chakra Ancestral Acumulado
                 </span>
                 <span className="text-2xl sm:text-3xl font-mono font-bold text-purple-300">
-                  {chakraAncestral.toString()}
+                  {formatBigNumber(chakraAncestral)}
                 </span>
                 <div className="flex items-center gap-2 mt-1 text-[11px] font-mono text-zinc-400">
                   <span className="text-emerald-400 font-semibold">{clanCPSMultiplier}x CPS</span>
@@ -133,7 +133,7 @@ export const ClanTreeView: React.FC = () => {
 
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-zinc-500">
-                  Ganho: <strong className="text-purple-300">+{pendingAncestral} Ancestral</strong>
+                  Ganho: <strong className="text-purple-300">+{formatBigNumber(pendingAncestral)} Ancestral</strong>
                 </span>
                 <button
                   disabled={!canPrestige}
@@ -182,7 +182,7 @@ export const ClanTreeView: React.FC = () => {
                 <div className="text-center">
                   <h4 className="text-xs font-bold text-zinc-100">{rootNode.name}</h4>
                   <span className="text-[10px] font-mono text-purple-400">
-                    {clanNodes[rootNode.id] ? 'Desperto' : `Custo: ${rootNode.cost} Ancestral`}
+                    {clanNodes[rootNode.id] ? 'Desperto' : `Custo: ${formatBigNumber(rootNode.cost)} Ancestral`}
                   </span>
                 </div>
               </button>
@@ -238,7 +238,7 @@ export const ClanTreeView: React.FC = () => {
                         <div className="min-w-0">
                           <h5 className="text-xs font-semibold text-zinc-200 truncate">{node.name}</h5>
                           <span className="text-[10px] font-mono text-zinc-500">
-                            {isUnlocked ? 'Desperto' : `${node.cost} Ancestral`}
+                            {isUnlocked ? 'Desperto' : `${formatBigNumber(node.cost)} Ancestral`}
                           </span>
                         </div>
                       </button>
@@ -288,7 +288,7 @@ export const ClanTreeView: React.FC = () => {
                         <div className="min-w-0">
                           <h5 className="text-xs font-semibold text-zinc-200 truncate">{node.name}</h5>
                           <span className="text-[10px] font-mono text-zinc-500">
-                            {isUnlocked ? 'Desperto' : `${node.cost} Ancestral`}
+                            {isUnlocked ? 'Desperto' : `${formatBigNumber(node.cost)} Ancestral`}
                           </span>
                         </div>
                       </button>
@@ -327,7 +327,7 @@ export const ClanTreeView: React.FC = () => {
                       <div className="min-w-0">
                         <h5 className="text-xs font-semibold text-zinc-200 truncate">{node.name}</h5>
                         <span className="text-[10px] font-mono text-zinc-500">
-                          {isUnlocked ? 'Desperto' : `${node.cost} Ancestral`}
+                          {isUnlocked ? 'Desperto' : `${formatBigNumber(node.cost)} Ancestral`}
                         </span>
                       </div>
                     </button>
@@ -365,7 +365,7 @@ export const ClanTreeView: React.FC = () => {
                       <div className="min-w-0">
                         <h5 className="text-xs font-semibold text-zinc-200 truncate">{node.name}</h5>
                         <span className="text-[10px] font-mono text-zinc-500">
-                          {isUnlocked ? 'Desperto' : `${node.cost} Ancestral`}
+                          {isUnlocked ? 'Desperto' : `${formatBigNumber(node.cost)} Ancestral`}
                         </span>
                       </div>
                     </button>
@@ -435,7 +435,7 @@ export const ClanTreeView: React.FC = () => {
           <div className="pt-6 border-t border-zinc-800/80">
             <div className="flex items-center justify-between text-xs font-mono mb-3">
               <span className="text-zinc-400">Custo de Despertar:</span>
-              <strong className="text-purple-300 text-sm">{selectedNode.cost} Chakra Ancestral</strong>
+              <strong className="text-purple-300 text-sm">{formatBigNumber(selectedNode.cost)} Chakra Ancestral</strong>
             </div>
 
             {isSelectedUnlocked ? (
@@ -462,7 +462,7 @@ export const ClanTreeView: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" /> Despertar Linhagem (-{selectedNode.cost} Ancestral)
+                    <Sparkles className="w-4 h-4" /> Despertar Linhagem (-{formatBigNumber(selectedNode.cost)} Ancestral)
                   </>
                 )}
               </button>
