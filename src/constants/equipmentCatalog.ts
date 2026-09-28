@@ -2,19 +2,31 @@ import { D } from '../engine/BigNumber';
 import {
   EquipmentItem,
   FarmMaterialItem,
-  GearSlotKey,
+  BossEquipmentSlotKey,
+  BOSS_EQUIPMENT_SLOTS,
+  ElementType,
 } from '../types/inventory';
 import { ItemRarity } from '../types/rarity';
+import { RAW_BOSS_LOOT_CONFIGS, RawBossGearItem } from './bossLootData';
 
 export interface BossLootDefinition {
   bossId: number;
   bossName: string;
   equipment: EquipmentItem;
+  equipmentSet: Record<BossEquipmentSlotKey, EquipmentItem>;
   material: Omit<FarmMaterialItem, 'stackCount'>;
 }
 
+export interface BossLootRollResult {
+  equipmentDrop: EquipmentItem | null;
+  equipmentDrops: EquipmentItem[];
+  farmMaterial: FarmMaterialItem;
+  dropProbability: number;
+  rolledProbability: number;
+}
+
 /**
- * Curva Matemática de Chance de Drop:
+ * Curva Matemática de Chance de Drop Base / Fallback:
  * P_drop(n) = max(0.005, 0.25 * 0.96^(n - 1))
  */
 export function calculateBossDropProbability(n: number): number {
@@ -23,1290 +35,196 @@ export function calculateBossDropProbability(n: number): number {
 }
 
 /**
- * Catálogo Oficial dos 40 Chefes:
- * CADA CHEFE POSSUI UMA ARMA DEDICADA NOS 10 TIERS DE RARIDADE
+ * Curva de Chance de Drop Individual por Slot:
+ * P_slot(n) = max(0.002, 0.05 * 0.96^(n - 1))
  */
-export const BOSS_LOOT_CATALOG: Record<number, BossLootDefinition> = {
-  // =========================================================================
-  // TIER 1: BÁSICO (Fases 1 a 2)
-  // =========================================================================
-  1: {
-    bossId: 1,
-    bossName: 'Mizuki',
-    equipment: {
-      id: 'wp_mizuki_shuriken',
-      name: 'Shuriken Gigante de Quatro Lâminas',
-      rarity: 'BASIC',
-      type: 'WEAPON_RANGED',
-      weaponCategory: 'SHURIKEN',
-      description: 'Arma pesada de arremesso que Mizuki usou para emboscar Naruto na floresta proibida.',
-      iconName: 'Disc',
-      bonusCpsMult: D(1.05),
-      bonusClickMult: D(1.15),
-      bonusCritChance: 0.05,
-      bonusCritMult: D(1.2),
-      originBossId: 1,
-      originBossName: 'Mizuki',
-    },
-    material: {
-      id: 'mat_giant_shuriken',
-      name: 'Pedaço de Lâmina de Shuriken Enferrujada',
-      rarity: 'BASIC',
-      type: 'MATERIAL',
-      description: 'Fragmento de aço rústico recuperado da emboscada no bosque.',
-      iconName: 'Disc',
-      baseGoldValue: D(50),
-      originBossId: 1,
-      originBossName: 'Mizuki',
-    },
-  },
+export function calculateBossSlotDropProbability(n: number): number {
+  const prob = 0.05 * Math.pow(0.96, Math.max(0, n - 1));
+  return Math.max(0.002, prob);
+}
 
-  2: {
-    bossId: 2,
-    bossName: 'Ebisu & Força Policial de Konoha',
-    equipment: {
-      id: 'wp_ebisu_tonfa',
-      name: 'Tonfa Tática de Defesa de Konoha',
-      rarity: 'BASIC',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'BLADE',
-      description: 'Bastão defensivo de treino utilizado pelos instrutores de elite da academia.',
-      iconName: 'Shield',
-      bonusCpsMult: D(1.08),
-      bonusClickMult: D(1.20),
-      bonusCritChance: 0.06,
-      bonusCritMult: D(1.25),
-      originBossId: 2,
-      originBossName: 'Ebisu & Força Policial',
-    },
-    material: {
-      id: 'mat_ebisu_cloth',
-      name: 'Tecido de Colete Tático Policial',
-      rarity: 'BASIC',
-      type: 'MATERIAL',
-      description: 'Fibra resistente da farda da polícia interna de Konoha.',
-      iconName: 'Layers',
-      baseGoldValue: D(120),
-      originBossId: 2,
-      originBossName: 'Ebisu & Força Policial',
-    },
-  },
+interface BossBasePower {
+  cps: number;
+  click: number;
+  critChance: number;
+  critMult: number;
+}
 
-  // =========================================================================
-  // TIER 2: COMUM (Fases 3 a 5)
-  // =========================================================================
-  3: {
-    bossId: 3,
-    bossName: 'Kankurō',
-    equipment: {
-      id: 'wp_kankuro_blade',
-      name: 'Lâmina Secreta Envenenada de Karasu',
-      rarity: 'COMMON',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'BLADE',
-      description: 'Punhal oculto nas articulações da marionete Karasu, banhado em veneno de escorpião.',
-      iconName: 'Sword',
-      bonusCpsMult: D(1.12),
-      bonusClickMult: D(1.25),
-      bonusCritChance: 0.08,
-      bonusCritMult: D(1.3),
-      originBossId: 3,
-      originBossName: 'Kankurō',
-    },
-    material: {
-      id: 'mat_karasu_joint',
-      name: 'Engrenagem de Madeira de Marionete',
-      rarity: 'COMMON',
-      type: 'MATERIAL',
-      description: 'Articulação esculpida à mão compatível com fios de chakra.',
-      iconName: 'Settings',
-      baseGoldValue: D(250),
-      originBossId: 3,
-      originBossName: 'Kankurō',
-    },
-  },
-
-  4: {
-    bossId: 4,
-    bossName: 'Genno',
-    equipment: {
-      id: 'wp_genno_kunai',
-      name: 'Kunai com Rolos de Pólvora Tripla',
-      rarity: 'COMMON',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'BLADE',
-      description: 'Arma modificada pelo lendário armadilheiro Genno, disparando pequenas centelhas a cada corte.',
-      iconName: 'Flame',
-      bonusCpsMult: D(1.16),
-      bonusClickMult: D(1.30),
-      bonusCritChance: 0.10,
-      bonusCritMult: D(1.35),
-      originBossId: 4,
-      originBossName: 'Genno',
-    },
-    material: {
-      id: 'mat_genno_blueprint',
-      name: 'Esquema de Armadilhas do País do Fogo',
-      rarity: 'COMMON',
-      type: 'MATERIAL',
-      description: 'Planta tática revelando pontos cegos na arquitetura de Konoha.',
-      iconName: 'Scroll',
-      baseGoldValue: D(500),
-      originBossId: 4,
-      originBossName: 'Genno',
-    },
-  },
-
-  5: {
-    bossId: 5,
-    bossName: 'Amachi',
-    equipment: {
-      id: 'wp_amachi_harpoon',
-      name: 'Arpão de Osso do Monstro Marinho',
-      rarity: 'COMMON',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SPEAR',
-      description: 'Arma perfurante forjada com cartilagem calcificada do demônio Umibōzu.',
-      iconName: 'Crosshair',
-      bonusCpsMult: D(1.20),
-      bonusClickMult: D(1.35),
-      bonusCritChance: 0.10,
-      bonusCritMult: D(1.4),
-      originBossId: 5,
-      originBossName: 'Amachi',
-    },
-    material: {
-      id: 'mat_sea_slime',
-      name: 'Fluido Quimérico Oceânico',
-      rarity: 'COMMON',
-      type: 'MATERIAL',
-      description: 'Composto mutagênico bioaquático desenvolvido por Amachi.',
-      iconName: 'Droplet',
-      baseGoldValue: D(900),
-      originBossId: 5,
-      originBossName: 'Amachi',
-    },
-  },
-
-  // =========================================================================
-  // TIER 3: INCOMUM (Fases 6 a 8)
-  // =========================================================================
-  6: {
-    bossId: 6,
-    bossName: 'Ishidate',
-    equipment: {
-      id: 'wp_ishidate_gauntlet',
-      name: 'Manopla Perfuradora de Rocha Maciça',
-      rarity: 'UNCOMMON',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'HEAVY',
-      description: 'Braçadeira reforçada com resíduos minerais que aumentam o impacto e petrificam defesas.',
-      iconName: 'Hammer',
-      bonusCpsMult: D(1.25),
-      bonusClickMult: D(1.45),
-      bonusCritChance: 0.12,
-      bonusCritMult: D(1.45),
-      originBossId: 6,
-      originBossName: 'Ishidate',
-    },
-    material: {
-      id: 'mat_petrified_crystal',
-      name: 'Fragmento de Rocha Petrificante',
-      rarity: 'UNCOMMON',
-      type: 'MATERIAL',
-      description: 'Mineral instável capaz de converter matéria orgânica em pedra.',
-      iconName: 'Diamond',
-      baseGoldValue: D(1500),
-      originBossId: 6,
-      originBossName: 'Ishidate',
-    },
-  },
-
-  7: {
-    bossId: 7,
-    bossName: 'Dotō Kazahana',
-    equipment: {
-      id: 'wp_doto_blade',
-      name: 'Lâmina de Chakra Criogênica',
-      rarity: 'UNCOMMON',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SWORD',
-      description: 'Espada conectada aos núcleos da Armadura de Chakra, congelando o ar com cada golpe.',
-      iconName: 'Sword',
-      bonusCpsMult: D(1.30),
-      bonusClickMult: D(1.55),
-      bonusCritChance: 0.12,
-      bonusCritMult: D(1.5),
-      originBossId: 7,
-      originBossName: 'Dotō Kazahana',
-    },
-    material: {
-      id: 'mat_black_armor_shard',
-      name: 'Placa de Armadura de Chakra do País da Neve',
-      rarity: 'UNCOMMON',
-      type: 'MATERIAL',
-      description: 'Liga metálica capaz de refratar jutsus elementais.',
-      iconName: 'Shield',
-      baseGoldValue: D(2500),
-      originBossId: 7,
-      originBossName: 'Dotō Kazahana',
-    },
-  },
-
-  8: {
-    bossId: 8,
-    bossName: 'Shiranami',
-    equipment: {
-      id: 'wp_shiranami_brush',
-      name: 'Pincel Kanji de Selamento Corpóreo',
-      rarity: 'UNCOMMON',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SPEAR',
-      description: 'Pincel ritualístico do clã Tsuchigumo com ponta de aço que grava ideogramas restritivos.',
-      iconName: 'Feather',
-      bonusCpsMult: D(1.36),
-      bonusClickMult: D(1.65),
-      bonusCritChance: 0.14,
-      bonusCritMult: D(1.55),
-      originBossId: 8,
-      originBossName: 'Shiranami',
-    },
-    material: {
-      id: 'mat_tsuchigumo_ink',
-      name: 'Tinta Proibida de Kanji de Contenção',
-      rarity: 'UNCOMMON',
-      type: 'MATERIAL',
-      description: 'Tinta imbuída com o fluxo de chakra proibido do monte Katsuragi.',
-      iconName: 'Feather',
-      baseGoldValue: D(4000),
-      originBossId: 8,
-      originBossName: 'Shiranami',
-    },
-  },
-
-  // =========================================================================
-  // TIER 4: RARO (Fases 9 a 11)
-  // =========================================================================
-  9: {
-    bossId: 9,
-    bossName: 'Jirōbō',
-    equipment: {
-      id: 'wp_jirobo_knuckles',
-      name: 'Manga Pesada de Aço e Doton',
-      rarity: 'RARE',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'HEAVY',
-      description: 'Manopla de pedra e ferro bruto do Quarteto do Som, amplificada pelo Selo Nível 2.',
-      iconName: 'Shield',
-      bonusCpsMult: D(1.45),
-      bonusClickMult: D(1.80),
-      bonusCritChance: 0.15,
-      bonusCritMult: D(1.6),
-      originBossId: 9,
-      originBossName: 'Jirōbō',
-    },
-    material: {
-      id: 'mat_cursed_earth',
-      name: 'Solo Amaldiçoado de Prisão de Pedra',
-      rarity: 'RARE',
-      type: 'MATERIAL',
-      description: 'Argila imbuída pelo selo de Orochimaru.',
-      iconName: 'Boxes',
-      baseGoldValue: D(7000),
-      originBossId: 9,
-      originBossName: 'Jirōbō',
-    },
-  },
-
-  10: {
-    bossId: 10,
-    bossName: 'Sakon e Ukon',
-    equipment: {
-      id: 'wp_sakon_daggers',
-      name: 'Adaga Dupla de Ligação Celular',
-      rarity: 'RARE',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'BLADE',
-      description: 'Par de lâminas sincronizadas que vibram na mesma frequência biológica dos irmãos parasitários.',
-      iconName: 'Swords',
-      bonusCpsMult: D(1.55),
-      bonusClickMult: D(1.95),
-      bonusCritChance: 0.16,
-      bonusCritMult: D(1.65),
-      originBossId: 10,
-      originBossName: 'Sakon e Ukon',
-    },
-    material: {
-      id: 'mat_cursed_dna',
-      name: 'Resíduo Biológico do Selo da Terra',
-      rarity: 'RARE',
-      type: 'MATERIAL',
-      description: 'Enzima viva capaz de acelerar a recuperação de ferimentos.',
-      iconName: 'Activity',
-      baseGoldValue: D(12000),
-      originBossId: 10,
-      originBossName: 'Sakon e Ukon',
-    },
-  },
-
-  11: {
-    bossId: 11,
-    bossName: 'Tayuya',
-    equipment: {
-      id: 'wp_tayuya_flute',
-      name: 'Flauta Demoníaca dos Três Doki',
-      rarity: 'RARE',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'BLADE',
-      description: 'Instrumento forjado em liga obscura capaz de direcionar ondas sônicas e evocar ogros espectrais.',
-      iconName: 'Music',
-      bonusCpsMult: D(1.65),
-      bonusClickMult: D(2.10),
-      bonusCritChance: 0.18,
-      bonusCritMult: D(1.7),
-      originBossId: 11,
-      originBossName: 'Tayuya',
-    },
-    material: {
-      id: 'mat_doki_ectoplasm',
-      name: 'Ectoplasma de Ogro Doki',
-      rarity: 'RARE',
-      type: 'MATERIAL',
-      description: 'Substância espectral residual deixada após o banimento dos gigantes.',
-      iconName: 'Ghost',
-      baseGoldValue: D(20000),
-      originBossId: 11,
-      originBossName: 'Tayuya',
-    },
-  },
-
-  // =========================================================================
-  // TIER 5: MUITO RARO (Fases 12 a 15)
-  // =========================================================================
-  12: {
-    bossId: 12,
-    bossName: 'Baki da Areia',
-    equipment: {
-      id: 'wp_baki_sword',
-      name: 'Espada Cortadora de Vácuo das Dunas',
-      rarity: 'VERY_RARE',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SWORD',
-      description: 'Katana militar com canal de vento aerodinâmico que corta antes do contato físico.',
-      iconName: 'Sword',
-      bonusCpsMult: D(1.80),
-      bonusClickMult: D(2.30),
-      bonusCritChance: 0.20,
-      bonusCritMult: D(1.75),
-      originBossId: 12,
-      originBossName: 'Baki da Areia',
-    },
-    material: {
-      id: 'mat_sand_blade_scroll',
-      name: 'Pergaminho de Kaze no Yaiba',
-      rarity: 'VERY_RARE',
-      type: 'MATERIAL',
-      description: 'Instruções secretas do jutsu de corte invisível de Sunagakure.',
-      iconName: 'Scroll',
-      baseGoldValue: D(35000),
-      originBossId: 12,
-      originBossName: 'Baki da Areia',
-    },
-  },
-
-  13: {
-    bossId: 13,
-    bossName: 'Haido',
-    equipment: {
-      id: 'wp_haido_spear',
-      name: 'Lança de Energia Bruta de Gelel',
-      rarity: 'VERY_RARE',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SPEAR',
-      description: 'Lança com um orbe de Gelel incrustado, emitindo pulsos bioenergéticos colossais.',
-      iconName: 'Sparkles',
-      bonusCpsMult: D(2.00),
-      bonusClickMult: D(2.55),
-      bonusCritChance: 0.20,
-      bonusCritMult: D(1.8),
-      originBossId: 13,
-      originBossName: 'Haido',
-    },
-    material: {
-      id: 'mat_pure_gelel_stone',
-      name: 'Fragmento de Pedra Pura de Gelel',
-      rarity: 'VERY_RARE',
-      type: 'MATERIAL',
-      description: 'Cristal ancestral que concentra a energia vital de continentes inteiros.',
-      iconName: 'Gem',
-      baseGoldValue: D(60000),
-      originBossId: 13,
-      originBossName: 'Haido',
-    },
-  },
-
-  14: {
-    bossId: 14,
-    bossName: 'Toroi da Nuvem',
-    equipment: {
-      id: 'wp_toroi_shuriken',
-      name: 'Fuma Shuriken de Campo Magnético',
-      rarity: 'VERY_RARE',
-      type: 'WEAPON_RANGED',
-      weaponCategory: 'SHURIKEN',
-      description: 'Shuriken gigante de polaridade magnética reversível, atraindo golpes críticos ao alvo.',
-      iconName: 'Zap',
-      bonusCpsMult: D(2.20),
-      bonusClickMult: D(2.80),
-      bonusCritChance: 0.22,
-      bonusCritMult: D(1.85),
-      originBossId: 14,
-      originBossName: 'Toroi da Nuvem',
-    },
-    material: {
-      id: 'mat_magnetic_iron_sand',
-      name: 'Areia de Ferro com Carga Jiton',
-      rarity: 'VERY_RARE',
-      type: 'MATERIAL',
-      description: 'Pó metálico de Kumogakure polarizado com Liberação de Magnetismo.',
-      iconName: 'Magnet',
-      baseGoldValue: D(100000),
-      originBossId: 14,
-      originBossName: 'Toroi da Nuvem',
-    },
-  },
-
-  15: {
-    bossId: 15,
-    bossName: 'Gari da Pedra',
-    equipment: {
-      id: 'wp_gari_gauntlet',
-      name: 'Manoplas de Impacto de Bakuton',
-      rarity: 'VERY_RARE',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'HEAVY',
-      description: 'Manoplas reforçadas de Iwagakure que provocam detonações ao colidir com o alvo.',
-      iconName: 'Flame',
-      bonusCpsMult: D(2.40),
-      bonusClickMult: D(3.10),
-      bonusCritChance: 0.22,
-      bonusCritMult: D(1.9),
-      originBossId: 15,
-      originBossName: 'Gari da Pedra',
-    },
-    material: {
-      id: 'mat_explosive_clay_dust',
-      name: 'Pólvora Sísmica de Bakuton',
-      rarity: 'VERY_RARE',
-      type: 'MATERIAL',
-      description: 'Resíduo de taijutsu explosivo extraído do Pelotão de Detonação de Iwa.',
-      iconName: 'Flame',
-      baseGoldValue: D(175000),
-      originBossId: 15,
-      originBossName: 'Gari da Pedra',
-    },
-  },
-
-  // =========================================================================
-  // TIER 6: ÉPICO (Fases 16 a 20)
-  // =========================================================================
-  16: {
-    bossId: 16,
-    bossName: 'Kushimaru Kuriarare',
-    equipment: {
-      id: 'wp_nuibari_needle',
-      name: 'Nuibari: A Lâmina Costuradora',
-      rarity: 'EPIC',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SWORD',
-      description: 'Uma das Sete Espadas Lendárias da Névoa. Uma agulha fina que transpassa qualquer escudo.',
-      iconName: 'Sword',
-      bonusCpsMult: D(2.80),
-      bonusClickMult: D(3.50),
-      bonusCritChance: 0.25,
-      bonusCritMult: D(2.0),
-      originBossId: 16,
-      originBossName: 'Kushimaru Kuriarare',
-    },
-    material: {
-      id: 'mat_nuibari_wire',
-      name: 'Carretel de Fio Metálico Inquebrável',
-      rarity: 'EPIC',
-      type: 'MATERIAL',
-      description: 'Fio de aço naval da Névoa resistente ao corte de ninjutsu.',
-      iconName: 'Link',
-      baseGoldValue: D(300000),
-      originBossId: 16,
-      originBossName: 'Kushimaru Kuriarare',
-    },
-  },
-
-  17: {
-    bossId: 17,
-    bossName: 'Jinpachi Munashi',
-    equipment: {
-      id: 'wp_shibuki_sword',
-      name: 'Shibuki: A Espada Explosiva da Névoa',
-      rarity: 'EPIC',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SWORD',
-      description: 'Uma das Sete Espadas da Névoa. Equipada com um rolo sem fim de selos detonadores.',
-      iconName: 'Flame',
-      bonusCpsMult: D(3.20),
-      bonusClickMult: D(4.00),
-      bonusCritChance: 0.25,
-      bonusCritMult: D(2.1),
-      originBossId: 17,
-      originBossName: 'Jinpachi Munashi',
-    },
-    material: {
-      id: 'mat_shibuki_scroll_core',
-      name: 'Cilindro Recarregador de Selos Explosivos',
-      rarity: 'EPIC',
-      type: 'MATERIAL',
-      description: 'Mecanismo interno da Shibuki que alimenta selos de ignição em cadeia.',
-      iconName: 'Disc',
-      baseGoldValue: D(500000),
-      originBossId: 17,
-      originBossName: 'Jinpachi Munashi',
-    },
-  },
-
-  18: {
-    bossId: 18,
-    bossName: 'Chiyo Reanimada',
-    equipment: {
-      id: 'wp_monzaemon_claws',
-      name: 'Garras Articuladas de Monzaemon',
-      rarity: 'EPIC',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'BLADE',
-      description: 'Lâminas curvas retráteis montadas no principal títere do Esquadrão Branco de Monzaemon.',
-      iconName: 'Scissors',
-      bonusCpsMult: D(3.60),
-      bonusClickMult: D(4.60),
-      bonusCritChance: 0.26,
-      bonusCritMult: D(2.2),
-      originBossId: 18,
-      originBossName: 'Chiyo Reanimada',
-    },
-    material: {
-      id: 'mat_white_puppet_wood',
-      name: 'Madeira Sagrada de Monzaemon Chikamatsu',
-      rarity: 'EPIC',
-      type: 'MATERIAL',
-      description: 'Tronco milenar entalhado pelo fundador da arte das marionetes.',
-      iconName: 'Layers',
-      baseGoldValue: D(800000),
-      originBossId: 18,
-      originBossName: 'Chiyo Reanimada',
-    },
-  },
-
-  19: {
-    bossId: 19,
-    bossName: 'Pakura da Areia',
-    equipment: {
-      id: 'wp_pakura_blade',
-      name: 'Lâmina Solar de Shakuton',
-      rarity: 'EPIC',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SWORD',
-      description: 'Espada envolta por esferas incandescentes de vaporização biológica instantânea.',
-      iconName: 'Sun',
-      bonusCpsMult: D(4.10),
-      bonusClickMult: D(5.30),
-      bonusCritChance: 0.28,
-      bonusCritMult: D(2.3),
-      originBossId: 19,
-      originBossName: 'Pakura da Areia',
-    },
-    material: {
-      id: 'mat_shakuton_plasma',
-      name: 'Gotícula de Plasma de Liberação de Calor',
-      rarity: 'EPIC',
-      type: 'MATERIAL',
-      description: 'Chama concentrada que desidrata qualquer líquido que toca.',
-      iconName: 'Flame',
-      baseGoldValue: D(1300000),
-      originBossId: 19,
-      originBossName: 'Pakura da Areia',
-    },
-  },
-
-  20: {
-    bossId: 20,
-    bossName: 'Fū Yamanaka & Torune Aburame',
-    equipment: {
-      id: 'wp_torune_tanto',
-      name: 'Tanto Tático Impregnado de Rinkaichū',
-      rarity: 'EPIC',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'BLADE',
-      description: 'Faca cerimonial da Fundação ANBU com canal microscópico abrigando nano-insetos destruidores celulares.',
-      iconName: 'Skull',
-      bonusCpsMult: D(4.70),
-      bonusClickMult: D(6.20),
-      bonusCritChance: 0.30,
-      bonusCritMult: D(2.4),
-      originBossId: 20,
-      originBossName: 'Fū & Torune',
-    },
-    material: {
-      id: 'mat_rinkaichu_colony',
-      name: 'Frasco de Contenção de Rinkaichū',
-      rarity: 'EPIC',
-      type: 'MATERIAL',
-      description: 'Colônia preservada de insetos carnívoros venenosos da linhagem de Torune.',
-      iconName: 'Bug',
-      baseGoldValue: D(2000000),
-      originBossId: 20,
-      originBossName: 'Fū & Torune',
-    },
-  },
-
-  // =========================================================================
-  // TIER 7: LENDÁRIO (Fases 21 a 26)
-  // =========================================================================
-  21: {
-    bossId: 21,
-    bossName: 'Guren',
-    equipment: {
-      id: 'wp_guren_crystal_sword',
-      name: 'Florete de Cristal de Jade Shōton',
-      rarity: 'LEGENDARY',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SWORD',
-      description: 'Lâmina cristalizada pura forjada instantaneamente através da Liberação de Cristal.',
-      iconName: 'Diamond',
-      bonusCpsMult: D(5.50),
-      bonusClickMult: D(7.50),
-      bonusCritChance: 0.30,
-      bonusCritMult: D(2.5),
-      originBossId: 21,
-      originBossName: 'Guren',
-    },
-    material: {
-      id: 'mat_crimson_crystal',
-      name: 'Cristal Escarlate Hexagonal de Shōton',
-      rarity: 'LEGENDARY',
-      type: 'MATERIAL',
-      description: 'Prisma diamantino indestrutível por fogo ou vento comuns.',
-      iconName: 'Sparkles',
-      baseGoldValue: D(3500000),
-      originBossId: 21,
-      originBossName: 'Guren',
-    },
-  },
-
-  22: {
-    bossId: 22,
-    bossName: 'Mifune',
-    equipment: {
-      id: 'wp_mifune_kurosawa',
-      name: 'Meitō Kurosawa: O Corte Supremo Iai',
-      rarity: 'LEGENDARY',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SWORD',
-      description: 'A espada lendária do general do País do Ferro, com velocidade de desembainhar que silencia ninjutsus.',
-      iconName: 'Sword',
-      bonusCpsMult: D(6.50),
-      bonusClickMult: D(9.00),
-      bonusCritChance: 0.32,
-      bonusCritMult: D(2.6),
-      originBossId: 22,
-      originBossName: 'Mifune',
-    },
-    material: {
-      id: 'mat_samurai_steel',
-      name: 'Aço Forjado de Kurosawa',
-      rarity: 'LEGENDARY',
-      type: 'MATERIAL',
-      description: 'Metal sagrado temperado nas neves eternas do País do Ferro.',
-      iconName: 'Shield',
-      baseGoldValue: D(6000000),
-      originBossId: 22,
-      originBossName: 'Mifune',
-    },
-  },
-
-  23: {
-    bossId: 23,
-    bossName: 'Shinnō',
-    equipment: {
-      id: 'wp_shinno_claws',
-      name: 'Garras do Vigor Obscuro',
-      rarity: 'LEGENDARY',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'BLADE',
-      description: 'Punhais de aço negro que transmitem a energia vital dos Oito Portões sem o colapso do usuário.',
-      iconName: 'Flame',
-      bonusCpsMult: D(7.80),
-      bonusClickMult: D(11.00),
-      bonusCritChance: 0.32,
-      bonusCritMult: D(2.7),
-      originBossId: 23,
-      originBossName: 'Shinnō',
-    },
-    material: {
-      id: 'mat_dark_chakra_core',
-      name: 'Núcleo de Chakra Escuro Concentrado',
-      rarity: 'LEGENDARY',
-      type: 'MATERIAL',
-      description: 'Massa condensada de emoções negativas e vitalidade artificial.',
-      iconName: 'Zap',
-      baseGoldValue: D(10000000),
-      originBossId: 23,
-      originBossName: 'Shinnō',
-    },
-  },
-
-  24: {
-    bossId: 24,
-    bossName: 'Rasa',
-    equipment: {
-      id: 'wp_rasa_gold_spear',
-      name: 'Lança Cerimonial de Pó de Ouro',
-      rarity: 'LEGENDARY',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SPEAR',
-      description: 'Alabarda densa de ouro magnético (Sakin), pesada o suficiente para conter bestas com cauda.',
-      iconName: 'Crown',
-      bonusCpsMult: D(9.20),
-      bonusClickMult: D(13.50),
-      bonusCritChance: 0.34,
-      bonusCritMult: D(2.8),
-      originBossId: 24,
-      originBossName: 'Rasa',
-    },
-    material: {
-      id: 'mat_magnetic_sakin',
-      name: 'Pó de Ouro Imantado do Quarto Kazekage',
-      rarity: 'LEGENDARY',
-      type: 'MATERIAL',
-      description: 'Minério nobre polarizado com chakra magnético de alta densidade.',
-      iconName: 'Coins',
-      baseGoldValue: D(18000000),
-      originBossId: 24,
-      originBossName: 'Rasa',
-    },
-  },
-
-  25: {
-    bossId: 25,
-    bossName: 'Hiruko',
-    equipment: {
-      id: 'wp_hiruko_whip',
-      name: 'Chicote Condutor de Quatro Linhagens',
-      rarity: 'LEGENDARY',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'BLADE',
-      description: 'Arma segmentada ligada aos núcleos de absorção (Meiton), aço (Kōton) e tempestade (Ranton).',
-      iconName: 'Activity',
-      bonusCpsMult: D(11.00),
-      bonusClickMult: D(17.00),
-      bonusCritChance: 0.35,
-      bonusCritMult: D(2.9),
-      originBossId: 25,
-      originBossName: 'Hiruko',
-    },
-    material: {
-      id: 'mat_kimera_catalyst',
-      name: 'Catalisador Sintético da Técnica Quimera',
-      rarity: 'LEGENDARY',
-      type: 'MATERIAL',
-      description: 'Composto alquímico capaz de fundir códigos genéticos de linhagens ninja distintas.',
-      iconName: 'Sparkles',
-      baseGoldValue: D(30000000),
-      originBossId: 25,
-      originBossName: 'Hiruko',
-    },
-  },
-
-  26: {
-    bossId: 26,
-    bossName: 'Danzō Shimura',
-    equipment: {
-      id: 'wp_danzo_staff',
-      name: 'Bastão Samurai de Lâmina Espiral de Vento',
-      rarity: 'LEGENDARY',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SWORD',
-      description: 'Cajado com lâmina embutida infundida com a sucção e compressão de vento da quimera Baku.',
-      iconName: 'Eye',
-      bonusCpsMult: D(13.50),
-      bonusClickMult: D(21.00),
-      bonusCritChance: 0.35,
-      bonusCritMult: D(3.0),
-      originBossId: 26,
-      originBossName: 'Danzō Shimura',
-    },
-    material: {
-      id: 'mat_hashirama_imperfect_cell',
-      name: 'Tecido Incompleto das Células de Hashirama',
-      rarity: 'LEGENDARY',
-      type: 'MATERIAL',
-      description: 'Massa celular de Mokuton instável cultivada por Orochimaru.',
-      iconName: 'Heart',
-      baseGoldValue: D(50000000),
-      originBossId: 26,
-      originBossName: 'Danzō Shimura',
-    },
-  },
-
-  // =========================================================================
-  // TIER 8: MÍTICO (Fases 27 a 33)
-  // =========================================================================
-  27: {
-    bossId: 27,
-    bossName: 'Muku / Demônio Satori',
-    equipment: {
-      id: 'wp_satori_quill',
-      name: 'Pluma Cortante do Horror Satori',
-      rarity: 'MYTHIC',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'BLADE',
-      description: 'Pena demoníaca endurecida da Caixa do Paraíso que lê o medo e rasga a realidade.',
-      iconName: 'Feather',
-      bonusCpsMult: D(16.50),
-      bonusClickMult: D(27.00),
-      bonusCritChance: 0.38,
-      bonusCritMult: D(3.1),
-      originBossId: 27,
-      originBossName: 'Muku / Satori',
-    },
-    material: {
-      id: 'mat_box_of_paradise_shard',
-      name: 'Fragmento da Caixa da Última Esperança',
-      rarity: 'MYTHIC',
-      type: 'MATERIAL',
-      description: 'Pedaço do artefato que aprisionou nações durante as eras antigas.',
-      iconName: 'Box',
-      baseGoldValue: D(80000000),
-      originBossId: 27,
-      originBossName: 'Muku / Satori',
-    },
-  },
-
-  28: {
-    bossId: 28,
-    bossName: 'Mukade',
-    equipment: {
-      id: 'wp_mukade_drill',
-      name: 'Lança de Broca de Ryūmyaku',
-      rarity: 'MYTHIC',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SPEAR',
-      description: 'Perfuração mecânica giratória abastecida pela fonte inesgotável das Linhas Ley de Rōran.',
-      iconName: 'RotateCw',
-      bonusCpsMult: D(20.00),
-      bonusClickMult: D(35.00),
-      bonusCritChance: 0.40,
-      bonusCritMult: D(3.2),
-      originBossId: 28,
-      originBossName: 'Mukade',
-    },
-    material: {
-      id: 'mat_ryumyaku_leyline_core',
-      name: 'Cristal Energético de Linhas Ley de Rōran',
-      rarity: 'MYTHIC',
-      type: 'MATERIAL',
-      description: 'Fonte pura de chakra contínuo capaz de romper o fluxo do tempo.',
-      iconName: 'Sparkles',
-      baseGoldValue: D(130000000),
-      originBossId: 28,
-      originBossName: 'Mukade',
-    },
-  },
-
-  29: {
-    bossId: 29,
-    bossName: 'Kinkaku & Ginkaku',
-    equipment: {
-      id: 'wp_shichiseiken',
-      name: 'Shichiseiken: A Espada de Sete Estrelas',
-      rarity: 'MYTHIC',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SWORD',
-      description: 'Uma das cinco ferramentas preciosas do Sábio dos Seis Caminhos, cortando a alma das palavras.',
-      iconName: 'Sword',
-      bonusCpsMult: D(25.00),
-      bonusClickMult: D(46.00),
-      bonusCritChance: 0.42,
-      bonusCritMult: D(3.3),
-      originBossId: 29,
-      originBossName: 'Kinkaku & Ginkaku',
-    },
-    material: {
-      id: 'mat_gold_silver_fur',
-      name: 'Manto de Pelo Dourado da Besta com Cauda',
-      rarity: 'MYTHIC',
-      type: 'MATERIAL',
-      description: 'Fibra de chakra ingerida diretamente do estômago da Kurama primordial.',
-      iconName: 'Flame',
-      baseGoldValue: D(200000000),
-      originBossId: 29,
-      originBossName: 'Kinkaku & Ginkaku',
-    },
-  },
-
-  30: {
-    bossId: 30,
-    bossName: 'Terceiro Raikage',
-    equipment: {
-      id: 'wp_raikage_spear',
-      name: 'Lança Relâmpago do Nukite de Quatro Dedos',
-      rarity: 'MYTHIC',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SPEAR',
-      description: 'A lança mais resistente do mundo shinobi, capaz de perfurar as defesas de qualquer Bijuu.',
-      iconName: 'Zap',
-      bonusCpsMult: D(32.00),
-      bonusClickMult: D(62.00),
-      bonusCritChance: 0.44,
-      bonusCritMult: D(3.4),
-      originBossId: 30,
-      originBossName: 'Terceiro Raikage',
-    },
-    material: {
-      id: 'mat_black_lightning_essence',
-      name: 'Essência Ancestral do Relâmpago Negro',
-      rarity: 'MYTHIC',
-      type: 'MATERIAL',
-      description: 'Chakra de raio hiperdenso herdado apenas pelos Raikages mais poderosos.',
-      iconName: 'Zap',
-      baseGoldValue: D(320000000),
-      originBossId: 30,
-      originBossName: 'Terceiro Raikage',
-    },
-  },
-
-  31: {
-    bossId: 31,
-    bossName: 'Muu',
-    equipment: {
-      id: 'wp_muu_jinton_blade',
-      name: 'Lâmina Prisma de Jinton Primordial',
-      rarity: 'MYTHIC',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SWORD',
-      description: 'Arma formada por campos colapsantes de poeira que desintegra os alvos em nível atômico.',
-      iconName: 'Layers',
-      bonusCpsMult: D(40.00),
-      bonusClickMult: D(82.00),
-      bonusCritChance: 0.45,
-      bonusCritMult: D(3.5),
-      originBossId: 31,
-      originBossName: 'Muu',
-    },
-    material: {
-      id: 'mat_jinton_atomic_dust',
-      name: 'Pó Atômico de Liberação de Poeira',
-      rarity: 'MYTHIC',
-      type: 'MATERIAL',
-      description: 'Matéria pulverizada além da estrutura molecular pelo Jinton original.',
-      iconName: 'Disc',
-      baseGoldValue: D(500000000),
-      originBossId: 31,
-      originBossName: 'Muu',
-    },
-  },
-
-  32: {
-    bossId: 32,
-    bossName: 'Hanzō da Salamandra',
-    equipment: {
-      id: 'wp_hanzo_kusarigama',
-      name: 'Kusarigama Corrosiva da Salamandra',
-      rarity: 'MYTHIC',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'BLADE',
-      description: 'A temida foice encadeada que subjugou os Três Sannin Lendários na grande guerra.',
-      iconName: 'Scissors',
-      bonusCpsMult: D(52.00),
-      bonusClickMult: D(110.00),
-      bonusCritChance: 0.46,
-      bonusCritMult: D(3.6),
-      originBossId: 32,
-      originBossName: 'Hanzō da Salamandra',
-    },
-    material: {
-      id: 'mat_ibuse_black_venom',
-      name: 'Vesícula de Veneno Negro de Ibuse',
-      rarity: 'MYTHIC',
-      type: 'MATERIAL',
-      description: 'Toxina lendária capaz de paralisar exércitos em poucos instantes.',
-      iconName: 'Skull',
-      baseGoldValue: D(800000000),
-      originBossId: 32,
-      originBossName: 'Hanzō da Salamandra',
-    },
-  },
-
-  33: {
-    bossId: 33,
-    bossName: 'Gengetsu Hōzuki',
-    equipment: {
-      id: 'wp_gengetsu_cannon',
-      name: 'Arma de Disparo de Vapor do Jōki Boi',
-      rarity: 'MYTHIC',
-      type: 'WEAPON_RANGED',
-      weaponCategory: 'SHURIKEN',
-      description: 'Pistola de água e óleo em ebulição que dispara projéteis de vapor em velocidade sônica.',
-      iconName: 'Wind',
-      bonusCpsMult: D(68.00),
-      bonusClickMult: D(150.00),
-      bonusCritChance: 0.48,
-      bonusCritMult: D(3.7),
-      originBossId: 33,
-      originBossName: 'Gengetsu Hōzuki',
-    },
-    material: {
-      id: 'mat_joki_boi_oil',
-      name: 'Óleo Térmico Explosivo do Jōki Boi',
-      rarity: 'MYTHIC',
-      type: 'MATERIAL',
-      description: 'Líquido volátil que se expande explosivamente ao entrar em contato com chakra quente.',
-      iconName: 'Droplet',
-      baseGoldValue: D(1250000000),
-      originBossId: 33,
-      originBossName: 'Gengetsu Hōzuki',
-    },
-  },
-
-  // =========================================================================
-  // TIER 9: DIVINO (Fases 34 a 39)
-  // =========================================================================
-  34: {
-    bossId: 34,
-    bossName: 'Mōryō',
-    equipment: {
-      id: 'wp_moryo_scepter',
-      name: 'Cetro Espectral da Destruição das Trevas',
-      rarity: 'DIVINE',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SPEAR',
-      description: 'Bastão forjado a partir do coração de Mōryō, canalizando o fluxo infinito de chakra sombrio.',
-      iconName: 'Crown',
-      bonusCpsMult: D(90.00),
-      bonusClickMult: D(220.00),
-      bonusCritChance: 0.50,
-      bonusCritMult: D(3.8),
-      originBossId: 34,
-      originBossName: 'Mōryō',
-    },
-    material: {
-      id: 'mat_moryo_shadow_essence',
-      name: 'Essência Imortal do Chakra Negro Ancestral',
-      rarity: 'DIVINE',
-      type: 'MATERIAL',
-      description: 'Concentrado da energia cósmica que existia antes da divisão do Ninshu.',
-      iconName: 'Sparkles',
-      baseGoldValue: D(2000000000),
-      originBossId: 34,
-      originBossName: 'Mōryō',
-    },
-  },
-
-  35: {
-    bossId: 35,
-    bossName: 'Shin Uchiha',
-    equipment: {
-      id: 'wp_shin_scalpels',
-      name: 'Bisturi Telecinético de Mangekyō Múltiplo',
-      rarity: 'DIVINE',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'BLADE',
-      description: 'Lâminas cirúrgicas controladas magneticamente pelos olhos implantados por Shin Uchiha.',
-      iconName: 'Eye',
-      bonusCpsMult: D(120.00),
-      bonusClickMult: D(300.00),
-      bonusCritChance: 0.52,
-      bonusCritMult: D(3.9),
-      originBossId: 35,
-      originBossName: 'Shin Uchiha',
-    },
-    material: {
-      id: 'mat_implanted_mangekyo_eye',
-      name: 'Globo Ocular com Mangekyō Sharingan Perfeito',
-      rarity: 'DIVINE',
-      type: 'MATERIAL',
-      description: 'Olho lendário clonado com receptores de chakra de alta condutividade.',
-      iconName: 'Eye',
-      baseGoldValue: D(3500000000),
-      originBossId: 35,
-      originBossName: 'Shin Uchiha',
-    },
-  },
-
-  36: {
-    bossId: 36,
-    bossName: 'Menma Uzumaki',
-    equipment: {
-      id: 'wp_menma_rasenringu',
-      name: 'Espada Gravitacional do Dai Rasenringu',
-      rarity: 'DIVINE',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SWORD',
-      description: 'Arma que canaliza a rotação colapsante da Kurama Negra e do anel do Dai Rasenringu.',
-      iconName: 'CircleDot',
-      bonusCpsMult: D(160.00),
-      bonusClickMult: D(420.00),
-      bonusCritChance: 0.55,
-      bonusCritMult: D(4.0),
-      originBossId: 36,
-      originBossName: 'Menma Uzumaki',
-    },
-    material: {
-      id: 'mat_dark_kurama_chakra',
-      name: 'Chakra Puro da Raposa Negra Mascarada',
-      rarity: 'DIVINE',
-      type: 'MATERIAL',
-      description: 'Energia cósmica densa extraída do mundo paralelo do Espelho de Genjutsu.',
-      iconName: 'Flame',
-      baseGoldValue: D(6000000000),
-      originBossId: 36,
-      originBossName: 'Menma Uzumaki',
-    },
-  },
-
-  37: {
-    bossId: 37,
-    bossName: 'Toneri Otsutsuki',
-    equipment: {
-      id: 'wp_toneri_silver_sword',
-      name: 'Espada de Prata Reencarnada (Ginshō)',
-      rarity: 'DIVINE',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SWORD',
-      description: 'Espada de luz condensada do Tenseigan capaz de partir a superfície da Lua ao meio.',
-      iconName: 'Moon',
-      bonusCpsMult: D(220.00),
-      bonusClickMult: D(600.00),
-      bonusCritChance: 0.58,
-      bonusCritMult: D(4.2),
-      originBossId: 37,
-      originBossName: 'Toneri Otsutsuki',
-    },
-    material: {
-      id: 'mat_tenseigan_core_shard',
-      name: 'Fragmento do Olho Primordial Tenseigan',
-      rarity: 'DIVINE',
-      type: 'MATERIAL',
-      description: 'Cristal ocular divino que refrata a luz cósmica do manto lunar.',
-      iconName: 'Sun',
-      baseGoldValue: D(10000000000),
-      originBossId: 37,
-      originBossName: 'Toneri Otsutsuki',
-    },
-  },
-
-  38: {
-    bossId: 38,
-    bossName: 'Urashiki Otsutsuki',
-    equipment: {
-      id: 'wp_urashiki_rod',
-      name: 'Vara Pescadora Dimensional do Rinnegan',
-      rarity: 'DIVINE',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SPEAR',
-      description: 'Instrumento divino celestial de pescar almas e arrancar técnicas de chakra instantaneamente.',
-      iconName: 'Crosshair',
-      bonusCpsMult: D(300.00),
-      bonusClickMult: D(900.00),
-      bonusCritChance: 0.60,
-      bonusCritMult: D(4.4),
-      originBossId: 38,
-      originBossName: 'Urashiki Otsutsuki',
-    },
-    material: {
-      id: 'mat_celestial_chakra_bead',
-      name: 'Pérola de Chakra Condensado dos Mundos',
-      rarity: 'DIVINE',
-      type: 'MATERIAL',
-      description: 'Globo reluzente contendo o fruto energético roubado de dezenas de shinobis.',
-      iconName: 'CircleDot',
-      baseGoldValue: D(18000000000),
-      originBossId: 38,
-      originBossName: 'Urashiki Otsutsuki',
-    },
-  },
-
-  39: {
-    bossId: 39,
-    bossName: 'Kinshiki Otsutsuki',
-    equipment: {
-      id: 'wp_kinshiki_axe',
-      name: 'Machado Divino Forjador de Luz Vermelha',
-      rarity: 'DIVINE',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'HEAVY',
-      description: 'Arma colossal forjada com chakra vermelho puro que corta montanhas com um único golpe.',
-      iconName: 'Hammer',
-      bonusCpsMult: D(420.00),
-      bonusClickMult: D(1400.00),
-      bonusCritChance: 0.62,
-      bonusCritMult: D(4.6),
-      originBossId: 39,
-      originBossName: 'Kinshiki Otsutsuki',
-    },
-    material: {
-      id: 'mat_red_chakra_furnace',
-      name: 'Lingote de Matéria Carmesim Otsutsuki',
-      rarity: 'DIVINE',
-      type: 'MATERIAL',
-      description: 'Metal cósmico que se molda instantaneamente ao comando mental de guerreiros divinos.',
-      iconName: 'Flame',
-      baseGoldValue: D(30000000000),
-      originBossId: 39,
-      originBossName: 'Kinshiki Otsutsuki',
-    },
-  },
-
-  // =========================================================================
-  // TIER 10: ADM'S (Fase 40)
-  // =========================================================================
-  40: {
-    bossId: 40,
-    bossName: 'Isshiki Otsutsuki',
-    equipment: {
-      id: 'wp_isshiki_spear_adm',
-      name: 'Lança Dimensional de Daikokuten',
-      rarity: 'ADM',
-      type: 'WEAPON_MELEE',
-      weaponCategory: 'SPEAR',
-      description: 'Artefato supremo extraído da dimensão de tempo estático de Isshiki. Corta e suprime a própria realidade.',
-      iconName: 'Crosshair',
-      bonusCpsMult: D(1200.00),
-      bonusClickMult: D(2500.00),
-      bonusCritChance: 0.75,
-      bonusCritMult: D(5.0),
-      originBossId: 40,
-      originBossName: 'Isshiki Otsutsuki',
-    },
-    material: {
-      id: 'mat_daikokuten_core',
-      name: 'Fragmento do Cubo Negro de Daikokuten',
-      rarity: 'ADM',
-      type: 'MATERIAL',
-      description: 'Monólito atemporal de densidade estelar infinita que não obedece à gravidade ou à entropia.',
-      iconName: 'Box',
-      baseGoldValue: D(100000000000),
-      originBossId: 40,
-      originBossName: 'Isshiki Otsutsuki',
-    },
-  },
+const BOSS_BASE_POWERS: Record<number, BossBasePower> = {
+  1: { cps: 1.05, click: 1.15, critChance: 0.05, critMult: 1.2 },
+  2: { cps: 1.08, click: 1.2, critChance: 0.06, critMult: 1.22 },
+  3: { cps: 1.12, click: 1.25, critChance: 0.07, critMult: 1.25 },
+  4: { cps: 1.16, click: 1.3, critChance: 0.08, critMult: 1.28 },
+  5: { cps: 1.2, click: 1.35, critChance: 0.09, critMult: 1.3 },
+  6: { cps: 1.25, click: 1.45, critChance: 0.1, critMult: 1.35 },
+  7: { cps: 1.3, click: 1.55, critChance: 0.11, critMult: 1.4 },
+  8: { cps: 1.35, click: 1.65, critChance: 0.12, critMult: 1.45 },
+  9: { cps: 1.45, click: 1.8, critChance: 0.13, critMult: 1.5 },
+  10: { cps: 1.6, click: 2.0, critChance: 0.14, critMult: 1.55 },
+  11: { cps: 1.75, click: 2.25, critChance: 0.15, critMult: 1.6 },
+  12: { cps: 1.95, click: 2.55, critChance: 0.16, critMult: 1.65 },
+  13: { cps: 2.2, click: 2.9, critChance: 0.18, critMult: 1.7 },
+  14: { cps: 2.5, click: 3.3, critChance: 0.2, critMult: 1.75 },
+  15: { cps: 2.85, click: 3.8, critChance: 0.22, critMult: 1.8 },
+  16: { cps: 3.25, click: 4.35, critChance: 0.24, critMult: 1.9 },
+  17: { cps: 3.7, click: 5.0, critChance: 0.26, critMult: 2.0 },
+  18: { cps: 4.2, click: 5.75, critChance: 0.28, critMult: 2.1 },
+  19: { cps: 4.8, click: 6.6, critChance: 0.3, critMult: 2.2 },
+  20: { cps: 5.5, click: 7.6, critChance: 0.32, critMult: 2.35 },
+  21: { cps: 6.5, click: 9.0, critChance: 0.34, critMult: 2.5 },
+  22: { cps: 7.8, click: 11.0, critChance: 0.36, critMult: 2.65 },
+  23: { cps: 9.5, click: 13.5, critChance: 0.38, critMult: 2.8 },
+  24: { cps: 11.8, click: 17.0, critChance: 0.4, critMult: 3.0 },
+  25: { cps: 15.0, click: 22.0, critChance: 0.42, critMult: 3.2 },
+  26: { cps: 19.5, click: 29.0, critChance: 0.44, critMult: 3.4 },
+  27: { cps: 25.5, click: 38.5, critChance: 0.46, critMult: 3.65 },
+  28: { cps: 33.5, click: 51.0, critChance: 0.48, critMult: 3.9 },
+  29: { cps: 44.0, click: 68.0, critChance: 0.5, critMult: 4.2 },
+  30: { cps: 58.0, click: 90.0, critChance: 0.52, critMult: 4.5 },
+  31: { cps: 78.0, click: 125.0, critChance: 0.55, critMult: 4.85 },
+  32: { cps: 105.0, click: 170.0, critChance: 0.58, critMult: 5.2 },
+  33: { cps: 145.0, click: 235.0, critChance: 0.6, critMult: 5.6 },
+  34: { cps: 200.0, click: 330.0, critChance: 0.63, critMult: 6.0 },
+  35: { cps: 280.0, click: 470.0, critChance: 0.66, critMult: 6.5 },
+  36: { cps: 390.0, click: 670.0, critChance: 0.69, critMult: 7.0 },
+  37: { cps: 540.0, click: 950.0, critChance: 0.72, critMult: 7.5 },
+  38: { cps: 750.0, click: 1350.0, critChance: 0.75, critMult: 8.0 },
+  39: { cps: 1000.0, click: 1850.0, critChance: 0.78, critMult: 8.5 },
+  40: { cps: 1400.0, click: 2700.0, critChance: 0.8, critMult: 9.0 },
 };
 
+function getBossBasePower(bossId: number): BossBasePower {
+  if (BOSS_BASE_POWERS[bossId]) return BOSS_BASE_POWERS[bossId];
+  const factor = Math.pow(1.35, Math.max(0, bossId - 40));
+  return {
+    cps: 1400 * factor,
+    click: 2700 * factor,
+    critChance: Math.min(0.95, 0.8 + (bossId - 40) * 0.01),
+    critMult: 9.0 + (bossId - 40) * 0.5,
+  };
+}
+
+const SLOT_WEIGHTS: Record<
+  BossEquipmentSlotKey,
+  {
+    cpsWeight: number;
+    clickWeight: number;
+    critWeight: number;
+    critMultWeight: number;
+    defaultIcon: string;
+  }
+> = {
+  CHESTPLATE: { cpsWeight: 1.35, clickWeight: 0.4, critWeight: 0.3, critMultWeight: 0.4, defaultIcon: 'Shield' },
+  HELMET: { cpsWeight: 1.15, clickWeight: 0.6, critWeight: 0.6, critMultWeight: 0.6, defaultIcon: 'Shield' },
+  GLOVES: { cpsWeight: 0.7, clickWeight: 1.25, critWeight: 0.8, critMultWeight: 0.8, defaultIcon: 'Hand' },
+  BOOTS: { cpsWeight: 0.8, clickWeight: 1.15, critWeight: 0.7, critMultWeight: 0.7, defaultIcon: 'Footprints' },
+  CLOAK: { cpsWeight: 1.0, clickWeight: 1.0, critWeight: 0.7, critMultWeight: 0.75, defaultIcon: 'Feather' },
+  BACKPACK: { cpsWeight: 1.1, clickWeight: 0.7, critWeight: 0.4, critMultWeight: 0.5, defaultIcon: 'Briefcase' },
+  NECKLACE: { cpsWeight: 1.25, clickWeight: 0.85, critWeight: 0.75, critMultWeight: 0.85, defaultIcon: 'CircleDot' },
+  MASK: { cpsWeight: 0.9, clickWeight: 1.05, critWeight: 1.1, critMultWeight: 1.2, defaultIcon: 'Eye' },
+  WEAPON_RANGED: { cpsWeight: 0.95, clickWeight: 1.1, critWeight: 1.25, critMultWeight: 1.15, defaultIcon: 'Disc' },
+  WEAPON_MELEE: { cpsWeight: 1.0, clickWeight: 1.35, critWeight: 1.0, critMultWeight: 1.1, defaultIcon: 'Swords' },
+};
+
+export function buildBossEquipmentItem(
+  bossId: number,
+  bossName: string,
+  rarity: ItemRarity,
+  slot: BossEquipmentSlotKey,
+  raw: RawBossGearItem,
+  primaryElement?: ElementType
+): EquipmentItem {
+  const base = getBossBasePower(bossId);
+  const weights = SLOT_WEIGHTS[slot];
+
+  const cpsVal = Math.max(1.02, 1 + (base.cps - 1) * weights.cpsWeight);
+  const clickVal = Math.max(1.05, 1 + (base.click - 1) * weights.clickWeight);
+  const critChanceVal = Math.min(0.95, base.critChance * weights.critWeight);
+  const critMultVal = Math.max(1.1, 1 + (base.critMult - 1) * weights.critMultWeight);
+
+  const elementalAffinityReq = raw.elementalAffinityReq || primaryElement;
+  const id = `eq_boss_${bossId}_${slot.toLowerCase()}`;
+
+  const item: EquipmentItem = {
+    id,
+    name: raw.name,
+    rarity,
+    type: slot,
+    description: raw.description,
+    iconName: raw.iconName || weights.defaultIcon,
+    bonusCpsMult: D(Number(cpsVal.toFixed(2))),
+    bonusClickMult: D(Number(clickVal.toFixed(2))),
+    bonusCritChance: Number(critChanceVal.toFixed(3)),
+    bonusCritMult: D(Number(critMultVal.toFixed(2))),
+    originBossId: bossId,
+    originBossName: bossName,
+  };
+
+  if (slot === 'WEAPON_MELEE' || slot === 'WEAPON_RANGED') {
+    item.weaponCategory = raw.weaponCategory || (slot === 'WEAPON_RANGED' ? 'SHURIKEN' : 'SWORD');
+  }
+
+  if (elementalAffinityReq) {
+    item.elementalAffinityReq = elementalAffinityReq;
+    item.elementalBonusCpsMult = D(1.25);
+    item.elementalBonusClickMult = D(1.35);
+  }
+
+  return item;
+}
+
 /**
- * Procedural fallback for boss IDs outside 1-40
+ * Catálogo Oficial dos 40 Chefes:
+ * CADA CHEFE POSSUI UM ARSENAL COMPLETO DE 10 EQUIPAMENTOS (EXCLUINDO RUNAS)
+ */
+export const BOSS_LOOT_CATALOG: Record<number, BossLootDefinition> = {};
+
+for (const [idStr, config] of Object.entries(RAW_BOSS_LOOT_CONFIGS)) {
+  const bossId = Number(idStr);
+  const equipmentSet = {} as Record<BossEquipmentSlotKey, EquipmentItem>;
+
+  for (const slot of BOSS_EQUIPMENT_SLOTS) {
+    const rawItem = config.items[slot];
+    equipmentSet[slot] = buildBossEquipmentItem(
+      bossId,
+      config.bossName,
+      config.rarity,
+      slot,
+      rawItem,
+      config.primaryElement
+    );
+  }
+
+  // Peça de destaque primária (geralmente WEAPON_MELEE ou WEAPON_RANGED)
+  const primaryEquipment = equipmentSet.WEAPON_MELEE || equipmentSet.WEAPON_RANGED || equipmentSet.HELMET;
+
+  BOSS_LOOT_CATALOG[bossId] = {
+    bossId,
+    bossName: config.bossName,
+    equipment: primaryEquipment,
+    equipmentSet,
+    material: {
+      id: config.material.id,
+      name: config.material.name,
+      rarity: config.rarity,
+      type: 'MATERIAL',
+      description: config.material.description,
+      iconName: config.material.iconName,
+      baseGoldValue: D(config.material.baseGoldValue),
+      originBossId: bossId,
+      originBossName: config.bossName,
+    },
+  };
+}
+
+/**
+ * Procedural fallback para chefes além do ID 40
  */
 export function getBossLootDefinition(bossId: number): BossLootDefinition {
   if (BOSS_LOOT_CATALOG[bossId]) {
     return BOSS_LOOT_CATALOG[bossId];
   }
 
-  // Generative fallback for endgame or custom bosses (41+) nos 10 Tiers
   const rarity: ItemRarity =
     bossId >= 90
       ? 'ADM'
@@ -1322,42 +240,22 @@ export function getBossLootDefinition(bossId: number): BossLootDefinition {
       ? 'VERY_RARE'
       : 'RARE';
 
-  const multCps = D(1 + bossId * 0.15);
-  const multClick = D(1 + bossId * 0.25);
+  const bossName = `Chefe Celestial #${bossId}`;
+  const equipmentSet = {} as Record<BossEquipmentSlotKey, EquipmentItem>;
 
-  const proceduralSlots: GearSlotKey[] = [
-    'WEAPON_MELEE',
-    'WEAPON_RANGED',
-    'HELMET',
-    'CHESTPLATE',
-    'BOOTS',
-    'GLOVES',
-    'BACKPACK',
-    'CLOAK',
-    'MASK',
-    'NECKLACE',
-    'RUNE',
-  ];
-  const assignedSlot = proceduralSlots[bossId % proceduralSlots.length];
+  for (const slot of BOSS_EQUIPMENT_SLOTS) {
+    equipmentSet[slot] = buildBossEquipmentItem(bossId, bossName, rarity, slot, {
+      name: `Artefato Astral de ${slot} #${bossId}`,
+      description: `Equipamento cósmico supremo resgatado da queda do colossal chefe da fase #${bossId}.`,
+      iconName: SLOT_WEIGHTS[slot].defaultIcon,
+    });
+  }
 
   return {
     bossId,
-    bossName: `Chefe Celestial #${bossId}`,
-    equipment: {
-      id: `eq_procedural_boss_${bossId}`,
-      name: `Armamento Cósmico Imperial de Boss #${bossId}`,
-      rarity,
-      type: assignedSlot,
-      weaponCategory: 'SWORD',
-      description: `Armamento divino supremo resgatado da queda do colossal chefe da fase #${bossId}.`,
-      iconName: 'Swords',
-      bonusCpsMult: multCps,
-      bonusClickMult: multClick,
-      bonusCritChance: 0.25,
-      bonusCritMult: D(2.0),
-      originBossId: bossId,
-      originBossName: `Chefe #${bossId}`,
-    },
+    bossName,
+    equipment: equipmentSet.WEAPON_MELEE,
+    equipmentSet,
     material: {
       id: `mat_procedural_boss_${bossId}`,
       name: `Essência Astral Suprema de Boss #${bossId}`,
@@ -1367,29 +265,37 @@ export function getBossLootDefinition(bossId: number): BossLootDefinition {
       iconName: 'Sparkles',
       baseGoldValue: D(5000000).mul(bossId),
       originBossId: bossId,
-      originBossName: `Chefe #${bossId}`,
+      originBossName: bossName,
     },
   };
 }
 
-export interface BossLootRollResult {
-  equipmentDrop: EquipmentItem | null;
-  farmMaterial: FarmMaterialItem;
-  dropProbability: number;
-  rolledProbability: number;
-}
-
 /**
  * Executa a rolagem estocástica de saque com base no ID do chefe.
+ * Realiza rolagem independente por slot para as 10 peças de equipamento.
  */
 export function rollBossLoot(bossId: number): BossLootRollResult {
   const definition = getBossLootDefinition(bossId);
-  const dropProb = calculateBossDropProbability(bossId);
-  const roll = Math.random();
+  const baseProb = calculateBossDropProbability(bossId);
+  const slotProb = calculateBossSlotDropProbability(bossId);
 
-  const equipmentDrop = roll < dropProb ? { ...definition.equipment } : null;
+  const equipmentDrops: EquipmentItem[] = [];
 
-  // Farm materials drop 100% with 1 to 5 random units
+  // Rolagem independente por slot para cada uma das 10 peças
+  for (const slot of BOSS_EQUIPMENT_SLOTS) {
+    if (Math.random() < slotProb) {
+      equipmentDrops.push({ ...definition.equipmentSet[slot] });
+    }
+  }
+
+  // Fallback: Se nenhuma peça dropou na rolagem individual, testa a probabilidade base global
+  // Se suceder, seleciona 1 peça aleatória entre as 10 para garantir emoção
+  if (equipmentDrops.length === 0 && Math.random() < baseProb) {
+    const randomSlot = BOSS_EQUIPMENT_SLOTS[Math.floor(Math.random() * BOSS_EQUIPMENT_SLOTS.length)];
+    equipmentDrops.push({ ...definition.equipmentSet[randomSlot] });
+  }
+
+  // Farm materials dropam 100% com 1 a 5 unidades aleatórias
   const stackCount = Math.floor(Math.random() * 5) + 1;
   const farmMaterial: FarmMaterialItem = {
     ...definition.material,
@@ -1397,9 +303,10 @@ export function rollBossLoot(bossId: number): BossLootRollResult {
   };
 
   return {
-    equipmentDrop,
+    equipmentDrop: equipmentDrops.length > 0 ? equipmentDrops[0] : null,
+    equipmentDrops,
     farmMaterial,
-    dropProbability: dropProb,
-    rolledProbability: roll,
+    dropProbability: baseProb,
+    rolledProbability: Math.random(),
   };
 }

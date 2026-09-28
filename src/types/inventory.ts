@@ -28,6 +28,20 @@ export type GearSlotKey =
   | 'NECKLACE'
   | 'RUNE';
 
+export type BossEquipmentSlotKey = Exclude<GearSlotKey, 'RUNE'>;
+export const BOSS_EQUIPMENT_SLOTS: BossEquipmentSlotKey[] = [
+  'HELMET',
+  'CHESTPLATE',
+  'GLOVES',
+  'BOOTS',
+  'CLOAK',
+  'BACKPACK',
+  'NECKLACE',
+  'MASK',
+  'WEAPON_RANGED',
+  'WEAPON_MELEE',
+];
+
 export type EquippedGearSlots = Record<GearSlotKey, EquipmentItem | null>;
 
 export const DEFAULT_EQUIPPED_GEAR: EquippedGearSlots = {

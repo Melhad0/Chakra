@@ -46,6 +46,9 @@ import {
   Pill,
   Dumbbell,
   Hexagon,
+  Briefcase,
+  Disc,
+  Hand,
 } from 'lucide-react';
 
 interface IconRendererProps extends LucideProps {
@@ -157,6 +160,10 @@ const ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
   helpcircle: HelpCircle,
   checkcircle: CheckCircle2,
   checkcircle2: CheckCircle2,
+  briefcase: Briefcase,
+  disc: Disc,
+  hand: Hand,
+  footprints: Footprints,
 };
 
 export const IconRenderer: React.FC<IconRendererProps> = ({

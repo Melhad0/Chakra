@@ -14,7 +14,12 @@ import {
   calculateDodgeChance,
 } from '../../constants/bosses';
 import { BossData, MAX_COMBAT_LEVEL } from '../../types/combat';
-import { getBossLootDefinition, calculateBossDropProbability } from '../../constants/equipmentCatalog';
+import {
+  getBossLootDefinition,
+  calculateBossDropProbability,
+  calculateBossSlotDropProbability,
+} from '../../constants/equipmentCatalog';
+import { BOSS_EQUIPMENT_SLOTS, BossEquipmentSlotKey } from '../../types/inventory';
 import { getRarityConfig } from '../../types/rarity';
 import { Badge } from '../common/Badge';
 import { IconRenderer } from '../common/IconRenderer';
@@ -38,6 +43,19 @@ import {
   Activity,
   Package,
 } from 'lucide-react';
+
+const SLOT_SHORT_LABELS: Record<BossEquipmentSlotKey, string> = {
+  HELMET: 'Capacete',
+  CHESTPLATE: 'Armadura',
+  GLOVES: 'Luvas',
+  BOOTS: 'Botas',
+  CLOAK: 'Capa',
+  BACKPACK: 'Mochila',
+  NECKLACE: 'Colar',
+  MASK: 'Máscara',
+  WEAPON_RANGED: 'Ranged',
+  WEAPON_MELEE: 'Melee',
+};
 
 export const ChallengesView: React.FC = () => {
   const stableRollingCPS = useGameStore((s) => s.stableRollingCPS);
@@ -529,6 +547,26 @@ export const ChallengesView: React.FC = () => {
   const dropRatePct = useMemo(() => {
     return (calculateBossDropProbability(currentBoss.id) * 100).toFixed(1);
   }, [currentBoss.id]);
+
+  const slotDropRatePct = useMemo(() => {
+    return (calculateBossSlotDropProbability(currentBoss.id) * 100).toFixed(1);
+  }, [currentBoss.id]);
+
+  const [selectedLootSlot, setSelectedLootSlot] = useState<BossEquipmentSlotKey>('WEAPON_MELEE');
+
+  const isItemOwned = useCallback(
+    (itemId?: string) => {
+      if (!itemId || !inventory) return false;
+      if (
+        inventory.equippedGear &&
+        Object.values(inventory.equippedGear).some((item) => item?.id === itemId)
+      ) {
+        return true;
+      }
+      return inventory.inventoryBag.some((item) => item?.id === itemId);
+    },
+    [inventory]
+  );
 
   const bossXpReward = useMemo(() => {
     return calculateBossXp(currentBoss.id);
@@ -1210,53 +1248,166 @@ export const ChallengesView: React.FC = () => {
                 <Badge variant="chakra">Tier {currentBoss.tier}</Badge>
               </div>
 
-              {/* Equipamento Raro com % Exata */}
-              <div className="p-3.5 rounded-xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-black border border-zinc-800 space-y-2 shadow-lg">
+              {/* Arsenal Completo do Chefe - Grade Compacta 5x2 com Tooltip/Preview */}
+              <div className="p-3 rounded-xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-black border border-zinc-800 space-y-2.5 shadow-lg">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider font-semibold">
-                    Equipamento Lendário / Astral
+                  <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider font-semibold">
+                    Arsenal do Chefe (10 Equipamentos)
                   </span>
-                  <span className="px-2 py-0.5 rounded-full bg-amber-950/70 border border-amber-700/60 text-amber-300 font-mono text-[10px] font-bold">
-                    Chance: {dropRatePct}%
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-2 py-0.5 rounded-full bg-cyan-950/70 border border-cyan-700/60 text-cyan-300 font-mono text-[9px] font-bold">
+                      {slotDropRatePct}% / slot
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded-full bg-amber-950/50 border border-amber-800/40 text-amber-400 font-mono text-[9px]">
+                      {dropRatePct}% global
+                    </span>
+                  </div>
                 </div>
 
-                {(() => {
-                  const eqRarity = getRarityConfig(lootDef.equipment.rarity);
-                  return (
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-10 h-10 rounded-lg bg-zinc-900 border flex items-center justify-center flex-shrink-0 ${
-                          eqRarity.borderClass
-                        } ${eqRarity.glowClass} ${eqRarity.bgGradientClass || ''}`}
+                {/* Grade 5x2 de Seleção de Slots */}
+                <div className="grid grid-cols-5 gap-1.5">
+                  {BOSS_EQUIPMENT_SLOTS.map((slotKey) => {
+                    const item = lootDef.equipmentSet[slotKey];
+                    const isSelected = selectedLootSlot === slotKey;
+                    const owned = item ? isItemOwned(item.id) : false;
+                    const rarity = item ? getRarityConfig(item.rarity) : null;
+
+                    return (
+                      <button
+                        key={slotKey}
+                        type="button"
+                        onClick={() => setSelectedLootSlot(slotKey)}
+                        className={`relative group p-1.5 rounded-lg border flex flex-col items-center justify-center transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-amber-500/15 border-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/50'
+                            : owned
+                            ? 'bg-zinc-900/80 border-emerald-800/60 hover:border-emerald-600/80 hover:bg-zinc-850'
+                            : 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/60'
+                        }`}
+                        title={`${SLOT_SHORT_LABELS[slotKey]}: ${item?.name || ''}`}
                       >
-                        <IconRenderer
-                          name={lootDef.equipment.iconName || 'Swords'}
-                          className="w-5 h-5 text-zinc-100"
-                        />
-                      </div>
-                      <div className="min-w-0">
-                        <h5 className={`text-xs font-bold truncate ${eqRarity.textClass}`}>
-                          {lootDef.equipment.name}
-                        </h5>
-                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                          <span
-                            className={`text-[9px] font-mono px-1.5 py-0.5 rounded border uppercase font-bold ${eqRarity.badgeClass}`}
-                          >
-                            {eqRarity.label}
+                        {/* Badge de posse ✓ */}
+                        {owned && (
+                          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 text-zinc-950 flex items-center justify-center text-[9px] font-black shadow-sm z-10">
+                            ✓
                           </span>
-                          <span className="text-[10px] font-mono text-zinc-400">
-                            • {lootDef.equipment.weaponCategory || lootDef.equipment.type}
-                          </span>
+                        )}
+
+                        <div
+                          className={`w-7 h-7 rounded flex items-center justify-center ${
+                            rarity ? rarity.borderClass : 'border-zinc-700'
+                          } border bg-zinc-900/90 mb-1`}
+                        >
+                          <IconRenderer
+                            name={item?.iconName || 'Shield'}
+                            className={`w-3.5 h-3.5 ${
+                              isSelected
+                                ? 'text-amber-300'
+                                : owned
+                                ? 'text-emerald-300'
+                                : rarity
+                                ? rarity.textClass
+                                : 'text-zinc-400'
+                            }`}
+                          />
                         </div>
+
+                        <span
+                          className={`text-[8px] font-mono uppercase tracking-tight truncate w-full text-center leading-none ${
+                            isSelected ? 'text-amber-300 font-bold' : owned ? 'text-emerald-400' : 'text-zinc-400'
+                          }`}
+                        >
+                          {SLOT_SHORT_LABELS[slotKey]}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Card de Detalhes da Peça em Inspeção */}
+                {(() => {
+                  const activeItem = lootDef.equipmentSet[selectedLootSlot] || lootDef.equipment;
+                  if (!activeItem) return null;
+                  const eqRarity = getRarityConfig(activeItem.rarity);
+                  const owned = isItemOwned(activeItem.id);
+
+                  return (
+                    <div className="pt-2 border-t border-zinc-800/80 space-y-2">
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className={`w-11 h-11 rounded-lg bg-zinc-900 border flex items-center justify-center flex-shrink-0 ${
+                            eqRarity.borderClass
+                          } ${eqRarity.glowClass} ${eqRarity.bgGradientClass || ''}`}
+                        >
+                          <IconRenderer
+                            name={activeItem.iconName || 'Swords'}
+                            className="w-5 h-5 text-zinc-100"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <h5 className={`text-xs font-bold truncate ${eqRarity.textClass}`}>
+                              {activeItem.name}
+                            </h5>
+                            {owned ? (
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-950/80 border border-emerald-600/70 text-emerald-300 font-bold flex-shrink-0">
+                                ✓ OBTIDO
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-zinc-800/60 border border-zinc-700/60 text-zinc-400 flex-shrink-0">
+                                NÃO OBTIDO
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <span
+                              className={`text-[9px] font-mono px-1.5 py-0.2 rounded border uppercase font-bold ${eqRarity.badgeClass}`}
+                            >
+                              {eqRarity.label}
+                            </span>
+                            <span className="text-[10px] font-mono text-zinc-400">
+                              • {SLOT_SHORT_LABELS[selectedLootSlot]} {activeItem.weaponCategory ? `(${activeItem.weaponCategory})` : ''}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="text-[10px] font-mono text-zinc-400 leading-relaxed bg-zinc-950/50 p-2 rounded-lg border border-zinc-850">
+                        {activeItem.description}
+                      </p>
+
+                      {/* Bônus de Atributos do Equipamento */}
+                      <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                        <div className="px-2 py-1 rounded bg-zinc-900/60 border border-zinc-800 text-[10px] font-mono flex items-center justify-between">
+                          <span className="text-zinc-500">Bônus CPS:</span>
+                          <span className="text-emerald-400 font-bold">x{activeItem.bonusCpsMult.toFixed(2)}</span>
+                        </div>
+                        <div className="px-2 py-1 rounded bg-zinc-900/60 border border-zinc-800 text-[10px] font-mono flex items-center justify-between">
+                          <span className="text-zinc-500">Bônus Clique:</span>
+                          <span className="text-amber-400 font-bold">x{activeItem.bonusClickMult.toFixed(2)}</span>
+                        </div>
+                        {activeItem.bonusCritChance !== undefined && activeItem.bonusCritChance > 0 && (
+                          <div className="px-2 py-1 rounded bg-zinc-900/60 border border-zinc-800 text-[10px] font-mono flex items-center justify-between">
+                            <span className="text-zinc-500">Chance Crítico:</span>
+                            <span className="text-cyan-400 font-bold">+{(activeItem.bonusCritChance * 100).toFixed(1)}%</span>
+                          </div>
+                        )}
+                        {activeItem.bonusCritMult !== undefined && activeItem.bonusCritMult.gt(1) && (
+                          <div className="px-2 py-1 rounded bg-zinc-900/60 border border-zinc-800 text-[10px] font-mono flex items-center justify-between">
+                            <span className="text-zinc-500">Dano Crítico:</span>
+                            <span className="text-purple-400 font-bold">x{activeItem.bonusCritMult.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {activeItem.elementalAffinityReq && (
+                          <div className="col-span-2 px-2 py-1 rounded bg-cyan-950/30 border border-cyan-800/40 text-[10px] font-mono flex items-center justify-between">
+                            <span className="text-cyan-400">Afinidade Elemental:</span>
+                            <span className="text-cyan-300 font-bold">{activeItem.elementalAffinityReq} (+25% CPS / +35% Clique)</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
                 })()}
-
-                <p className="text-[10px] font-mono text-zinc-400 leading-relaxed border-t border-zinc-800/80 pt-1.5">
-                  {lootDef.equipment.description}
-                </p>
               </div>
 
               {/* Material de Farm Garantido */}

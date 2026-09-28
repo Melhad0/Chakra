@@ -180,7 +180,11 @@ export interface GameStoreState {
   unequipItem: (slotType: EquipmentSlotType) => boolean;
   discardItem: (slotIndex: number) => void;
   sacrificeForElement: (targetElement: ElementType, weaponSlotIndex?: number) => { success: boolean; message: string };
-  addLootToInventory: (loot: { equipmentDrop: EquipmentItem | null; farmMaterial: FarmMaterialItem }) => { addedEquipment: boolean; addedMaterial: boolean };
+  addLootToInventory: (loot: {
+    equipmentDrop?: EquipmentItem | null;
+    equipmentDrops?: EquipmentItem[];
+    farmMaterial: FarmMaterialItem;
+  }) => { addedEquipment: boolean; addedMaterial: boolean };
 
   // Ações
   clickChakra: (coords?: { x: number; y: number }) => void;
@@ -719,7 +723,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     return { success: false, message: 'Condições do ritual não atendidas.' };
   },
 
-  addLootToInventory: (loot: { equipmentDrop: EquipmentItem | null; farmMaterial: FarmMaterialItem }) => {
+  addLootToInventory: (loot: {
+    equipmentDrop?: EquipmentItem | null;
+    equipmentDrops?: EquipmentItem[];
+    farmMaterial: FarmMaterialItem;
+  }) => {
     let addedEquipment = false;
     let addedMaterial = false;
 
@@ -744,10 +752,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         addedMaterial = true;
       }
 
-      // 2. Processa Peça de Equipamento (se dropou com sucesso)
-      if (loot.equipmentDrop) {
-        // Mochila adaptativa: anexa o novo equipamento diretamente sem limite artificial!
-        newBag.push({ ...loot.equipmentDrop });
+      // 2. Processa Peças de Equipamento (múltiplas ou única com retrocompatibilidade)
+      const itemsToAdd: EquipmentItem[] = [];
+      if (loot.equipmentDrops && loot.equipmentDrops.length > 0) {
+        itemsToAdd.push(...loot.equipmentDrops);
+      } else if (loot.equipmentDrop) {
+        itemsToAdd.push(loot.equipmentDrop);
+      }
+
+      for (const item of itemsToAdd) {
+        newBag.push({ ...item });
         addedEquipment = true;
       }
 
@@ -934,10 +948,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     audio.playLevelUp();
 
-    // Rolagem de saque estocástica
+    // Rolagem de saque estocástica (10 slots independentes)
     const lootRoll = rollBossLoot(bossId);
     s.addLootToInventory({
       equipmentDrop: lootRoll.equipmentDrop,
+      equipmentDrops: lootRoll.equipmentDrops,
       farmMaterial: lootRoll.farmMaterial,
     });
 
