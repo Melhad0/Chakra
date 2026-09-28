@@ -12,17 +12,77 @@ import {
   Shield,
   Layers,
   CheckCheck,
+  Search,
+  X,
+  BookOpen,
 } from 'lucide-react';
+
+import { calculateTotalCPS } from '../../engine/formulas';
 
 export const UpgradesList: React.FC = () => {
   const chakra = useGameStore((s) => s.chakra);
   const totalChakraEarned = useGameStore((s) => s.stats.totalChakraEarned);
   const upgrades = useGameStore((s) => s.upgrades);
+  const generators = useGameStore((s) => s.generators);
+  const clanNodes = useGameStore((s) => s.clanNodes);
+  const claimedRankRewards = useGameStore((s) => s.claimedRankRewards);
+  const gatesUnlocked = useGameStore((s) => s.gatesUnlocked);
+  const gatesActiveTimer = useGameStore((s) => s.gatesActiveTimer);
+  const exhaustionTimer = useGameStore((s) => s.exhaustionTimer);
+  const onlinePresenceBuffTimer = useGameStore((s) => s.onlinePresenceBuffTimer);
+  const inventory = useGameStore((s) => s.inventory);
+  const missionPermanentCpsMult = useGameStore((s) => s.missionPermanentCpsMult);
+  const missionBuffTimer = useGameStore((s) => s.missionBuffTimer);
+  const missionBuffMult = useGameStore((s) => s.missionBuffMult);
   const gauntlet = useGameStore((s) => s.gauntlet);
   const buyUpgrade = useGameStore((s) => s.buyUpgrade);
   const buyAllAffordableUpgrades = useGameStore((s) => s.buyAllAffordableUpgrades);
 
   const [activeCategory, setActiveCategory] = useState<UpgradeCategory | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const currentCPS = useMemo(() => {
+    const missionMult = missionPermanentCpsMult * (missionBuffTimer > 0 ? missionBuffMult : 1);
+    return calculateTotalCPS(
+      generators,
+      upgrades,
+      clanNodes,
+      gatesUnlocked,
+      gatesActiveTimer > 0,
+      exhaustionTimer > 0,
+      claimedRankRewards,
+      onlinePresenceBuffTimer > 0,
+      missionMult,
+      inventory?.equippedArmor,
+      inventory?.equippedWeapon,
+      inventory?.unlockedElements,
+      inventory?.elementalSacrificePenaltyMult,
+      inventory?.isAvatarShinobi,
+      inventory?.equippedGear
+    );
+  }, [
+    generators,
+    upgrades,
+    clanNodes,
+    gatesUnlocked,
+    gatesActiveTimer,
+    exhaustionTimer,
+    claimedRankRewards,
+    onlinePresenceBuffTimer,
+    missionPermanentCpsMult,
+    missionBuffTimer,
+    missionBuffMult,
+    inventory,
+  ]);
+
+  // Total de técnicas compradas
+  const purchasedCount = useMemo(() => {
+    return Object.keys(upgrades).filter((id) => upgrades[id]).length;
+  }, [upgrades]);
+
+  const masteryPercent = useMemo(() => {
+    return Math.min(100, Math.floor((purchasedCount / TECHNIQUE_UPGRADES.length) * 100));
+  }, [purchasedCount]);
 
   // Névoa de Descoberta: Upgrades visíveis quando atingir 20% do custo ou derrotar o chefe requerido
   const visibleUpgrades = useMemo(() => {
@@ -41,11 +101,23 @@ export const UpgradesList: React.FC = () => {
     });
   }, [upgrades, chakra, totalChakraEarned, gauntlet.maxUnlockedBoss]);
 
-  // Filtro por Categoria Selecionada
+  // Filtro por Categoria Selecionada e Busca Textual
   const filteredUpgrades = useMemo(() => {
-    if (activeCategory === 'all') return visibleUpgrades;
-    return visibleUpgrades.filter((u) => u.category === activeCategory);
-  }, [visibleUpgrades, activeCategory]);
+    let list = visibleUpgrades;
+    if (activeCategory !== 'all') {
+      list = list.filter((u) => u.category === activeCategory);
+    }
+    const query = searchQuery.trim().toLowerCase();
+    if (query) {
+      list = list.filter(
+        (u) =>
+          u.name.toLowerCase().includes(query) ||
+          u.description.toLowerCase().includes(query) ||
+          u.category.toLowerCase().includes(query)
+      );
+    }
+    return list;
+  }, [visibleUpgrades, activeCategory, searchQuery]);
 
   // Contagem de Upgrades Acessíveis para o botão "Buy All"
   const affordableUpgrades = useMemo(() => {
@@ -69,7 +141,11 @@ export const UpgradesList: React.FC = () => {
     return affordableUpgrades.reduce((acc, u) => acc.add(u.cost), chakra.mul(0));
   }, [affordableUpgrades, chakra]);
 
-  const categories: Array<{ id: UpgradeCategory | 'all'; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+  const categories: Array<{
+    id: UpgradeCategory | 'all';
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }> = [
     { id: 'all', label: 'Todos', icon: Layers },
     { id: 'taijutsu', label: 'Taijutsu', icon: Zap },
     { id: 'ninjutsu', label: 'Ninjutsu', icon: Users },
@@ -78,29 +154,48 @@ export const UpgradesList: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Barra de Ação Superior: Aprender Todos os Jutsus Viáveis */}
-      <div className="pb-2.5 flex-shrink-0">
+    <div className="flex flex-col h-full overflow-hidden space-y-2">
+      {/* Barra de Progresso de Maestria Shinobi */}
+      <div className="p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 flex flex-col gap-1.5 flex-shrink-0">
+        <div className="flex items-center justify-between text-xs font-mono">
+          <div className="flex items-center gap-1.5 text-zinc-300">
+            <BookOpen className="w-3.5 h-3.5 text-fuchsia-400" />
+            <span className="font-medium">Maestria de Jutsus</span>
+          </div>
+          <span className="text-fuchsia-400 font-semibold">
+            {purchasedCount} / {TECHNIQUE_UPGRADES.length} ({masteryPercent}%)
+          </span>
+        </div>
+        <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+          <div
+            className="h-full bg-gradient-to-r from-fuchsia-500 to-cyan-400 rounded-full transition-all duration-300"
+            style={{ width: `${masteryPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Botão de Compra em Lote de Todas as Técnicas Acessíveis */}
+      <div className="flex-shrink-0">
         <button
           onClick={buyAllAffordableUpgrades}
           disabled={affordableUpgrades.length === 0}
-          className={`w-full py-2 px-3 rounded-lg text-xs font-mono font-medium flex items-center justify-between transition border ${
+          className={`w-full py-2 px-3 rounded-xl text-xs font-mono font-medium flex items-center justify-between transition-all border ${
             affordableUpgrades.length > 0
-              ? 'bg-cyan-950/40 hover:bg-cyan-900/60 border-cyan-700/60 text-cyan-200 shadow-sm hover:border-cyan-500 active:scale-[0.99]'
-              : 'bg-zinc-950/40 border-zinc-850 text-zinc-600 cursor-not-allowed'
+              ? 'bg-gradient-to-r from-cyan-950/50 via-zinc-900 to-cyan-950/50 hover:from-cyan-900/60 hover:to-cyan-900/60 border-cyan-600/70 text-cyan-200 shadow-md hover:shadow-cyan-900/30 active:scale-[0.99]'
+              : 'bg-zinc-950/40 border-zinc-850/80 text-zinc-600 cursor-not-allowed'
           }`}
         >
           <div className="flex items-center gap-2">
-            <CheckCheck className="w-3.5 h-3.5 text-cyan-400 stroke-[2]" />
+            <CheckCheck className="w-4 h-4 text-cyan-400 stroke-[2.2]" />
             <span>Aprender Todos os Jutsus Viáveis</span>
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/50 border border-cyan-700/50 text-cyan-300">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-900/60 border border-cyan-600/60 text-cyan-300 font-semibold">
               {affordableUpgrades.length}
             </span>
             {affordableUpgrades.length > 0 && (
-              <span className="text-[11px] text-zinc-400">
+              <span className="text-[11px] text-zinc-300 font-semibold">
                 ({formatBigNumber(totalAffordableCost)})
               </span>
             )}
@@ -108,22 +203,43 @@ export const UpgradesList: React.FC = () => {
         </button>
       </div>
 
+      {/* Barra de Busca de Técnicas */}
+      <div className="relative flex-shrink-0">
+        <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Buscar técnica por nome ou efeito..."
+          className="w-full pl-8 pr-7 py-1 text-xs bg-zinc-950/70 border border-zinc-800/80 rounded-lg text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-fuchsia-500/60 transition"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 p-0.5"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        )}
+      </div>
+
       {/* Seletor Segmentado de Árvores de Domínio */}
-      <div className="flex items-center gap-1 pb-2 overflow-x-auto custom-scrollbar flex-shrink-0">
+      <div className="flex items-center gap-1 pb-1 overflow-x-auto custom-scrollbar flex-shrink-0">
         {categories.map((cat) => {
           const Icon = cat.icon;
           const isActive = activeCategory === cat.id;
-          const count = cat.id === 'all'
-            ? visibleUpgrades.length
-            : visibleUpgrades.filter((u) => u.category === cat.id).length;
+          const count =
+            cat.id === 'all'
+              ? visibleUpgrades.length
+              : visibleUpgrades.filter((u) => u.category === cat.id).length;
 
           return (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium whitespace-nowrap transition border ${
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition border ${
                 isActive
-                  ? 'bg-zinc-800 text-zinc-100 border-zinc-700 shadow-sm'
+                  ? 'bg-zinc-800 text-zinc-100 border-zinc-650 shadow-sm'
                   : 'bg-transparent text-zinc-400 hover:text-zinc-200 border-transparent hover:bg-zinc-800/40'
               }`}
             >
@@ -136,13 +252,13 @@ export const UpgradesList: React.FC = () => {
       </div>
 
       {/* Lista de Cards de Upgrades com Névoa de Descoberta */}
-      <div className="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar mt-1">
+      <div className="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar">
         {filteredUpgrades.length === 0 ? (
-          <div className="py-8 text-center bg-zinc-950/40 rounded-xl border border-dashed border-zinc-850">
-            <Sparkles className="w-6 h-6 text-zinc-600 mx-auto mb-2 stroke-[1.5]" />
+          <div className="py-12 text-center bg-zinc-950/40 rounded-xl border border-dashed border-zinc-800/80">
+            <Sparkles className="w-7 h-7 text-zinc-600 mx-auto mb-2 stroke-[1.5]" />
             <p className="text-xs text-zinc-400 font-medium">Nenhum jutsu visível nesta categoria.</p>
             <p className="text-[10px] text-zinc-600 mt-1">
-              Acumule mais chakra para dissipar a névoa de descoberta.
+              Acumule mais chakra ou vença novos chefes para dissipar a névoa de descoberta.
             </p>
           </div>
         ) : (
@@ -153,6 +269,7 @@ export const UpgradesList: React.FC = () => {
               purchased={!!upgrades[upgrade.id]}
               canAfford={chakra.gte(upgrade.cost)}
               currentChakra={chakra}
+              currentCPS={currentCPS}
               onBuy={buyUpgrade}
             />
           ))

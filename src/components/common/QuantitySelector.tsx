@@ -9,7 +9,7 @@ interface QuantitySelectorProps {
   className?: string;
 }
 
-const QUANTITIES: ShopQty[] = [1, 10, 100, 'max'];
+const QUANTITIES: ShopQty[] = [1, 10, 25, 100, 'max'];
 
 export const QuantitySelector: React.FC<QuantitySelectorProps> = ({
   mode,

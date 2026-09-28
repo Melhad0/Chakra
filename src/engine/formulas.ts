@@ -67,6 +67,8 @@ export function getGeneratorCostDiscount(
   if (upgrades['eight_trigrams_seal']) discount += 0.06;
   if (upgrades['adamantine_chains']) discount += 0.08;
   if (upgrades['karma_seal']) discount += 0.10;
+  if (upgrades['uzumaki_adamantine_domain']) discount += 0.10;
+  if (upgrades['amenotejikara_shift']) discount += 0.15;
 
   // Recompensa de Promoção Jōnin (-3%)
   if (claimedRankRewards['jonin']) discount += 0.03;
@@ -288,6 +290,10 @@ export function calculateTotalCPS(
     if (key === 'kage' && upgrades['choku_tomoe']) genMultiplier = genMultiplier.mul(2.0);
     if (key === 'akatsuki_member' && upgrades['chidori_stream']) genMultiplier = genMultiplier.mul(2.5);
     if (key === 'jinchuriki' && upgrades['edo_tensei']) genMultiplier = genMultiplier.mul(2.0);
+    if ((key === 'jonin' || key === 'anbu') && upgrades['kirin_thunder']) genMultiplier = genMultiplier.mul(5.0);
+    if ((key === 'akatsuki_member' || key === 'taka_member') && upgrades['c4_karura']) genMultiplier = genMultiplier.mul(4.0);
+    if ((key === 'jinchuriki' || key === 'rinnegan_six_paths') && upgrades['chibaku_tensei_planetary']) genMultiplier = genMultiplier.mul(8.0);
+    if ((key === 'senju_elite' || key === 'hamura_incarnate' || key === 'wood_golem_senju') && upgrades['senpo_shinsu_senju']) genMultiplier = genMultiplier.mul(10.0);
 
     const genCPS = gen.baseCPS.mul(gen.level).mul(genMultiplier);
     total = total.add(genCPS);
@@ -308,6 +314,10 @@ export function calculateTotalCPS(
   if (upgrades['divine_tree']) total = total.mul(8.0);
   if (upgrades['creation_all_things']) total = total.mul(10.0);
   if (upgrades['six_paths_senjutsu']) total = total.mul(5.0);
+  if (upgrades['kamui_dimension']) total = total.mul(3.50);
+  if (upgrades['amaterasu_enteraphy']) total = total.mul(3.0);
+  if (upgrades['creation_rebirth']) total = total.mul(4.50);
+  if (upgrades['uzumaki_adamantine_domain']) total = total.mul(1.30);
 
   // 5. Clãs Ancestrais
   if (clanNodes['primordial_chakra']) total = total.mul(1.50);
@@ -408,6 +418,8 @@ export function calculateClickPower(
   if (upgrades['reaper_seal']) alpha += 0.008; // de 0.020 -> 0.008
   if (upgrades['daytime_tiger']) alpha += 0.010; // de 0.025 -> 0.010
   if (upgrades['perfect_susanoo']) alpha += 0.012; // de 0.030 -> 0.012
+  if (upgrades['amaterasu_enteraphy']) alpha += 0.015;
+  if (upgrades['baryon_fission_strike']) alpha += 0.025;
   if (clanNodes['mangekyo_sharingan_lineage']) alpha += 0.012; // de 0.030 -> 0.012
   if (claimedRankRewards['sannin']) alpha += 0.004; // de 0.010 -> 0.004
 
@@ -437,6 +449,8 @@ export function calculateClickPower(
   if (upgrades['truth_seeking_orbs']) clickMult = clickMult.mul(3.0);
   if (upgrades['otsutsuki_power']) clickMult = clickMult.mul(4.0);
   if (upgrades['creation_all_things']) clickMult = clickMult.mul(5.0);
+  if (upgrades['flying_raijin_slice']) clickMult = clickMult.mul(2.5);
+  if (upgrades['night_guy_dragon']) clickMult = clickMult.mul(10.0);
 
   // Recompensas de Promoção de Patente (Clique)
   if (claimedRankRewards['chunin']) clickMult = clickMult.mul(1.10); // +10%
