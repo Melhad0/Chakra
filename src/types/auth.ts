@@ -7,6 +7,24 @@ export interface ShinobiUser {
   email: string;             // E-mail válido e formatado
   birthDate: string;         // Data de nascimento (formato ISO: YYYY-MM-DD)
   createdAt: string;         // Timestamp ISO da criação
+  avatar?: string;           // ID do avatar selecionado (ex: 'naruto', 'kakashi')
+  avatarFrame?: string;      // ID da borda selecionada (ex: 'frame_fire', 'frame_hokage')
+  favoriteNinja?: string;    // ID do ninja favorito (ex: 'itachi', 'naruto')
+}
+
+export interface UpdateProfilePayload {
+  fullName: string;
+  username: string;
+  avatar?: string;
+  avatarFrame?: string;
+  favoriteNinja?: string;
+}
+
+export interface ChangePasswordPayload {
+  username: string;
+  currentPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
 }
 
 export interface RegistrationPayload {
@@ -132,3 +150,47 @@ export const loginSchema = z.object({
     .string()
     .min(1, 'A senha é obrigatória.'),
 });
+
+// Schema de validação Zod para Atualização de Perfil
+export const updateProfileSchema = z.object({
+  fullName: z
+    .string()
+    .trim()
+    .min(3, 'O nome deve ter ao menos 3 caracteres.')
+    .max(70, 'O nome não pode exceder 70 caracteres.')
+    .regex(FULL_NAME_REGEX, 'Informe nome e sobrenome válidos (apenas letras).'),
+  username: z
+    .string()
+    .trim()
+    .min(3, 'O usuário deve ter ao menos 3 caracteres.')
+    .max(20, 'O usuário não pode exceder 20 caracteres.')
+    .regex(USERNAME_REGEX, 'Apenas letras, números e sublinhados (_).'),
+  avatar: z.string().optional(),
+  avatarFrame: z.string().optional(),
+  favoriteNinja: z.string().optional(),
+});
+
+// Schema de validação Zod para Alteração de Senha
+export const changePasswordSchema = z
+  .object({
+    username: z.string(),
+    currentPassword: z.string().min(1, 'A senha atual é obrigatória.'),
+    newPassword: z
+      .string()
+      .min(8, 'A nova senha deve ter no mínimo 8 caracteres.')
+      .max(64, 'A nova senha não pode exceder 64 caracteres.')
+      .regex(/[A-Z]/, 'Ao menos uma letra maiúscula necessária.')
+      .regex(/[a-z]/, 'Ao menos uma letra minúscula necessária.')
+      .regex(/[0-9]/, 'Ao menos um número necessário.')
+      .regex(SPECIAL_CHAR_REGEX, 'Ao menos um caractere especial necessário.'),
+    confirmNewPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: 'As novas senhas não coincidem.',
+    path: ['confirmNewPassword'],
+  })
+  .refine((data) => data.newPassword !== data.currentPassword, {
+    message: 'A nova senha não pode ser idêntica à senha atual.',
+    path: ['newPassword'],
+  });
+

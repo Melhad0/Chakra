@@ -4,8 +4,9 @@ import { formatBigNumber, toggleNotationMode, getNotationMode } from '../../engi
 import { calculateTotalCPS } from '../../engine/formulas';
 import { usePlaytime } from '../../hooks/usePlaytime';
 import { audio } from '../../engine/audio';
-import { Volume2, VolumeX, Sparkles, Hash, Flame, SunMedium, User, ShieldCheck, LogOut, Gift, AlertTriangle, Swords, Clock, Scroll, Briefcase, Cloud, CloudOff, RefreshCw } from 'lucide-react';
+import { Volume2, VolumeX, Sparkles, Hash, Flame, SunMedium, User, LogOut, Gift, AlertTriangle, Swords, Clock, Scroll, Briefcase, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import { getCurrentRank } from '../../constants/rankings';
+import { getAvatarById, getFrameById } from '../../constants/profileCustomization';
 
 export const Navbar: React.FC = () => {
   const setView = useGameStore((s) => s.setView);
@@ -253,17 +254,27 @@ export const Navbar: React.FC = () => {
         {/* Identificação Shinobi / Botão de Acesso */}
         {currentUser ? (
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={openAuthModal}
-              title="Visualizar Registro e Perfil Shinobi"
-              className="flex items-center gap-2 px-2.5 py-1 bg-zinc-900/80 hover:bg-zinc-800/80 border border-cyan-500/30 hover:border-cyan-500/60 rounded-lg text-xs font-mono transition shadow-sm"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 stroke-[2]" />
-              <span className="text-zinc-200 font-semibold max-w-[110px] truncate hidden sm:inline">
-                {currentUser.fullName.split(' ')[0]}
-              </span>
-              <span className="text-cyan-400 font-bold">#{currentUser.ninjaId}</span>
-            </button>
+            {(() => {
+              const navAvatar = getAvatarById(currentUser.avatar);
+              const navFrame = getFrameById(currentUser.avatarFrame);
+              return (
+                <button
+                  onClick={openAuthModal}
+                  title="Visualizar e Personalizar Perfil Shinobi"
+                  className="flex items-center gap-2 px-2 py-1 bg-zinc-900/80 hover:bg-zinc-850 border border-zinc-800 hover:border-cyan-500/60 rounded-xl text-xs font-mono transition shadow-sm group cursor-pointer"
+                >
+                  <div
+                    className={`w-6 h-6 rounded-lg bg-gradient-to-br ${navAvatar.bgGradient} border ${navFrame.borderClass} flex items-center justify-center text-xs relative flex-shrink-0 shadow-sm`}
+                  >
+                    <span>{navAvatar.emojiIcon}</span>
+                  </div>
+                  <span className="text-zinc-200 font-semibold max-w-[100px] truncate hidden sm:inline group-hover:text-cyan-300 transition-colors">
+                    {currentUser.fullName.split(' ')[0]}
+                  </span>
+                  <span className="text-cyan-400 font-bold">#{currentUser.ninjaId}</span>
+                </button>
+              );
+            })()}
             {currentUser.username !== 'convidado' && (
               <button
                 onClick={() => saveGame()}

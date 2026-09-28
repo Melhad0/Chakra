@@ -692,7 +692,10 @@ def auth_register():
         "email": email,
         "birthDate": birth_date,
         "passwordHash": password_hash,
-        "createdAt": created_iso
+        "createdAt": created_iso,
+        "avatar": "naruto",
+        "avatarFrame": "frame_default",
+        "favoriteNinja": "Naruto Uzumaki"
     }
 
     users[uname_lower] = user_record
@@ -712,7 +715,10 @@ def auth_register():
             "username": username,
             "email": email,
             "birthDate": birth_date,
-            "createdAt": created_iso
+            "createdAt": created_iso,
+            "avatar": "naruto",
+            "avatarFrame": "frame_default",
+            "favoriteNinja": "Naruto Uzumaki"
         },
         "token": token
     }), 201
@@ -755,7 +761,10 @@ def auth_login():
                         "email": f"{ukey}@chakra.local",
                         "birthDate": "2000-01-01",
                         "passwordHash": generate_password_hash(password, method='pbkdf2:sha256'),
-                        "createdAt": created_iso
+                        "createdAt": created_iso,
+                        "avatar": "naruto",
+                        "avatarFrame": "frame_default",
+                        "favoriteNinja": "Naruto Uzumaki"
                     }
                     users[ukey.lower()] = migrated
                     save_users(users)
@@ -781,9 +790,201 @@ def auth_login():
             "username": matched_user.get("username"),
             "email": matched_user.get("email", ""),
             "birthDate": matched_user.get("birthDate", ""),
-            "createdAt": matched_user.get("createdAt", "")
+            "createdAt": matched_user.get("createdAt", ""),
+            "avatar": matched_user.get("avatar", "naruto"),
+            "avatarFrame": matched_user.get("avatarFrame", "frame_default"),
+            "favoriteNinja": matched_user.get("favoriteNinja", "Naruto Uzumaki")
         },
         "token": token
+    }), 200
+
+@app.route("/api/auth/profile", methods=["PUT", "POST"])
+@app.route("/auth/profile", methods=["PUT", "POST"])
+@app.route("/api/api/auth/profile", methods=["PUT", "POST"])
+def update_profile():
+    data = request.json or {}
+    current_username = data.get("currentUsername", "").strip() or data.get("username", "").strip()
+    if not current_username:
+        return jsonify({"success": False, "message": "Identificador do usuário atual é obrigatório."}), 400
+
+    users = load_users()
+    current_key = current_username.lower()
+    user_record = users.get(current_key)
+
+    if not user_record:
+        for ukey, udata in users.items():
+            if isinstance(udata, dict) and udata.get("username", "").lower() == current_key:
+                user_record = udata
+                current_key = ukey
+                break
+
+    if not user_record or not isinstance(user_record, dict):
+        return jsonify({"success": False, "message": "Registro shinobi não encontrado."}), 404
+
+    # 1. Atualizar Nome Completo (fullName)
+    new_full_name = data.get("fullName", "").strip()
+    if new_full_name:
+        if len(new_full_name) < 3 or len(new_full_name) > 70 or not FULL_NAME_REGEX.match(new_full_name):
+            return jsonify({
+                "success": False,
+                "message": "Nome completo inválido. Informe prenome e sobrenome (3 a 70 caracteres, apenas letras)."
+            }), 400
+        user_record["fullName"] = new_full_name
+
+    # 2. Atualizar Avatar
+    if "avatar" in data and data["avatar"]:
+        user_record["avatar"] = str(data["avatar"]).strip()
+
+    # 3. Atualizar Borda de Avatar
+    if "avatarFrame" in data and data["avatarFrame"]:
+        user_record["avatarFrame"] = str(data["avatarFrame"]).strip()
+
+    # 4. Atualizar Ninja Favorito
+    if "favoriteNinja" in data and data["favoriteNinja"]:
+        user_record["favoriteNinja"] = str(data["favoriteNinja"]).strip()
+
+    # 5. Atualizar Nome de Usuário (username) se alterado
+    new_username = data.get("newUsername", "").strip() or data.get("username", "").strip()
+    old_username = user_record.get("username", current_username)
+    username_changed = False
+
+    if new_username and new_username.lower() != old_username.lower():
+        if not USERNAME_REGEX.match(new_username):
+            return jsonify({
+                "success": False,
+                "message": "Nome de usuário inválido. Deve ter entre 3 e 20 caracteres (apenas letras, números e _)."
+            }), 400
+
+        new_key = new_username.lower()
+        for ukey, udata in users.items():
+            existing_u = (udata.get("username", ukey) if isinstance(udata, dict) else ukey).lower()
+            if existing_u == new_key and ukey.lower() != current_key:
+                return jsonify({
+                    "success": False,
+                    "message": "Este nome de usuário shinobi já está em uso por outro ninja."
+                }), 409
+
+        # Migração segura de saves (Neon Postgres e Arquivo Local)
+        old_safe = sanitize_username(old_username).lower()
+        new_safe = sanitize_username(new_username).lower()
+
+        if DATABASE_URL:
+            conn = get_db()
+            if conn:
+                try:
+                    with conn.cursor() as cur:
+                        cur.execute("DELETE FROM users WHERE username_key = %s", (current_key,))
+                        cur.execute("""
+                            UPDATE saves
+                            SET username_key = %s, username = %s, updated_at = NOW()
+                            WHERE username_key = %s
+                        """, (new_safe, new_username, old_safe))
+                        conn.commit()
+                except Exception as e:
+                    print(f"[Neon Postgres] Erro ao migrar username em saves: {e}")
+                finally:
+                    conn.close()
+
+        old_save_path = get_user_save_path(old_username)
+        new_save_path = get_user_save_path(new_username)
+        if os.path.exists(old_save_path) and old_save_path != new_save_path:
+            try:
+                with open(old_save_path, "r", encoding="utf-8") as f_in:
+                    save_content = json.load(f_in)
+                with open(new_save_path, "w", encoding="utf-8") as f_out:
+                    json.dump(save_content, f_out, indent=4)
+            except Exception as e:
+                print(f"[Save Migration] Falha ao copiar save local: {e}")
+
+        user_record["username"] = new_username
+        del users[current_key]
+        users[new_key] = user_record
+        username_changed = True
+    else:
+        users[current_key] = user_record
+
+    save_users(users)
+
+    return jsonify({
+        "success": True,
+        "message": "Perfil shinobi atualizado com sucesso!",
+        "usernameChanged": username_changed,
+        "user": {
+            "ninjaId": user_record.get("ninjaId"),
+            "fullName": user_record.get("fullName"),
+            "username": user_record.get("username"),
+            "email": user_record.get("email"),
+            "birthDate": user_record.get("birthDate"),
+            "createdAt": user_record.get("createdAt"),
+            "avatar": user_record.get("avatar", "naruto"),
+            "avatarFrame": user_record.get("avatarFrame", "frame_default"),
+            "favoriteNinja": user_record.get("favoriteNinja", "Naruto Uzumaki")
+        }
+    }), 200
+
+@app.route("/api/auth/change-password", methods=["POST"])
+@app.route("/auth/change-password", methods=["POST"])
+@app.route("/api/api/auth/change-password", methods=["POST"])
+def auth_change_password():
+    data = request.json or {}
+    username = data.get("username", "").strip()
+    current_password = data.get("currentPassword", "")
+    new_password = data.get("newPassword", "")
+    confirm_new_password = data.get("confirmNewPassword", "")
+
+    if not username:
+        return jsonify({"success": False, "message": "Identificador de usuário ausente."}), 400
+
+    if not current_password:
+        return jsonify({"success": False, "message": "A senha atual é estritamente obrigatória para alteração."}), 400
+
+    if not new_password or not confirm_new_password:
+        return jsonify({"success": False, "message": "Nova senha e confirmação são obrigatórias."}), 400
+
+    users = load_users()
+    u_lower = username.lower()
+    user_record = users.get(u_lower)
+
+    if not user_record:
+        for ukey, udata in users.items():
+            if isinstance(udata, dict) and udata.get("username", "").lower() == u_lower:
+                user_record = udata
+                u_lower = ukey
+                break
+
+    if not user_record or not isinstance(user_record, dict):
+        return jsonify({"success": False, "message": "Registro shinobi não encontrado."}), 404
+
+    # Verificação estrita da senha atual
+    pwd_hash = user_record.get("passwordHash")
+    if not pwd_hash or not check_password_hash(pwd_hash, current_password):
+        return jsonify({"success": False, "message": "A senha atual informada está incorreta. Acesso negado."}), 401
+
+    if new_password == current_password:
+        return jsonify({"success": False, "message": "A nova chave de acesso não pode ser idêntica à senha atual."}), 400
+
+    # Política de complexidade da nova senha
+    if len(new_password) < 8 or len(new_password) > 64:
+        return jsonify({"success": False, "message": "A nova senha deve conter entre 8 e 64 caracteres."}), 400
+    if not re.search(r'[A-Z]', new_password):
+        return jsonify({"success": False, "message": "A nova senha deve conter ao menos uma letra maiúscula."}), 400
+    if not re.search(r'[a-z]', new_password):
+        return jsonify({"success": False, "message": "A nova senha deve conter ao menos uma letra minúscula."}), 400
+    if not re.search(r'[0-9]', new_password):
+        return jsonify({"success": False, "message": "A nova senha deve conter ao menos um número."}), 400
+    if not SPECIAL_CHAR_REGEX.search(new_password):
+        return jsonify({"success": False, "message": "A nova senha deve conter ao menos um caractere especial (!@#$%^&* etc.)."}), 400
+    if new_password != confirm_new_password:
+        return jsonify({"success": False, "message": "A confirmação da nova senha não coincide com a nova senha digitada."}), 400
+
+    new_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
+    user_record["passwordHash"] = new_hash
+    users[u_lower] = user_record
+    save_users(users)
+
+    return jsonify({
+        "success": True,
+        "message": "Chave de acesso shinobi atualizada com sucesso!"
     }), 200
 
 # Rotas legadas mantidas para retrocompatibilidade
