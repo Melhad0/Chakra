@@ -81,8 +81,8 @@ export const RankPromotionView: React.FC = () => {
     return !!passedExams[activeMission.requiredRankId];
   }, [activeMission.requiredRankId, passedExams]);
 
-  // Contagem de chefes derrotados no Gauntlet
-  const defeatedBossesCount = Math.max(0, gauntlet.currentActiveBossId - 1);
+  // Contagem de chefes derrotados no Gauntlet (considera o recorde máximo alcançado)
+  const defeatedBossesCount = Math.max(0, gauntlet.highestBossDefeated, gauntlet.currentActiveBossId - 1);
 
   // Validação em tempo real dos requisitos da missão selecionada
   const reqStatus = useMemo(() => {

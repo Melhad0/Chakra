@@ -42,6 +42,8 @@ import {
   Search,
   Activity,
   Package,
+  FastForward,
+  Repeat,
 } from 'lucide-react';
 
 const SLOT_SHORT_LABELS: Record<BossEquipmentSlotKey, string> = {
@@ -69,6 +71,8 @@ export const ChallengesView: React.FC = () => {
   const onBossDefeat = useGameStore((s) => s.onBossDefeat);
   const distributeCombatStats = useGameStore((s) => s.distributeCombatStats);
   const setCurrentActiveBossId = useGameStore((s) => s.setCurrentActiveBossId);
+  const toggleGauntletAutoAdvance = useGameStore((s) => s.toggleGauntletAutoAdvance);
+  const toggleGauntletAutoLoop = useGameStore((s) => s.toggleGauntletAutoLoop);
 
   // Chefe selecionado na navegação (inicia no chefe ativo ou no 1)
   const [selectedBossId, setSelectedBossId] = useState<number>(gauntlet.currentActiveBossId || 1);
@@ -85,7 +89,7 @@ export const ChallengesView: React.FC = () => {
   }, [selectedBossId]);
 
   const isCleared = currentBoss.id <= gauntlet.highestBossDefeated;
-  const isLocked = currentBoss.id > gauntlet.currentActiveBossId;
+  const isLocked = currentBoss.id > Math.max(gauntlet.highestBossDefeated + 1, gauntlet.currentActiveBossId);
   const isActiveTarget = currentBoss.id === gauntlet.currentActiveBossId;
 
   // Multiplicadores de Trajes e Armas equipadas no Inventário
@@ -197,7 +201,6 @@ export const ChallengesView: React.FC = () => {
   // GATILHOS DE VITÓRIA E DERROTA
   // =========================================================================
   const triggerVictory = useCallback(() => {
-    audio.playLevelUp();
     const effectiveReward = calculateEffectiveBossReward(currentBoss.id, stableRollingCPS);
     const xpGained = calculateBossXp(currentBoss.id);
 
@@ -206,10 +209,28 @@ export const ChallengesView: React.FC = () => {
         effectiveReward
       )} Chakra, +${currentBoss.bountyAncestral} Ancestral e +${formatBigNumber(xpGained)} XP de Combate!`
     );
-    setTimeout(() => setVictoryMessage(null), 6000);
+    setTimeout(() => setVictoryMessage(null), 4000);
 
     onBossVictory(currentBoss.id);
-  }, [currentBoss, onBossVictory, stableRollingCPS]);
+
+    // Se o modo de Loop contínuo estiver ativado, reinicia imediatamente o combate contra o mesmo chefe
+    if (gauntlet.autoLoop) {
+      setBossHp(currentBoss.hp);
+      setGhostHp(currentBoss.hp);
+      setPlayerHp(playerMaxHp);
+      setPlayerGhostHp(playerMaxHp);
+      setBossAttackProgress(0);
+      setPuppetsRemaining(10);
+      setIsIaiSilenced(false);
+      setIsBakuActive(false);
+      setMuuFissionActive(false);
+      setCloneHpA(currentBoss.hp.div(2));
+      setCloneHpB(currentBoss.hp.div(2));
+      setToneriQteActive(false);
+      setToneriClicks(0);
+      setIsshikiCubes(3);
+    }
+  }, [currentBoss, onBossVictory, stableRollingCPS, gauntlet.autoLoop, playerMaxHp]);
 
   const triggerDefeat = useCallback(
     (reason: string) => {
@@ -800,6 +821,57 @@ export const ChallengesView: React.FC = () => {
 
           {/* CENTRO: ÁREA DE INTERAÇÃO OU DISPARO DE COMBATE */}
           <div className="relative z-10 my-4 flex flex-col items-center justify-center">
+            {/* PAINEL TÁTICO DE AUTOMAÇÃO DE COMBATE */}
+            <div className="w-full max-w-md flex items-center justify-center gap-2.5 mb-3 p-2 rounded-xl bg-zinc-950/60 backdrop-blur-md border border-white/10 shadow-lg">
+              {/* Botão 1: Passar para o Próximo Chefe Automático */}
+              <button
+                type="button"
+                onClick={toggleGauntletAutoAdvance}
+                className={`flex-1 py-2 px-3 rounded-lg border text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  gauntlet.autoAdvance
+                    ? 'bg-cyan-950/80 border-cyan-400 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.35)] ring-1 ring-cyan-400/50'
+                    : 'bg-zinc-900/70 hover:bg-zinc-850 border-white/10 text-zinc-400 hover:text-zinc-200'
+                }`}
+                title="Avança e inicia a batalha contra o próximo chefe automaticamente ao vencer."
+              >
+                <FastForward className={`w-3.5 h-3.5 flex-shrink-0 ${gauntlet.autoAdvance ? 'text-cyan-300 animate-pulse' : 'text-zinc-500'}`} />
+                <span className="truncate">Auto-Avançar</span>
+                <span
+                  className={`text-[9px] px-1.5 py-0.2 rounded font-extrabold uppercase ${
+                    gauntlet.autoAdvance
+                      ? 'bg-cyan-400 text-zinc-950'
+                      : 'bg-zinc-800 text-zinc-500'
+                  }`}
+                >
+                  {gauntlet.autoAdvance ? 'ON' : 'OFF'}
+                </span>
+              </button>
+
+              {/* Botão 2: Repetir a Batalha em Forma de Loop */}
+              <button
+                type="button"
+                onClick={toggleGauntletAutoLoop}
+                className={`flex-1 py-2 px-3 rounded-lg border text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  gauntlet.autoLoop
+                    ? 'bg-emerald-950/80 border-emerald-400 text-emerald-200 shadow-[0_0_12px_rgba(52,211,153,0.35)] ring-1 ring-emerald-400/50'
+                    : 'bg-zinc-900/70 hover:bg-zinc-850 border-white/10 text-zinc-400 hover:text-zinc-200'
+                }`}
+                title="Repete o confronto contra este mesmo chefe continuamente para farmar drops e materiais."
+              >
+                <Repeat className={`w-3.5 h-3.5 flex-shrink-0 ${gauntlet.autoLoop ? 'text-emerald-300 animate-spin' : 'text-zinc-500'}`} />
+                <span className="truncate">Loop Batalha</span>
+                <span
+                  className={`text-[9px] px-1.5 py-0.2 rounded font-extrabold uppercase ${
+                    gauntlet.autoLoop
+                      ? 'bg-emerald-400 text-zinc-950'
+                      : 'bg-zinc-800 text-zinc-500'
+                  }`}
+                >
+                  {gauntlet.autoLoop ? 'ON' : 'OFF'}
+                </span>
+              </button>
+            </div>
+
             {isLocked ? (
               /* Estado 1: Chefe Futuro Bloqueado */
               <div className="text-center p-6 rounded-2xl bg-zinc-950/50 backdrop-blur-md border border-white/10 max-w-md w-full shadow-2xl">
@@ -808,7 +880,7 @@ export const ChallengesView: React.FC = () => {
                 </div>
                 <h3 className="text-sm font-bold text-zinc-300 mb-1">Barreira Territorial Trancada</h3>
                 <p className="text-xs text-zinc-400 font-mono mb-4 leading-relaxed">
-                  Supere o chefe #{gauntlet.currentActiveBossId} para ter acesso a este confronto da Grande Guerra.
+                  Supere o chefe anterior da Grande Guerra para desbloquear este confronto decisivo.
                 </p>
                 <button
                   disabled
@@ -1505,7 +1577,7 @@ export const ChallengesView: React.FC = () => {
                 {filteredBosses.map((boss) => {
                   const isBossCleared = boss.id <= gauntlet.highestBossDefeated;
                   const isBossActive = boss.id === gauntlet.currentActiveBossId;
-                  const isBossLocked = boss.id > gauntlet.currentActiveBossId;
+                  const isBossLocked = boss.id > Math.max(gauntlet.highestBossDefeated + 1, gauntlet.currentActiveBossId);
                   const isBossSelected = boss.id === selectedBossId;
 
                   return (

@@ -58,13 +58,15 @@ export interface BossData {
 }
 
 export interface BossGauntletState {
-  currentActiveBossId: number;        // ID do próximo chefe a ser superado (1 a N)
+  currentActiveBossId: number;        // ID do chefe atualmente selecionado/ativo (1 a N)
   highestBossDefeated: number;        // Recorde histórico da conta
   cooldownExpiresAt: number | null;   // Timestamp UNIX do fim do cooldown
   isFighting: boolean;
   bossCurrentHp: Decimal;
   bossTimeRemaining: number;
   maxUnlockedBoss: number;            // Alias retrocompatível (sempre = highestBossDefeated)
+  autoAdvance?: boolean;              // Passar para o próximo chefe automático
+  autoLoop?: boolean;                 // Repetir a batalha em forma de loop
 }
 
 export type BossNavigationState = BossGauntletState;

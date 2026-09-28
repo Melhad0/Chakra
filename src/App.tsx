@@ -12,6 +12,7 @@ import { RankPromotionView } from './components/views/RankPromotionView';
 import { RankingsView } from './components/views/RankingsView';
 import { MissionsView } from './components/views/MissionsView';
 import { InventoryView } from './components/views/InventoryView';
+import { ItemDropNotifier } from './components/common/ItemDropNotifier';
 
 export const App: React.FC = () => {
   // Inicializa o motor desacoplado de Game Loop, delta time e auto-save (SEMPRE ATIVO EM SEGUNDO PLANO)
@@ -104,6 +105,7 @@ export const App: React.FC = () => {
       />
 
       <OnlineRewardsModal />
+      <ItemDropNotifier />
     </div>
   );
 };

@@ -223,6 +223,44 @@ class SoundSynthesizer {
     osc1.stop(now + 0.5);
     osc2.stop(now + 0.5);
   }
+
+  public playMythicItemDrop(): void {
+    if (this.muted) return;
+    const ctx = this.initCtx();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    // Arpejo estelar e celestial glorioso para itens acima de Lendário (Mítico, Divino, ADM):
+    // Notas: E5 (659.25Hz), G#5 (830.61Hz), B5 (987.77Hz), E6 (1318.51Hz), G#6 (1661.22Hz), B6 (1975.53Hz)
+    const notes = [659.25, 830.61, 987.77, 1318.51, 1661.22, 1975.53];
+
+    notes.forEach((freq, idx) => {
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = now + idx * 0.07;
+      const duration = 0.55;
+
+      osc1.type = 'sine';
+      osc2.type = 'triangle';
+
+      osc1.frequency.setValueAtTime(freq, startTime);
+      osc2.frequency.setValueAtTime(freq * 1.003, startTime); // Pequeno chorus / shimmer cintilante
+
+      gain.gain.setValueAtTime(0.001, startTime);
+      gain.gain.linearRampToValueAtTime(0.18, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc1.start(startTime);
+      osc2.start(startTime);
+      osc1.stop(startTime + duration);
+      osc2.stop(startTime + duration);
+    });
+  }
 }
 
 export const audio = new SoundSynthesizer();

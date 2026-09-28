@@ -53,7 +53,8 @@ import {
   DEFAULT_EQUIPPED_GEAR,
   normalizeEquipmentSlot,
 } from '../types/inventory';
-import { normalizeItemRarity } from '../types/rarity';
+import { normalizeItemRarity, RARITY_ORDER } from '../types/rarity';
+import { ItemDropToast } from '../types/notifications';
 import { rollBossLoot } from '../constants/equipmentCatalog';
 import { audio } from '../engine/audio';
 import { apiUrl } from '../config/api';
@@ -139,6 +140,14 @@ export interface GameStoreState {
   recordGauntletVictory: (defeatedBossId: number) => void;
   handleGauntletDefeat: () => void;
   setCurrentActiveBossId: (bossId: number) => void;
+  toggleGauntletAutoAdvance: () => void;
+  toggleGauntletAutoLoop: () => void;
+  setGauntletCombatAutomation: (mode: 'MANUAL' | 'ADVANCE' | 'LOOP') => void;
+
+  // Notificações Pop-up de Recebimento de Itens (Drops & Saques)
+  itemDropToasts: ItemDropToast[];
+  pushItemDropToast: (toast: Omit<ItemDropToast, 'id' | 'timestamp'>) => void;
+  dismissItemDropToast: (id: string) => void;
 
   // Sistema de Progressão RPG de Combate (Desafios)
   combatStats: ShinobiCombatStats;
@@ -418,6 +427,8 @@ function restoreStateFromSaveData(state: GameStoreState, data: any): Partial<Gam
             ? D(data.gauntlet.bossCurrentHp)
             : calculateBossHP(data.gauntlet.currentActiveBossId || 1),
           bossTimeRemaining: data.gauntlet.bossTimeRemaining || 30,
+          autoAdvance: !!data.gauntlet.autoAdvance,
+          autoLoop: !!data.gauntlet.autoLoop,
         }
       : state.gauntlet,
     combatStats: data.combatStats
@@ -830,7 +841,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     isFighting: false,
     bossCurrentHp: calculateBossHP(1),
     bossTimeRemaining: 30,
+    autoAdvance: false,
+    autoLoop: false,
   },
+
+  // Notificações Pop-up de Recebimento de Itens (Drops & Saques)
+  itemDropToasts: [],
 
   // Sistema de Atributos & Progressão Shinobi (Nível 1 a 700)
   combatStats: {
@@ -909,6 +925,64 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     return { leveledUp, newLevel, pointsGained };
   },
 
+  // Gerenciamento de Notificações Pop-up de Drops (0.7s)
+  pushItemDropToast: (toast: Omit<ItemDropToast, 'id' | 'timestamp'>) => {
+    const newToast: ItemDropToast = {
+      ...toast,
+      id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+      timestamp: Date.now(),
+    };
+    set((state) => ({
+      // Mantém no máximo os 4 toasts mais recentes em tela para evitar poluição visual
+      itemDropToasts: [...state.itemDropToasts.slice(-3), newToast],
+    }));
+  },
+
+  dismissItemDropToast: (id: string) => {
+    set((state) => ({
+      itemDropToasts: state.itemDropToasts.filter((t) => t.id !== id),
+    }));
+  },
+
+  // Automação Tática de Desafios (Auto-Avanço & Loop)
+  toggleGauntletAutoAdvance: () => {
+    set((state) => {
+      const nextAdvance = !state.gauntlet.autoAdvance;
+      return {
+        gauntlet: {
+          ...state.gauntlet,
+          autoAdvance: nextAdvance,
+          // Se ativar Auto-Avanço, desativa o Loop por exclusividade mútua
+          autoLoop: nextAdvance ? false : state.gauntlet.autoLoop,
+        },
+      };
+    });
+  },
+
+  toggleGauntletAutoLoop: () => {
+    set((state) => {
+      const nextLoop = !state.gauntlet.autoLoop;
+      return {
+        gauntlet: {
+          ...state.gauntlet,
+          autoLoop: nextLoop,
+          // Se ativar Loop, desativa o Auto-Avanço por exclusividade mútua
+          autoAdvance: nextLoop ? false : state.gauntlet.autoAdvance,
+        },
+      };
+    });
+  },
+
+  setGauntletCombatAutomation: (mode: 'MANUAL' | 'ADVANCE' | 'LOOP') => {
+    set((state) => ({
+      gauntlet: {
+        ...state.gauntlet,
+        autoAdvance: mode === 'ADVANCE',
+        autoLoop: mode === 'LOOP',
+      },
+    }));
+  },
+
   setCurrentActiveBossId: (bossId: number) => {
     const targetBoss = GAUNTLET_BOSSES.find((b) => b.id === bossId);
     if (!targetBoss) return;
@@ -946,9 +1020,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const rewardChakra = calculateEffectiveBossReward(bossId, s.stableRollingCPS);
     const rewardAncestral = currentBoss.bountyAncestral || 1;
 
-    audio.playLevelUp();
-
-    // Rolagem de saque estocástica (10 slots independentes)
+    // 1. Rolagem de saque estocástica (10 slots independentes)
     const lootRoll = rollBossLoot(bossId);
     s.addLootToInventory({
       equipmentDrop: lootRoll.equipmentDrop,
@@ -956,16 +1028,96 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       farmMaterial: lootRoll.farmMaterial,
     });
 
-    // Concede XP de combate shinobi
+    // 2. Concede XP de combate shinobi
     const xpReward = calculateBossXp(bossId);
     s.awardCombatXp(xpReward);
 
+    // 3. Notificações Pop-up de Recebimento de Itens
+    const droppedGears = lootRoll.equipmentDrops && lootRoll.equipmentDrops.length > 0
+      ? lootRoll.equipmentDrops
+      : lootRoll.equipmentDrop
+      ? [lootRoll.equipmentDrop]
+      : [];
+
+    for (const gear of droppedGears) {
+      s.pushItemDropToast({
+        name: gear.name,
+        rarity: gear.rarity,
+        iconName: gear.iconName,
+        subtext: 'Equipamento Obtido',
+      });
+    }
+
+    if (lootRoll.farmMaterial) {
+      s.pushItemDropToast({
+        name: `${lootRoll.farmMaterial.name} (+${lootRoll.farmMaterial.stackCount})`,
+        rarity: lootRoll.farmMaterial.rarity,
+        iconName: lootRoll.farmMaterial.iconName,
+        subtext: 'Material de Forja',
+      });
+    }
+
+    // 4. Efeito sonoro: Se algum item for acima de Lendário (Mítico, Divino, ADM), toca som celestial!
+    const allDroppedItems = [...droppedGears, lootRoll.farmMaterial].filter(Boolean);
+    const hasAboveLegendary = allDroppedItems.some((item) => {
+      const order = RARITY_ORDER[item.rarity] || 0;
+      return order > RARITY_ORDER.LEGENDARY; // Tier > 7 (MYTHIC, DIVINE, ADM)
+    });
+
+    if (hasAboveLegendary) {
+      audio.playMythicItemDrop();
+    } else {
+      audio.playLevelUp();
+    }
+
+    // 5. Gestão de Estado de Combate e Modos de Automação
     set((state) => {
       const nextHighest = Math.max(state.gauntlet.highestBossDefeated, bossId);
-      const nextActiveId = Math.min(bossId + 1, GAUNTLET_BOSSES.length);
-      const nextBoss =
-        GAUNTLET_BOSSES.find((b) => b.id === nextActiveId) || GAUNTLET_BOSSES[0];
+      const isAutoAdvance = !!state.gauntlet.autoAdvance;
+      const isAutoLoop = !!state.gauntlet.autoLoop;
 
+      // CENÁRIO A: AUTO-AVANÇO ATIVO (Push Mode)
+      if (isAutoAdvance) {
+        const hasNext = bossId < GAUNTLET_BOSSES.length;
+        const nextActiveId = hasNext ? bossId + 1 : bossId;
+        const nextBoss = GAUNTLET_BOSSES.find((b) => b.id === nextActiveId) || GAUNTLET_BOSSES[0];
+
+        return {
+          chakra: state.chakra.add(rewardChakra),
+          chakraAncestral: state.chakraAncestral.add(rewardAncestral),
+          gauntlet: {
+            ...state.gauntlet,
+            highestBossDefeated: nextHighest,
+            maxUnlockedBoss: nextHighest,
+            currentActiveBossId: nextActiveId,
+            isFighting: hasNext, // Continua lutando se houver próximo chefe
+            bossCurrentHp: nextBoss.hp,
+            bossTimeRemaining: nextBoss.timer || 30,
+            cooldownExpiresAt: null,
+          },
+        };
+      }
+
+      // CENÁRIO B: REPETIR BATALHA EM LOOP ATIVO (Farm Mode)
+      if (isAutoLoop) {
+        return {
+          chakra: state.chakra.add(rewardChakra),
+          chakraAncestral: state.chakraAncestral.add(rewardAncestral),
+          gauntlet: {
+            ...state.gauntlet,
+            highestBossDefeated: nextHighest,
+            maxUnlockedBoss: nextHighest,
+            currentActiveBossId: bossId, // Permanece no mesmo chefe
+            isFighting: true,            // Reinicia a luta imediatamente em loop
+            bossCurrentHp: currentBoss.hp,
+            bossTimeRemaining: currentBoss.timer || 30,
+            cooldownExpiresAt: null,
+          },
+        };
+      }
+
+      // CENÁRIO C: MANUAL (PADRÃO - REMOVIDO AVANÇO AUTOMÁTICO COMPULSÓRIO)
+      // O chefe derrotado permanece na tela; o combate encerra; o próximo fica desbloqueado na lista
       return {
         chakra: state.chakra.add(rewardChakra),
         chakraAncestral: state.chakraAncestral.add(rewardAncestral),
@@ -973,10 +1125,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           ...state.gauntlet,
           highestBossDefeated: nextHighest,
           maxUnlockedBoss: nextHighest,
-          currentActiveBossId: nextActiveId,
+          currentActiveBossId: bossId, // Mantém o chefe atual
           isFighting: false,
-          bossCurrentHp: nextBoss.hp,
-          bossTimeRemaining: nextBoss.timer || 30,
+          bossCurrentHp: currentBoss.hp,
+          bossTimeRemaining: currentBoss.timer || 30,
           cooldownExpiresAt: null,
         },
       };
@@ -1019,8 +1171,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     get().setCurrentActiveBossId(index);
   },
 
-  setGauntletCombatMode: (_mode: 'PUSH' | 'FARM') => {
-    // Modo de combate direto e manual
+  setGauntletCombatMode: (mode: 'PUSH' | 'FARM') => {
+    if (mode === 'PUSH') {
+      get().setGauntletCombatAutomation('ADVANCE');
+    } else {
+      get().setGauntletCombatAutomation('LOOP');
+    }
   },
 
   recordGauntletVictory: (defeatedBossId: number) => {
@@ -1883,6 +2039,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           isFighting: false,
           bossCurrentHp: s.gauntlet.bossCurrentHp.toString(),
           bossTimeRemaining: s.gauntlet.bossTimeRemaining,
+          autoAdvance: s.gauntlet.autoAdvance ?? false,
+          autoLoop: s.gauntlet.autoLoop ?? false,
         },
         combatStats: {
           level: s.combatStats.level,
