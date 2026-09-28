@@ -2,10 +2,20 @@ import React, { useRef } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { formatBigNumber } from '../../engine/BigNumber';
 import { calculateTotalCPS, calculateClickPower, getGatesMultiplier } from '../../engine/formulas';
-import { GATE_DATA } from '../../engine/data';
-import { Flame, ShieldAlert, Zap, Target, Activity, Clock, Skull, CheckCircle2, AlertTriangle } from 'lucide-react';
+import {
+  Flame,
+  ShieldAlert,
+  Zap,
+  Target,
+  Activity,
+  Skull,
+  AlertTriangle,
+  PanelRightClose,
+  PanelRightOpen,
+} from 'lucide-react';
 import { Badge } from '../common/Badge';
 import { ClickStageBackground } from './ClickStageBackground';
+import { EightGatesSidebar } from './EightGatesSidebar';
 
 interface FloatingItemProps {
   id: number;
@@ -75,7 +85,6 @@ const ShockwaveItem: React.FC<ShockwaveProps> = ({ id, x, y, isCrit, onRemove })
 };
 
 export const ActionStage: React.FC = () => {
-  const chakra = useGameStore((s) => s.chakra);
   const generators = useGameStore((s) => s.generators);
   const upgrades = useGameStore((s) => s.upgrades);
   const clanNodes = useGameStore((s) => s.clanNodes);
@@ -87,10 +96,10 @@ export const ActionStage: React.FC = () => {
   const onlinePresenceBuffTimer = useGameStore((s) => s.onlinePresenceBuffTimer);
   const floatingNumbers = useGameStore((s) => s.floatingNumbers);
   const shockwaves = useGameStore((s) => s.shockwaves);
+  const isEightGatesSidebarOpen = useGameStore((s) => s.isEightGatesSidebarOpen);
+  const toggleEightGatesSidebar = useGameStore((s) => s.toggleEightGatesSidebar);
 
   const clickChakra = useGameStore((s) => s.clickChakra);
-  const buyGate = useGameStore((s) => s.buyGate);
-  const triggerGateRelease = useGameStore((s) => s.triggerGateRelease);
   const removeFloatingNumber = useGameStore((s) => s.removeFloatingNumber);
   const removeShockwave = useGameStore((s) => s.removeShockwave);
 
@@ -121,14 +130,13 @@ export const ActionStage: React.FC = () => {
     clickChakra({ x, y });
   };
 
-  const nextGate = GATE_DATA[gatesUnlocked];
-  const canUnlockGate = nextGate && chakra.gte(nextGate.cost);
+  const gatesMultiplier = getGatesMultiplier(gatesUnlocked);
 
   return (
-    <main className="h-full bg-zinc-900/40 backdrop-blur-md border border-zinc-800/80 hover:border-zinc-700/80 transition-colors rounded-xl p-4 flex flex-col items-center justify-between relative overflow-hidden select-none shadow-sm">
+    <main className="h-full bg-zinc-900/40 backdrop-blur-md border border-zinc-800/80 hover:border-zinc-700/80 transition-colors rounded-xl p-3 sm:p-3.5 flex flex-col justify-between relative overflow-hidden select-none shadow-sm">
       {/* ALERTA DE EXAUSTÃO MUSCULAR SEVERA */}
       {(exhaustionTimer > 0 || clickExhaustionTimer > 0) && (
-        <div className="w-full mb-3 p-2.5 bg-rose-950/40 border border-rose-800/60 rounded-xl text-rose-300 font-mono text-xs flex items-center justify-between z-20">
+        <div className="w-full mb-2 p-2 sm:p-2.5 bg-rose-950/40 border border-rose-800/60 rounded-xl text-rose-300 font-mono text-xs flex items-center justify-between z-20 flex-shrink-0 animate-in fade-in duration-200">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-rose-400 stroke-[2] animate-bounce" />
             <div>
@@ -144,176 +152,142 @@ export const ActionStage: React.FC = () => {
         </div>
       )}
 
-      {/* 1. PALCO FOCAL DO SELO REATIVO COM CENÁRIO ANIMADO (FLORESTA DA FOLHA / VALE DO FIM) */}
-      <div
-        ref={stageRef}
-        onClick={handleClick}
-        className={`flex-1 w-full relative rounded-2xl overflow-hidden border border-zinc-800/80 bg-zinc-950/90 flex flex-col items-center justify-center shadow-inner group/stage select-none min-h-[350px] transition-colors ${
-          clickExhaustionTimer > 0 ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
-        }`}
-      >
-        {/* Fundo Animado Cenográfico: Floresta da Folha & Vale do Fim */}
-        <ClickStageBackground clickExhaustion={clickExhaustionTimer > 0} />
-
-        {/* Anéis de Precisão Técnica */}
-        <div className="absolute w-[280px] h-[280px] rounded-full border border-dashed border-zinc-800/60 animate-spin-slow pointer-events-none z-10" />
-        <div className="absolute w-[220px] h-[220px] rounded-full border border-zinc-800/40 animate-spin-reverse pointer-events-none z-10" />
-
-        {/* Halo Suave de Profundidade */}
-        <div className="absolute w-[180px] h-[180px] rounded-full bg-orange-500/5 blur-3xl pointer-events-none z-10" />
-
-        {/* Botão Central Reativo de Alta Precisão */}
-        <div
-          id="click-btn"
-          className={`group relative z-10 w-36 h-36 rounded-2xl flex flex-col items-center justify-center shadow-lg transition-all duration-150 ease-out ${
-            clickExhaustionTimer > 0
-              ? 'bg-rose-950/30 border border-rose-900/60'
-              : 'bg-zinc-900/90 border border-zinc-800/90 hover:border-orange-500/40 hover:bg-zinc-850 active:scale-95'
-          }`}
-        >
-          <div
-            className={`w-16 h-16 rounded-xl flex items-center justify-center transition-transform ${
-              clickExhaustionTimer > 0
-                ? 'bg-rose-900/40 border border-rose-800 text-rose-400'
-                : 'bg-zinc-800/60 border border-zinc-700/50 text-orange-400 group-hover:scale-105'
-            }`}
-          >
-            {clickExhaustionTimer > 0 ? (
-              <Skull className="w-8 h-8 stroke-[1.5]" />
-            ) : (
-              <Target className="w-8 h-8 stroke-[1.5]" />
-            )}
-          </div>
-          <span className="text-[10px] font-mono font-medium text-zinc-400 uppercase tracking-widest mt-2">
-            {clickExhaustionTimer > 0 ? `Exausto (${clickExhaustionTimer.toFixed(1)}s)` : 'Canalizar'}
-          </span>
-        </div>
-
-        {/* Ondas de Choque Radiais */}
-        {shockwaves.map((wave) => (
-          <ShockwaveItem
-            key={wave.id}
-            id={wave.id}
-            x={wave.x}
-            y={wave.y}
-            isCrit={wave.isCrit}
-            onRemove={removeShockwave}
-          />
-        ))}
-
-        {/* Números Flutuantes */}
-        {floatingNumbers.map((item) => (
-          <FloatingNumberItem
-            key={item.id}
-            id={item.id}
-            x={item.x}
-            y={item.y}
-            text={item.text}
-            isCrit={item.isCrit}
-            onRemove={removeFloatingNumber}
-          />
-        ))}
-
-        {/* Badges de Status do Clique Minimalistas */}
-        <div className="flex gap-2 mt-5 z-10 pointer-events-none">
+      {/* BARRA SUPERIOR DE CONTROLE & TOGGLE DA SIDEBAR */}
+      <div className="w-full mb-2 flex items-center justify-between gap-2 flex-shrink-0">
+        {/* Badges de Status do Clique */}
+        <div className="flex items-center gap-1.5 flex-wrap">
           <Badge variant="chakra" icon={<Zap className="w-3 h-3 stroke-[1.75]" />}>
             +{formatBigNumber(clickPower)} / Clique
           </Badge>
           <Badge variant="neutral" icon={<Activity className="w-3 h-3 stroke-[1.75]" />}>
-            Crítico: {clanNodes['sharingan_awakening'] ? '15%' : '5%'} ({clanNodes['mangekyo_sharingan_lineage'] ? '3.0x' : '2.0x'})
+            Crítico: {clanNodes['sharingan_awakening'] ? '15%' : '5%'}
           </Badge>
         </div>
+
+        {/* SIDEBAR TOGGLE: SISTEMA DOS OITO PORTÕES */}
+        <button
+          onClick={toggleEightGatesSidebar}
+          title={isEightGatesSidebarOpen ? 'Recolher Painel dos Oito Portões' : 'Abrir Painel dos Oito Portões'}
+          className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition-all flex items-center gap-2 border cursor-pointer ${
+            gatesActiveTimer > 0
+              ? 'bg-rose-950/60 border-rose-500 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse'
+              : isEightGatesSidebarOpen
+              ? 'bg-orange-500/20 border-orange-500/50 text-orange-300 shadow-[0_0_12px_rgba(249,115,22,0.15)]'
+              : 'bg-zinc-900/80 hover:bg-zinc-850 border-zinc-800 hover:border-orange-500/40 text-zinc-300'
+          }`}
+        >
+          <Flame
+            className={`w-3.5 h-3.5 stroke-[2] ${
+              gatesActiveTimer > 0 ? 'text-rose-400 animate-bounce' : 'text-orange-400'
+            }`}
+          />
+          <span className="font-semibold hidden sm:inline">Oito Portões</span>
+
+          {gatesActiveTimer > 0 ? (
+            <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-900/70 text-rose-200 border border-rose-600/60 font-bold">
+              {gatesActiveTimer.toFixed(1)}s ({gatesMultiplier}x)
+            </span>
+          ) : gatesCooldownTimer > 0 ? (
+            <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-950/60 text-amber-300 border border-amber-800/40 font-bold">
+              {gatesCooldownTimer.toFixed(1)}s
+            </span>
+          ) : exhaustionTimer > 0 ? (
+            <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-950/60 text-rose-300 border border-rose-800/40 font-bold">
+              Exausto
+            </span>
+          ) : (
+            <span className="text-[10px] text-zinc-500 font-mono">
+              ({gatesUnlocked}/8)
+            </span>
+          )}
+
+          {isEightGatesSidebarOpen ? (
+            <PanelRightClose className="w-3.5 h-3.5 text-orange-400 stroke-[2]" />
+          ) : (
+            <PanelRightOpen className="w-3.5 h-3.5 text-zinc-400 stroke-[2]" />
+          )}
+        </button>
       </div>
 
-      {/* 2. PAINEL DOS OITO PORTÕES INTERNOS */}
-      <div className="w-full bg-zinc-950/60 border border-zinc-800/80 rounded-xl p-3.5 mt-3 flex-shrink-0">
-        <div className="flex items-center justify-between mb-2.5">
-          <h3 className="text-xs font-semibold text-zinc-200 uppercase tracking-wide flex items-center gap-1.5">
-            <Flame className="w-3.5 h-3.5 text-orange-400 stroke-[1.75]" /> Oito Portões Internos
-          </h3>
-          <div>
-            {exhaustionTimer > 0 ? (
-              <Badge variant="danger" icon={<Skull className="w-3 h-3 stroke-[1.75]" />}>
-                Exaustão: {exhaustionTimer.toFixed(1)}s (-85% CPS)
-              </Badge>
-            ) : gatesActiveTimer > 0 ? (
-              <Badge variant="production" icon={<Flame className="w-3 h-3 stroke-[1.75]" />}>
-                Ativo: {gatesActiveTimer.toFixed(1)}s ({getGatesMultiplier(gatesUnlocked)}x CPS)
-              </Badge>
-            ) : gatesCooldownTimer > 0 ? (
-              <Badge variant="warning" icon={<Clock className="w-3 h-3 stroke-[1.75]" />}>
-                Recarga: {gatesCooldownTimer.toFixed(1)}s
-              </Badge>
-            ) : gatesUnlocked >= 8 ? (
-              <Badge variant="cyan">Abertura Completa (15x)</Badge>
-            ) : (
-              <span className="text-[10px] font-mono text-zinc-400">
-                Próximo: {nextGate?.name}
-              </span>
-            )}
+      {/* ÁREA CENTRAL: BOXE PRINCIPAL DO SELO + SIDEBAR DOS OITO PORTÕES */}
+      <div className="flex-1 w-full flex flex-row gap-3 min-h-0 overflow-hidden relative">
+        {/* BOXE PRINCIPAL (PALCO DO SELO) - ADAPTA DINAMICAMENTE EM LARGURA E ALTURA */}
+        <div
+          ref={stageRef}
+          onClick={handleClick}
+          className={`flex-1 h-full relative rounded-2xl overflow-hidden border border-zinc-800/80 bg-zinc-950/90 flex flex-col items-center justify-center shadow-inner group/stage select-none transition-all duration-300 ease-in-out ${
+            clickExhaustionTimer > 0 ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+          }`}
+        >
+          {/* Fundo Animado Cenográfico: Floresta da Folha & Vale do Fim */}
+          <ClickStageBackground clickExhaustion={clickExhaustionTimer > 0} />
+
+          {/* Anéis de Precisão Técnica */}
+          <div className="absolute w-[280px] h-[280px] rounded-full border border-dashed border-zinc-800/60 animate-spin-slow pointer-events-none z-10" />
+          <div className="absolute w-[220px] h-[220px] rounded-full border border-zinc-800/40 animate-spin-reverse pointer-events-none z-10" />
+
+          {/* Halo Suave de Profundidade */}
+          <div className="absolute w-[180px] h-[180px] rounded-full bg-orange-500/5 blur-3xl pointer-events-none z-10" />
+
+          {/* Botão Central Reativo de Alta Precisão */}
+          <div
+            id="click-btn"
+            className={`group relative z-10 w-36 h-36 rounded-2xl flex flex-col items-center justify-center shadow-lg transition-all duration-150 ease-out ${
+              clickExhaustionTimer > 0
+                ? 'bg-rose-950/30 border border-rose-900/60'
+                : 'bg-zinc-900/90 border border-zinc-800/90 hover:border-orange-500/40 hover:bg-zinc-850 active:scale-95'
+            }`}
+          >
+            <div
+              className={`w-16 h-16 rounded-xl flex items-center justify-center transition-transform ${
+                clickExhaustionTimer > 0
+                  ? 'bg-rose-900/40 border border-rose-800 text-rose-400'
+                  : 'bg-zinc-800/60 border border-zinc-700/50 text-orange-400 group-hover:scale-105'
+              }`}
+            >
+              {clickExhaustionTimer > 0 ? (
+                <Skull className="w-8 h-8 stroke-[1.5]" />
+              ) : (
+                <Target className="w-8 h-8 stroke-[1.5]" />
+              )}
+            </div>
+            <span className="text-[10px] font-mono font-medium text-zinc-400 uppercase tracking-widest mt-2">
+              {clickExhaustionTimer > 0 ? `Exausto (${clickExhaustionTimer.toFixed(1)}s)` : 'Canalizar'}
+            </span>
           </div>
+
+          {/* Ondas de Choque Radiais */}
+          {shockwaves.map((wave) => (
+            <ShockwaveItem
+              key={wave.id}
+              id={wave.id}
+              x={wave.x}
+              y={wave.y}
+              isCrit={wave.isCrit}
+              onRemove={removeShockwave}
+            />
+          ))}
+
+          {/* Números Flutuantes */}
+          {floatingNumbers.map((item) => (
+            <FloatingNumberItem
+              key={item.id}
+              id={item.id}
+              x={item.x}
+              y={item.y}
+              text={item.text}
+              isCrit={item.isCrit}
+              onRemove={removeFloatingNumber}
+            />
+          ))}
         </div>
 
-        {/* Indicadores dos 8 Portões */}
-        <div className="grid grid-cols-8 gap-1 mb-3">
-          {GATE_DATA.map((gate) => {
-            const isUnlocked = gate.id <= gatesUnlocked;
-            const isActive = gatesActiveTimer > 0 && isUnlocked;
-
-            return (
-              <div
-                key={gate.id}
-                title={`${gate.name} (${formatBigNumber(gate.cost)} Chakra)`}
-                className={`h-7 rounded-md flex items-center justify-center text-xs font-mono font-medium transition ${
-                  isActive
-                    ? 'bg-rose-950/80 border border-rose-600 text-rose-200 animate-pulse'
-                    : isUnlocked
-                    ? 'bg-zinc-800/80 border border-zinc-700 text-zinc-100'
-                    : 'bg-zinc-900/40 border border-zinc-850 text-zinc-600'
-                }`}
-              >
-                {gate.id}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Ações de Upgrade e Liberação dos Portões */}
-        <div className="flex gap-2">
-          <button
-            disabled={gatesUnlocked >= 8 || !canUnlockGate}
-            onClick={buyGate}
-            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition border ${
-              canUnlockGate && gatesUnlocked < 8
-                ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border-zinc-700 shadow-sm'
-                : 'bg-zinc-900/50 border-zinc-800/80 text-zinc-500 cursor-not-allowed'
-            }`}
-          >
-            {gatesUnlocked >= 8 ? (
-              <span className="flex items-center justify-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 stroke-[1.75]" /> Todos os 8 Abertos
-              </span>
-            ) : (
-              `Abrir ${nextGate?.name} (${formatBigNumber(nextGate?.cost || 0)})`
-            )}
-          </button>
-
-          <button
-            disabled={gatesUnlocked === 0 || gatesActiveTimer > 0 || gatesCooldownTimer > 0 || exhaustionTimer > 0}
-            onClick={triggerGateRelease}
-            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition flex items-center justify-center gap-1.5 border ${
-              gatesUnlocked > 0 && gatesActiveTimer === 0 && gatesCooldownTimer === 0 && exhaustionTimer === 0
-                ? 'bg-orange-600 hover:bg-orange-500 text-white border-orange-500 shadow-sm'
-                : 'bg-zinc-900/50 border-zinc-800/80 text-zinc-500 cursor-not-allowed'
-            }`}
-          >
-            <Zap className="w-3.5 h-3.5 stroke-[1.75]" /> Liberar Fúria ({getGatesMultiplier(gatesUnlocked)}x CPS)
-          </button>
-        </div>
+        {/* SIDEBAR DOS OITO PORTÕES INTERNOS */}
+        {isEightGatesSidebarOpen && <EightGatesSidebar />}
       </div>
 
-      {/* 3. LOG DINÂMICO DE AÇÃO */}
-      <div className="w-full mt-2.5 py-1.5 px-3 bg-zinc-950/40 border border-zinc-800/60 rounded-lg text-[11px] font-mono text-zinc-400 flex items-center gap-2 flex-shrink-0">
+      {/* 3. LOG DINÂMICO DE AÇÃO (SLIM FOOTER) */}
+      <div className="w-full mt-2 py-1.5 px-3 bg-zinc-950/40 border border-zinc-800/60 rounded-lg text-[11px] font-mono text-zinc-400 flex items-center gap-2 flex-shrink-0">
         <ShieldAlert className="w-3.5 h-3.5 text-zinc-500 stroke-[1.75]" />
         <span className="truncate">
           {clickExhaustionTimer > 0
@@ -321,7 +295,7 @@ export const ActionStage: React.FC = () => {
             : exhaustionTimer > 0
             ? 'Exaustão Shinobi ativa: CPS reduzido em 85% após o encerramento dos Portões.'
             : gatesActiveTimer > 0
-            ? `Os Oito Portões Internos estão abertos (${getGatesMultiplier(gatesUnlocked)}x CPS). Cuidado com o colapso iminente!`
+            ? `Os Oito Portões Internos estão abertos (${gatesMultiplier}x CPS). Cuidado com o colapso iminente!`
             : 'Canalize seu chakra com selos de mão para despertar novas técnicas ninjas.'}
         </span>
       </div>

@@ -88,6 +88,9 @@ export interface GameStoreState {
   gatesCooldownTimer: number;
   exhaustionTimer: number;
   clickExhaustionTimer: number;
+  isEightGatesSidebarOpen: boolean;
+  toggleEightGatesSidebar: () => void;
+  setEightGatesSidebarOpen: (open: boolean) => void;
 
   // Recompensas de Presença Online & Média Móvel
   stableRollingCPS: Decimal;
@@ -755,6 +758,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   gatesCooldownTimer: 0,
   exhaustionTimer: 0,
   clickExhaustionTimer: 0,
+  isEightGatesSidebarOpen: false,
+  toggleEightGatesSidebar: () => set((state) => ({ isEightGatesSidebarOpen: !state.isEightGatesSidebarOpen })),
+  setEightGatesSidebarOpen: (open: boolean) => set({ isEightGatesSidebarOpen: open }),
 
   // Recompensas de Presença Online & Média Móvel
   stableRollingCPS: D(0),
