@@ -12,6 +12,8 @@ import {
   AlertTriangle,
   PanelRightClose,
   PanelRightOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { Badge } from '../common/Badge';
 import { ClickStageBackground } from './ClickStageBackground';
@@ -96,8 +98,14 @@ export const ActionStage: React.FC = () => {
   const onlinePresenceBuffTimer = useGameStore((s) => s.onlinePresenceBuffTimer);
   const floatingNumbers = useGameStore((s) => s.floatingNumbers);
   const shockwaves = useGameStore((s) => s.shockwaves);
+  
+  // Controles de Sidebars
   const isEightGatesSidebarOpen = useGameStore((s) => s.isEightGatesSidebarOpen);
   const toggleEightGatesSidebar = useGameStore((s) => s.toggleEightGatesSidebar);
+  const isLeftSidebarOpen = useGameStore((s) => s.isLeftSidebarOpen);
+  const toggleLeftSidebar = useGameStore((s) => s.toggleLeftSidebar);
+  const isRightSidebarOpen = useGameStore((s) => s.isRightSidebarOpen);
+  const toggleRightSidebar = useGameStore((s) => s.toggleRightSidebar);
 
   const clickChakra = useGameStore((s) => s.clickChakra);
   const removeFloatingNumber = useGameStore((s) => s.removeFloatingNumber);
@@ -152,10 +160,29 @@ export const ActionStage: React.FC = () => {
         </div>
       )}
 
-      {/* BARRA SUPERIOR DE CONTROLE & TOGGLE DA SIDEBAR */}
+      {/* BARRA SUPERIOR DE CONTROLE & TOGGLES DE TODAS AS SIDEBARS */}
       <div className="w-full mb-2 flex items-center justify-between gap-2 flex-shrink-0">
-        {/* Badges de Status do Clique */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+        {/* Lado Esquerdo: Sidebar Toggle da Esquerda (Tropas) + Badges de Clique */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={toggleLeftSidebar}
+            title={isLeftSidebarOpen ? 'Recolher Painel de Tropas & Upgrades' : 'Expandir Painel de Tropas & Upgrades'}
+            className={`px-2.5 py-1.5 rounded-xl text-xs font-mono font-medium transition-all flex items-center gap-1.5 border cursor-pointer ${
+              isLeftSidebarOpen
+                ? 'bg-zinc-900/60 hover:bg-zinc-800/80 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                : 'bg-cyan-500/15 hover:bg-cyan-500/25 border-cyan-500/50 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
+            }`}
+          >
+            {isLeftSidebarOpen ? (
+              <PanelLeftClose className="w-3.5 h-3.5 stroke-[2]" />
+            ) : (
+              <PanelLeftOpen className="w-3.5 h-3.5 stroke-[2] text-cyan-400" />
+            )}
+            <span className="font-semibold hidden md:inline">
+              {isLeftSidebarOpen ? 'Tropas' : 'Abrir Tropas'}
+            </span>
+          </button>
+
           <Badge variant="chakra" icon={<Zap className="w-3 h-3 stroke-[1.75]" />}>
             +{formatBigNumber(clickPower)} / Clique
           </Badge>
@@ -164,53 +191,103 @@ export const ActionStage: React.FC = () => {
           </Badge>
         </div>
 
-        {/* SIDEBAR TOGGLE: SISTEMA DOS OITO PORTÕES */}
-        <button
-          onClick={toggleEightGatesSidebar}
-          title={isEightGatesSidebarOpen ? 'Recolher Painel dos Oito Portões' : 'Abrir Painel dos Oito Portões'}
-          className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition-all flex items-center gap-2 border cursor-pointer ${
-            gatesActiveTimer > 0
-              ? 'bg-rose-950/60 border-rose-500 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse'
-              : isEightGatesSidebarOpen
-              ? 'bg-orange-500/20 border-orange-500/50 text-orange-300 shadow-[0_0_12px_rgba(249,115,22,0.15)]'
-              : 'bg-zinc-900/80 hover:bg-zinc-850 border-zinc-800 hover:border-orange-500/40 text-zinc-300'
-          }`}
-        >
-          <Flame
-            className={`w-3.5 h-3.5 stroke-[2] ${
-              gatesActiveTimer > 0 ? 'text-rose-400 animate-bounce' : 'text-orange-400'
+        {/* Lado Direito: Sidebar Toggle dos Oito Portões + Sidebar Toggle da Direita (Operações) */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* SIDEBAR TOGGLE: SISTEMA DOS OITO PORTÕES */}
+          <button
+            onClick={toggleEightGatesSidebar}
+            title={isEightGatesSidebarOpen ? 'Recolher Painel dos Oito Portões' : 'Abrir Painel dos Oito Portões'}
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition-all flex items-center gap-2 border cursor-pointer ${
+              gatesActiveTimer > 0
+                ? 'bg-rose-950/60 border-rose-500 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse'
+                : isEightGatesSidebarOpen
+                ? 'bg-orange-500/20 border-orange-500/50 text-orange-300 shadow-[0_0_12px_rgba(249,115,22,0.15)]'
+                : 'bg-zinc-900/80 hover:bg-zinc-850 border-zinc-800 hover:border-orange-500/40 text-zinc-300'
             }`}
-          />
-          <span className="font-semibold hidden sm:inline">Oito Portões</span>
+          >
+            <Flame
+              className={`w-3.5 h-3.5 stroke-[2] ${
+                gatesActiveTimer > 0 ? 'text-rose-400 animate-bounce' : 'text-orange-400'
+              }`}
+            />
+            <span className="font-semibold hidden sm:inline">Oito Portões</span>
 
-          {gatesActiveTimer > 0 ? (
-            <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-900/70 text-rose-200 border border-rose-600/60 font-bold">
-              {gatesActiveTimer.toFixed(1)}s ({gatesMultiplier}x)
-            </span>
-          ) : gatesCooldownTimer > 0 ? (
-            <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-950/60 text-amber-300 border border-amber-800/40 font-bold">
-              {gatesCooldownTimer.toFixed(1)}s
-            </span>
-          ) : exhaustionTimer > 0 ? (
-            <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-950/60 text-rose-300 border border-rose-800/40 font-bold">
-              Exausto
-            </span>
-          ) : (
-            <span className="text-[10px] text-zinc-500 font-mono">
-              ({gatesUnlocked}/8)
-            </span>
-          )}
+            {gatesActiveTimer > 0 ? (
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-900/70 text-rose-200 border border-rose-600/60 font-bold">
+                {gatesActiveTimer.toFixed(1)}s ({gatesMultiplier}x)
+              </span>
+            ) : gatesCooldownTimer > 0 ? (
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-950/60 text-amber-300 border border-amber-800/40 font-bold">
+                {gatesCooldownTimer.toFixed(1)}s
+              </span>
+            ) : exhaustionTimer > 0 ? (
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-950/60 text-rose-300 border border-rose-800/40 font-bold">
+                Exausto
+              </span>
+            ) : (
+              <span className="text-[10px] text-zinc-500 font-mono">
+                ({gatesUnlocked}/8)
+              </span>
+            )}
 
-          {isEightGatesSidebarOpen ? (
-            <PanelRightClose className="w-3.5 h-3.5 text-orange-400 stroke-[2]" />
-          ) : (
-            <PanelRightOpen className="w-3.5 h-3.5 text-zinc-400 stroke-[2]" />
-          )}
-        </button>
+            {isEightGatesSidebarOpen ? (
+              <PanelRightClose className="w-3.5 h-3.5 text-orange-400 stroke-[2]" />
+            ) : (
+              <PanelRightOpen className="w-3.5 h-3.5 text-zinc-400 stroke-[2]" />
+            )}
+          </button>
+
+          {/* SIDEBAR TOGGLE: CENTRAL DE OPERAÇÕES (DIREITA) */}
+          <button
+            onClick={toggleRightSidebar}
+            title={isRightSidebarOpen ? 'Recolher Central de Operações' : 'Expandir Central de Operações'}
+            className={`px-2.5 py-1.5 rounded-xl text-xs font-mono font-medium transition-all flex items-center gap-1.5 border cursor-pointer ${
+              isRightSidebarOpen
+                ? 'bg-zinc-900/60 hover:bg-zinc-800/80 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                : 'bg-purple-500/15 hover:bg-purple-500/25 border-purple-500/50 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.2)]'
+            }`}
+          >
+            <span className="font-semibold hidden md:inline">
+              {isRightSidebarOpen ? 'Operações' : 'Abrir Operações'}
+            </span>
+            {isRightSidebarOpen ? (
+              <PanelRightClose className="w-3.5 h-3.5 stroke-[2]" />
+            ) : (
+              <PanelRightOpen className="w-3.5 h-3.5 stroke-[2] text-purple-400" />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* ÁREA CENTRAL: BOXE PRINCIPAL DO SELO + SIDEBAR DOS OITO PORTÕES */}
       <div className="flex-1 w-full flex flex-row gap-3 min-h-0 overflow-hidden relative">
+        {/* ABAS FLUTUANTES NAS BORDAS QUANDO AS SIDEBARS ESTIVEREM RECOLHIDAS */}
+        {!isLeftSidebarOpen && (
+          <button
+            onClick={toggleLeftSidebar}
+            title="Expandir Painel de Tropas & Upgrades (Sidebar Toggle)"
+            className="absolute left-1.5 top-1/2 -translate-y-1/2 z-30 px-1.5 py-3 rounded-r-xl bg-zinc-900/90 hover:bg-zinc-850 border border-l-0 border-zinc-700/80 hover:border-cyan-500/60 text-zinc-400 hover:text-cyan-300 shadow-2xl backdrop-blur-md transition-all flex flex-col items-center gap-1.5 cursor-pointer group"
+          >
+            <PanelLeftOpen className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+            <span className="text-[9px] font-mono [writing-mode:vertical-lr] tracking-widest text-zinc-400 group-hover:text-cyan-300 font-bold uppercase">
+              Tropas
+            </span>
+          </button>
+        )}
+
+        {!isRightSidebarOpen && (
+          <button
+            onClick={toggleRightSidebar}
+            title="Expandir Central de Operações Shinobi (Sidebar Toggle)"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 z-30 px-1.5 py-3 rounded-l-xl bg-zinc-900/90 hover:bg-zinc-850 border border-r-0 border-zinc-700/80 hover:border-purple-500/60 text-zinc-400 hover:text-purple-300 shadow-2xl backdrop-blur-md transition-all flex flex-col items-center gap-1.5 cursor-pointer group"
+          >
+            <PanelRightOpen className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
+            <span className="text-[9px] font-mono [writing-mode:vertical-lr] tracking-widest text-zinc-400 group-hover:text-purple-300 font-bold uppercase">
+              Operações
+            </span>
+          </button>
+        )}
+
         {/* BOXE PRINCIPAL (PALCO DO SELO) - ADAPTA DINAMICAMENTE EM LARGURA E ALTURA */}
         <div
           ref={stageRef}

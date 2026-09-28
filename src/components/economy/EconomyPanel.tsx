@@ -11,7 +11,7 @@ import { getGeneratorMilestoneEffects } from '../../constants/upgrades';
 import { QuantitySelector } from '../common/QuantitySelector';
 import { IconRenderer } from '../common/IconRenderer';
 import { UpgradesList } from './UpgradesList';
-import { Users, Sparkles, Award } from 'lucide-react';
+import { Users, Sparkles, Award, PanelLeftClose } from 'lucide-react';
 import { Badge } from '../common/Badge';
 
 export const EconomyPanel: React.FC = () => {
@@ -24,6 +24,7 @@ export const EconomyPanel: React.FC = () => {
   const setShopMode = useGameStore((s) => s.setShopMode);
   const setShopQty = useGameStore((s) => s.setShopQty);
   const buyGenerator = useGameStore((s) => s.buyGenerator);
+  const toggleLeftSidebar = useGameStore((s) => s.toggleLeftSidebar);
 
   const [panelView, setPanelView] = useState<'generators' | 'upgrades'>('generators');
 
@@ -59,7 +60,16 @@ export const EconomyPanel: React.FC = () => {
             </button>
           </div>
 
-          <Badge variant="neutral">30 Tropas</Badge>
+          <div className="flex items-center gap-1.5">
+            <Badge variant="neutral">30 Tropas</Badge>
+            <button
+              onClick={toggleLeftSidebar}
+              title="Recolher Painel de Tropas (Sidebar Toggle)"
+              className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/80 border border-transparent hover:border-zinc-700/80 transition cursor-pointer"
+            >
+              <PanelLeftClose className="w-4 h-4 stroke-[1.75]" />
+            </button>
+          </div>
         </div>
 
         {/* Controles de Lote ativos apenas no modo de Tropas */}

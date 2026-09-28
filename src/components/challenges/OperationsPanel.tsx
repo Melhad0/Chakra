@@ -13,6 +13,7 @@ import {
   ArrowUpRight,
   Maximize2,
   Dice5,
+  PanelRightClose,
 } from 'lucide-react';
 import { PRESTIGE_THRESHOLD, calculatePendingAncestralChakra } from '../../engine/formulas';
 import { getCurrentRank, getNextPromotionMission } from '../../constants/rankings';
@@ -28,9 +29,29 @@ export const OperationsPanel: React.FC = () => {
   const passedExams = useGameStore((s) => s.passedExams);
   const performPrestige = useGameStore((s) => s.performPrestige);
   const setView = useGameStore((s) => s.setView);
+  const toggleRightSidebar = useGameStore((s) => s.toggleRightSidebar);
 
   return (
     <aside className="h-full bg-zinc-900/40 backdrop-blur-md border border-zinc-800/80 hover:border-zinc-700/80 transition-colors rounded-xl p-3.5 flex flex-col overflow-hidden shadow-sm">
+      {/* Cabeçalho da Central de Operações com Sidebar Toggle */}
+      <div className="pb-2.5 mb-2.5 border-b border-zinc-850 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
+            <Scroll className="w-3.5 h-3.5 stroke-[1.75]" />
+          </div>
+          <span className="text-xs font-bold text-zinc-100 uppercase tracking-wide">
+            Operações Shinobi
+          </span>
+        </div>
+        <button
+          onClick={toggleRightSidebar}
+          title="Recolher Central de Operações (Sidebar Toggle)"
+          className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/80 border border-transparent hover:border-zinc-700/80 transition cursor-pointer"
+        >
+          <PanelRightClose className="w-4 h-4 stroke-[1.75]" />
+        </button>
+      </div>
+
       {/* 4 CARTÕES DE ACESSO RÁPIDO AOS MÓDULOS DEDICADOS EM TELA CHEIA */}
       {(() => {
         const unlockedClanNodesCount = Object.keys(clanNodes).filter((k) => clanNodes[k]).length;

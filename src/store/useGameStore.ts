@@ -91,6 +91,12 @@ export interface GameStoreState {
   isEightGatesSidebarOpen: boolean;
   toggleEightGatesSidebar: () => void;
   setEightGatesSidebarOpen: (open: boolean) => void;
+  isLeftSidebarOpen: boolean;
+  toggleLeftSidebar: () => void;
+  setLeftSidebarOpen: (open: boolean) => void;
+  isRightSidebarOpen: boolean;
+  toggleRightSidebar: () => void;
+  setRightSidebarOpen: (open: boolean) => void;
 
   // Recompensas de Presença Online & Média Móvel
   stableRollingCPS: Decimal;
@@ -761,6 +767,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   isEightGatesSidebarOpen: false,
   toggleEightGatesSidebar: () => set((state) => ({ isEightGatesSidebarOpen: !state.isEightGatesSidebarOpen })),
   setEightGatesSidebarOpen: (open: boolean) => set({ isEightGatesSidebarOpen: open }),
+  isLeftSidebarOpen: true,
+  toggleLeftSidebar: () => set((state) => ({ isLeftSidebarOpen: !state.isLeftSidebarOpen })),
+  setLeftSidebarOpen: (open: boolean) => set({ isLeftSidebarOpen: open }),
+  isRightSidebarOpen: true,
+  toggleRightSidebar: () => set((state) => ({ isRightSidebarOpen: !state.isRightSidebarOpen })),
+  setRightSidebarOpen: (open: boolean) => set({ isRightSidebarOpen: open }),
 
   // Recompensas de Presença Online & Média Móvel
   stableRollingCPS: D(0),
