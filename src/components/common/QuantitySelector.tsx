@@ -19,43 +19,46 @@ export const QuantitySelector: React.FC<QuantitySelectorProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`flex items-center justify-between gap-2 p-1.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80 ${className}`}>
-      {/* Alternador de Modo (Comprar / Vender) */}
-      <div className="flex gap-1">
+    <div className={`p-1.5 rounded-xl bg-zinc-950/70 border border-zinc-800/80 flex flex-col gap-1.5 w-full max-w-full overflow-hidden ${className}`}>
+      {/* Linha 1: Alternador de Modo (Comprar / Vender) */}
+      <div className="grid grid-cols-2 gap-1 w-full p-0.5 rounded-lg bg-zinc-900/80 border border-zinc-850">
         <button
+          type="button"
           onClick={() => onModeChange('buy')}
-          className={`px-3 py-1 text-xs font-medium rounded-md transition-all border ${
+          className={`py-1 text-xs font-semibold rounded-md transition-all text-center cursor-pointer select-none active:scale-[0.98] ${
             mode === 'buy'
-              ? 'bg-zinc-800 text-zinc-100 border-zinc-700 shadow-sm'
-              : 'bg-transparent text-zinc-400 hover:text-zinc-200 border-transparent hover:bg-zinc-800/40'
+              ? 'bg-emerald-500 text-zinc-950 font-bold shadow-sm shadow-emerald-950/50'
+              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
           }`}
         >
           Comprar
         </button>
         <button
+          type="button"
           onClick={() => onModeChange('sell')}
-          className={`px-3 py-1 text-xs font-medium rounded-md transition-all border ${
+          className={`py-1 text-xs font-semibold rounded-md transition-all text-center cursor-pointer select-none active:scale-[0.98] ${
             mode === 'sell'
-              ? 'bg-zinc-800 text-zinc-100 border-zinc-700 shadow-sm'
-              : 'bg-transparent text-zinc-400 hover:text-zinc-200 border-transparent hover:bg-zinc-800/40'
+              ? 'bg-rose-500 text-zinc-950 font-bold shadow-sm shadow-rose-950/50'
+              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
           }`}
         >
           Vender
         </button>
       </div>
 
-      {/* Seletor de Quantidade (1x, 10x, 100x, Max) */}
-      <div className="flex gap-1">
+      {/* Linha 2: Seletor de Quantidade em Grade de 5 Colunas (100% de largura) */}
+      <div className="grid grid-cols-5 gap-1 w-full">
         {QUANTITIES.map((q) => {
           const isActive = qty === q;
           return (
             <button
               key={String(q)}
+              type="button"
               onClick={() => onQtyChange(q)}
-              className={`px-2.5 py-1 text-xs font-mono font-medium rounded-md transition-all border ${
+              className={`py-1 px-1 text-[11px] font-mono font-medium rounded-lg transition-all text-center border cursor-pointer select-none active:scale-95 truncate ${
                 isActive
-                  ? 'bg-zinc-700/80 text-zinc-100 border-zinc-600 shadow-sm'
-                  : 'bg-zinc-800/60 text-zinc-400 hover:bg-zinc-700/60 hover:text-zinc-200 border-zinc-700/40'
+                  ? 'bg-cyan-950/80 text-cyan-300 border-cyan-500/70 shadow-sm font-semibold'
+                  : 'bg-zinc-900/60 text-zinc-400 hover:bg-zinc-850 hover:text-zinc-200 border-zinc-800/80'
               }`}
             >
               {q === 'max' ? 'Max' : `${q}x`}
