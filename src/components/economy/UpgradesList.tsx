@@ -177,19 +177,19 @@ export const UpgradesList: React.FC = () => {
   return (
     <div className="flex flex-col h-full overflow-hidden space-y-2">
       {/* Barra de Progresso de Maestria Shinobi */}
-      <div className="p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 flex flex-col gap-1.5 flex-shrink-0">
+      <div className="p-2.5 rounded-xl bg-gradient-to-r from-zinc-950/80 via-zinc-900/60 to-zinc-950/80 border border-zinc-800/80 shadow-md flex flex-col gap-1.5 flex-shrink-0 relative overflow-hidden">
         <div className="flex items-center justify-between text-xs font-mono">
           <div className="flex items-center gap-1.5 text-zinc-300">
             <BookOpen className="w-3.5 h-3.5 text-fuchsia-400" />
-            <span className="font-medium">Maestria de Jutsus</span>
+            <span className="font-medium tracking-wide">Maestria de Jutsus</span>
           </div>
-          <span className="text-fuchsia-400 font-semibold">
+          <span className="text-fuchsia-400 font-bold">
             {purchasedCount} / {TECHNIQUE_UPGRADES.length} ({masteryPercent}%)
           </span>
         </div>
-        <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+        <div className="w-full h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800 shadow-inner">
           <div
-            className="h-full bg-gradient-to-r from-fuchsia-500 to-cyan-400 rounded-full transition-all duration-300"
+            className="h-full bg-gradient-to-r from-fuchsia-500 via-purple-500 to-cyan-400 rounded-full transition-all duration-500 shadow-sm shadow-fuchsia-500/50"
             style={{ width: `${masteryPercent}%` }}
           />
         </div>
@@ -200,23 +200,31 @@ export const UpgradesList: React.FC = () => {
         <button
           onClick={buyAllAffordableUpgrades}
           disabled={affordableUpgrades.length === 0}
-          className={`w-full py-2 px-3 rounded-xl text-xs font-mono font-medium flex items-center justify-between transition-all border ${
+          className={`w-full py-2 px-3 rounded-xl text-xs font-mono font-medium flex items-center justify-between transition-all border cursor-pointer select-none active:scale-[0.99] relative overflow-hidden ${
             affordableUpgrades.length > 0
-              ? 'bg-gradient-to-r from-cyan-950/50 via-zinc-900 to-cyan-950/50 hover:from-cyan-900/60 hover:to-cyan-900/60 border-cyan-600/70 text-cyan-200 shadow-md hover:shadow-cyan-900/30 active:scale-[0.99]'
+              ? 'bg-gradient-to-r from-cyan-950/70 via-zinc-900 to-cyan-950/70 hover:from-cyan-900/70 hover:to-cyan-900/70 border-cyan-500/70 text-cyan-200 shadow-lg shadow-cyan-950/40'
               : 'bg-zinc-950/40 border-zinc-850/80 text-zinc-600 cursor-not-allowed'
           }`}
         >
+          {affordableUpgrades.length > 0 && (
+            <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
+          )}
+
           <div className="flex items-center gap-2">
-            <CheckCheck className="w-4 h-4 text-cyan-400 stroke-[2.2]" />
-            <span>Aprender Todos os Jutsus Viáveis</span>
+            <CheckCheck className={`w-4 h-4 ${affordableUpgrades.length > 0 ? 'text-cyan-400' : 'text-zinc-600'} stroke-[2.2]`} />
+            <span className="font-semibold">Aprender Jutsus Viáveis</span>
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-900/60 border border-cyan-600/60 text-cyan-300 font-semibold">
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+              affordableUpgrades.length > 0
+                ? 'bg-cyan-900/70 border-cyan-500/70 text-cyan-300'
+                : 'bg-zinc-900 border-zinc-800 text-zinc-600'
+            }`}>
               {affordableUpgrades.length}
             </span>
             {affordableUpgrades.length > 0 && (
-              <span className="text-[11px] text-zinc-300 font-semibold">
+              <span className="text-[11px] text-amber-300 font-bold">
                 ({formatBigNumber(totalAffordableCost)})
               </span>
             )}
@@ -232,12 +240,12 @@ export const UpgradesList: React.FC = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Buscar técnica por nome ou efeito..."
-          className="w-full pl-8 pr-7 py-1 text-xs bg-zinc-950/70 border border-zinc-800/80 rounded-lg text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-fuchsia-500/60 transition"
+          className="w-full pl-8 pr-7 py-1 text-xs bg-zinc-950/70 border border-zinc-800/80 rounded-lg text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-fuchsia-500/60 transition shadow-inner"
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery('')}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 p-0.5"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 p-0.5 cursor-pointer"
           >
             <X className="w-3 h-3" />
           </button>
@@ -245,8 +253,8 @@ export const UpgradesList: React.FC = () => {
       </div>
 
       {/* Seletor de Tiers V1 / V2 / V3 */}
-      <div className="flex items-center justify-between px-1 py-1 rounded-lg bg-zinc-950/50 border border-zinc-850/80 flex-shrink-0">
-        <span className="text-[10px] font-mono uppercase text-zinc-400 font-medium px-1">Patamar:</span>
+      <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-zinc-950/60 border border-zinc-850/80 flex-shrink-0 shadow-inner">
+        <span className="text-[10px] font-mono uppercase text-zinc-400 font-semibold tracking-wider">Patamar:</span>
         <div className="flex items-center gap-1">
           {(['all', 1, 2, 3] as const).map((tier) => {
             const isActive = activeTier === tier;
@@ -255,13 +263,13 @@ export const UpgradesList: React.FC = () => {
               <button
                 key={tier}
                 onClick={() => setActiveTier(tier)}
-                className={`px-2 py-0.5 rounded text-[10px] font-mono transition border ${
+                className={`px-2.5 py-0.5 rounded text-[10px] font-mono transition border cursor-pointer select-none ${
                   isActive
                     ? tier === 3
-                      ? 'bg-amber-950/80 text-amber-300 border-amber-500/70 font-bold shadow-sm shadow-amber-950/50'
+                      ? 'bg-amber-950/90 text-amber-300 border-amber-500/80 font-bold shadow-md shadow-amber-950/60'
                       : tier === 2
-                      ? 'bg-cyan-950/80 text-cyan-300 border-cyan-500/70 font-semibold shadow-sm shadow-cyan-950/50'
-                      : 'bg-zinc-800 text-zinc-100 border-zinc-650 font-semibold'
+                      ? 'bg-cyan-950/90 text-cyan-300 border-cyan-500/80 font-semibold shadow-md shadow-cyan-950/60'
+                      : 'bg-zinc-800 text-zinc-100 border-zinc-650 font-semibold shadow-sm'
                     : 'bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 border-zinc-800/80 hover:bg-zinc-850'
                 }`}
               >

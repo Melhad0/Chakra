@@ -130,16 +130,19 @@ export const UpgradeCard: React.FC<UpgradeCardProps> = ({
           onBuy(upgrade.id);
         }
       }}
-      className={`relative backdrop-blur-md rounded-xl p-3 transition-all duration-200 flex flex-col justify-between border ${
+      className={`group/card relative backdrop-blur-xl rounded-xl p-3 transition-all duration-200 flex flex-col justify-between border overflow-hidden select-none ${
         purchased
           ? 'bg-zinc-950/40 border-zinc-850/60 opacity-60'
           : isLocked
           ? 'bg-zinc-950/70 border-zinc-850/90 opacity-75'
           : canAfford
-          ? `${cat.borderAffordable} border-zinc-800/90 shadow-sm hover:shadow-lg cursor-pointer active:scale-[0.99]`
-          : 'bg-zinc-950/60 border-zinc-850/80 opacity-80'
+          ? `${cat.borderAffordable} border-zinc-800/90 shadow-md hover:shadow-xl cursor-pointer active:scale-[0.99]`
+          : 'bg-zinc-950/60 border-zinc-850/80 opacity-80 hover:opacity-95'
       }`}
     >
+      {/* Linha de brilho superior no hover */}
+      <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-fuchsia-400/40 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-300" />
+
       <div>
         {/* Top Header: Badge de Categoria, Tier & Indicador de Status */}
         <div className="flex items-center justify-between mb-2 gap-1">
@@ -182,7 +185,7 @@ export const UpgradeCard: React.FC<UpgradeCardProps> = ({
         {/* Título, Ícone e Descrição */}
         <div className="flex items-start gap-2.5 mb-2">
           <div
-            className={`w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0 mt-0.5 ${
+            className={`w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0 mt-0.5 transition-transform group-hover/card:scale-105 ${
               purchased
                 ? 'bg-zinc-900 border-zinc-800 text-zinc-500'
                 : isLocked
@@ -240,11 +243,11 @@ export const UpgradeCard: React.FC<UpgradeCardProps> = ({
                 onBuy(upgrade.id);
               }
             }}
-            className={`px-3 py-1 rounded-lg text-[11px] font-mono font-medium transition-all flex items-center gap-1.5 border ${
+            className={`px-3 py-1 rounded-lg text-[11px] font-mono font-medium transition-all flex items-center gap-1.5 border cursor-pointer select-none active:scale-95 ${
               isLocked
                 ? 'bg-zinc-900/60 border-zinc-800 text-rose-400/60 cursor-not-allowed'
                 : canAfford
-                ? 'bg-gradient-to-r from-zinc-800 to-zinc-750 hover:from-cyan-950 hover:to-zinc-800 hover:border-cyan-500/60 hover:text-cyan-200 text-zinc-100 border-zinc-700 shadow-sm active:scale-95'
+                ? 'bg-gradient-to-r from-zinc-800 via-zinc-750 to-zinc-800 hover:from-fuchsia-950 hover:to-zinc-800 hover:border-fuchsia-500/60 hover:text-fuchsia-200 text-zinc-100 border-zinc-700 shadow-sm'
                 : 'bg-zinc-900/60 border-zinc-850 text-zinc-600 cursor-not-allowed'
             }`}
           >

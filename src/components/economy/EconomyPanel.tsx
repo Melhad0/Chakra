@@ -24,6 +24,13 @@ import {
   TrendingUp,
   Filter,
   X,
+  Store,
+  Coins,
+  Shield,
+  Zap,
+  Flame,
+  Orbit,
+  Crown,
 } from 'lucide-react';
 
 const TIER_CONFIG: Record<
@@ -35,47 +42,59 @@ const TIER_CONFIG: Record<
     borderMuted: string;
     avatarBg: string;
     pillActive: string;
+    icon: React.ComponentType<{ className?: string }>;
+    accentColor: string;
   }
 > = {
   INICIANTE: {
     label: 'Iniciante',
-    badgeStyle: 'text-emerald-400 bg-emerald-950/40 border-emerald-800/60',
-    borderAffordable: 'hover:border-emerald-500/50 bg-gradient-to-br from-emerald-950/15 via-zinc-900/60 to-zinc-900/40',
-    borderMuted: 'border-zinc-850/60',
-    avatarBg: 'bg-emerald-950/40 border-emerald-800/50 text-emerald-300',
-    pillActive: 'bg-emerald-950/60 text-emerald-300 border-emerald-700/60',
+    badgeStyle: 'text-emerald-400 bg-emerald-950/50 border-emerald-700/60 shadow-sm shadow-emerald-950/40',
+    borderAffordable: 'hover:border-emerald-500/60 bg-gradient-to-br from-emerald-950/20 via-zinc-900/80 to-zinc-950/70 hover:shadow-lg hover:shadow-emerald-950/30',
+    borderMuted: 'border-zinc-850/80 bg-zinc-950/60',
+    avatarBg: 'bg-emerald-950/60 border-emerald-650 text-emerald-300 shadow-inner',
+    pillActive: 'bg-emerald-950/80 text-emerald-300 border-emerald-550 shadow-sm shadow-emerald-950/60',
+    icon: Shield,
+    accentColor: '#10b981',
   },
   ELITE: {
     label: 'Elite',
-    badgeStyle: 'text-cyan-400 bg-cyan-950/40 border-cyan-800/60',
-    borderAffordable: 'hover:border-cyan-500/50 bg-gradient-to-br from-cyan-950/15 via-zinc-900/60 to-zinc-900/40',
-    borderMuted: 'border-zinc-850/60',
-    avatarBg: 'bg-cyan-950/40 border-cyan-800/50 text-cyan-300',
-    pillActive: 'bg-cyan-950/60 text-cyan-300 border-cyan-700/60',
+    badgeStyle: 'text-cyan-400 bg-cyan-950/50 border-cyan-700/60 shadow-sm shadow-cyan-950/40',
+    borderAffordable: 'hover:border-cyan-500/60 bg-gradient-to-br from-cyan-950/20 via-zinc-900/80 to-zinc-950/70 hover:shadow-lg hover:shadow-cyan-950/30',
+    borderMuted: 'border-zinc-850/80 bg-zinc-950/60',
+    avatarBg: 'bg-cyan-950/60 border-cyan-650 text-cyan-300 shadow-inner',
+    pillActive: 'bg-cyan-950/80 text-cyan-300 border-cyan-550 shadow-sm shadow-cyan-950/60',
+    icon: Zap,
+    accentColor: '#06b6d4',
   },
   LENDARIO: {
     label: 'Lendário',
-    badgeStyle: 'text-amber-400 bg-amber-950/40 border-amber-800/60',
-    borderAffordable: 'hover:border-amber-500/50 bg-gradient-to-br from-amber-950/15 via-zinc-900/60 to-zinc-900/40',
-    borderMuted: 'border-zinc-850/60',
-    avatarBg: 'bg-amber-950/40 border-amber-800/50 text-amber-300',
-    pillActive: 'bg-amber-950/60 text-amber-300 border-amber-700/60',
+    badgeStyle: 'text-amber-400 bg-amber-950/50 border-amber-700/60 shadow-sm shadow-amber-950/40',
+    borderAffordable: 'hover:border-amber-500/60 bg-gradient-to-br from-amber-950/20 via-zinc-900/80 to-zinc-950/70 hover:shadow-lg hover:shadow-amber-950/30',
+    borderMuted: 'border-zinc-850/80 bg-zinc-950/60',
+    avatarBg: 'bg-amber-950/60 border-amber-650 text-amber-300 shadow-inner',
+    pillActive: 'bg-amber-950/80 text-amber-300 border-amber-550 shadow-sm shadow-amber-950/60',
+    icon: Flame,
+    accentColor: '#f59e0b',
   },
   COSMICO: {
     label: 'Cósmico',
-    badgeStyle: 'text-purple-400 bg-purple-950/40 border-purple-800/60',
-    borderAffordable: 'hover:border-purple-500/50 bg-gradient-to-br from-purple-950/15 via-zinc-900/60 to-zinc-900/40',
-    borderMuted: 'border-zinc-850/60',
-    avatarBg: 'bg-purple-950/40 border-purple-800/50 text-purple-300',
-    pillActive: 'bg-purple-950/60 text-purple-300 border-purple-700/60',
+    badgeStyle: 'text-purple-400 bg-purple-950/50 border-purple-700/60 shadow-sm shadow-purple-950/40',
+    borderAffordable: 'hover:border-purple-500/60 bg-gradient-to-br from-purple-950/20 via-zinc-900/80 to-zinc-950/70 hover:shadow-lg hover:shadow-purple-950/30',
+    borderMuted: 'border-zinc-850/80 bg-zinc-950/60',
+    avatarBg: 'bg-purple-950/60 border-purple-650 text-purple-300 shadow-inner',
+    pillActive: 'bg-purple-950/80 text-purple-300 border-purple-550 shadow-sm shadow-purple-950/60',
+    icon: Orbit,
+    accentColor: '#a855f7',
   },
   DIVINO: {
     label: 'Divino',
-    badgeStyle: 'text-rose-400 bg-rose-950/40 border-rose-800/60',
-    borderAffordable: 'hover:border-rose-500/50 bg-gradient-to-br from-rose-950/15 via-zinc-900/60 to-zinc-900/40',
-    borderMuted: 'border-zinc-850/60',
-    avatarBg: 'bg-rose-950/40 border-rose-800/50 text-rose-300',
-    pillActive: 'bg-rose-950/60 text-rose-300 border-rose-700/60',
+    badgeStyle: 'text-rose-400 bg-rose-950/50 border-rose-700/60 shadow-sm shadow-rose-950/40 font-bold',
+    borderAffordable: 'hover:border-rose-500/60 bg-gradient-to-br from-rose-950/25 via-zinc-900/80 to-zinc-950/70 hover:shadow-lg hover:shadow-rose-950/30',
+    borderMuted: 'border-zinc-850/80 bg-zinc-950/60',
+    avatarBg: 'bg-rose-950/60 border-rose-650 text-rose-300 shadow-inner',
+    pillActive: 'bg-rose-950/80 text-rose-300 border-rose-550 shadow-sm shadow-rose-950/60',
+    icon: Crown,
+    accentColor: '#f43f5e',
   },
 };
 
@@ -207,62 +226,97 @@ export const EconomyPanel: React.FC = () => {
   }, [generatorKeys, generators, searchQuery, selectedTier, onlyAffordable, shopMode, shopQty, chakra, upgrades, claimedRankRewards]);
 
   return (
-    <aside className="relative h-full bg-gradient-to-b from-zinc-900/80 via-zinc-900/60 to-zinc-950/90 backdrop-blur-xl border border-zinc-800/90 hover:border-cyan-500/30 transition-all duration-300 rounded-2xl p-3.5 flex flex-col overflow-hidden shadow-2xl shadow-black/50 group/panel">
+    <aside className="relative h-full bg-gradient-to-b from-zinc-900/90 via-zinc-925/70 to-zinc-950/95 backdrop-blur-2xl border border-zinc-800/90 hover:border-cyan-500/40 transition-all duration-300 rounded-2xl p-3.5 flex flex-col overflow-hidden shadow-2xl shadow-black/60 group/panel">
       {/* Luz ambiente de fundo (Glow estético Dark Glassmorphic) */}
-      <div className="absolute -top-24 -right-24 w-56 h-56 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -left-24 w-56 h-56 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-20 -right-20 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-fuchsia-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Header Superior: Alternância de Módulo (Tropas vs Técnicas) e Métricas em Tempo Real */}
+      {/* Linha decorativa de neon sutil no topo do card */}
+      <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" />
+
+      {/* Header Superior: Identidade da Loja Shinobi e Alternância de Abas */}
       <div className="pb-3 border-b border-zinc-800/80 flex-shrink-0 relative z-10 space-y-2.5">
         <div className="flex items-center justify-between gap-2">
-          {/* Seletor de Painel: Tropas / Técnicas */}
-          <div className="flex items-center gap-1 bg-zinc-950/80 p-1 rounded-xl border border-zinc-800/80 shadow-inner">
-            <button
-              onClick={() => setPanelView('generators')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                panelView === 'generators'
-                  ? 'bg-zinc-800 text-cyan-300 shadow-sm border border-zinc-700/80'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/40'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5 text-cyan-400 stroke-[2]" />
-              <span>Tropas</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-900 border border-zinc-700/60 text-zinc-300 font-mono">
-                {generatorKeys.length}
+          {/* Logo & Título da Loja */}
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500/20 via-zinc-900 to-amber-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-300 shadow-md shadow-cyan-950/40 flex-shrink-0">
+              <Store className="w-4 h-4 stroke-[2]" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <h2 className="text-xs font-bold text-zinc-100 tracking-wider uppercase truncate">
+                  Loja Shinobi
+                </h2>
+                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 font-semibold tracking-wider">
+                  MERCADO
+                </span>
+              </div>
+              <span className="text-[10px] text-zinc-400 font-mono block truncate">
+                Recrutamento & Jutsus
               </span>
-            </button>
-
-            <button
-              onClick={() => setPanelView('upgrades')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                panelView === 'upgrades'
-                  ? 'bg-zinc-800 text-fuchsia-300 shadow-sm border border-zinc-700/80'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/40'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-fuchsia-400 stroke-[2]" />
-              <span>Técnicas</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-900 border border-zinc-700/60 text-zinc-300 font-mono">
-                {masteredUpgradesCount}/{TECHNIQUE_UPGRADES.length}
-              </span>
-            </button>
+            </div>
           </div>
 
           {/* Botão de Recolher Sidebar */}
+          <button
+            onClick={toggleLeftSidebar}
+            title="Recolher Painel de Tropas (Sidebar Toggle)"
+            className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/80 border border-zinc-800/80 hover:border-zinc-700/80 transition cursor-pointer active:scale-95 flex-shrink-0"
+          >
+            <PanelLeftClose className="w-4 h-4 stroke-[1.75]" />
+          </button>
+        </div>
+
+        {/* Chip de Chakra em Mão (Saldo Dinâmico do Ninja na Loja) */}
+        <div className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-950/40 via-zinc-950/60 to-zinc-950/60 border border-amber-800/50 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={toggleLeftSidebar}
-              title="Recolher Painel de Tropas (Sidebar Toggle)"
-              className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/80 border border-zinc-800/80 hover:border-zinc-700/80 transition cursor-pointer active:scale-95"
-            >
-              <PanelLeftClose className="w-4 h-4 stroke-[1.75]" />
-            </button>
+            <Coins className="w-3.5 h-3.5 text-amber-400 animate-pulse stroke-[2.2]" />
+            <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">
+              Chakra Disponível
+            </span>
           </div>
+          <span className="text-xs font-mono font-bold text-amber-300 tracking-tight">
+            {formatBigNumber(chakra)}
+          </span>
+        </div>
+
+        {/* Seletor de Painel: Tropas / Técnicas */}
+        <div className="grid grid-cols-2 gap-1 bg-zinc-950/90 p-1 rounded-xl border border-zinc-800/80 shadow-inner">
+          <button
+            onClick={() => setPanelView('generators')}
+            className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              panelView === 'generators'
+                ? 'bg-gradient-to-r from-zinc-800 to-zinc-750 text-cyan-300 shadow-md border border-cyan-500/40 font-semibold'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/40'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5 text-cyan-400 stroke-[2]" />
+            <span>Tropas</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-900 border border-zinc-750 text-zinc-300 font-mono">
+              {generatorKeys.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setPanelView('upgrades')}
+            className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              panelView === 'upgrades'
+                ? 'bg-gradient-to-r from-zinc-800 to-zinc-750 text-fuchsia-300 shadow-md border border-fuchsia-500/40 font-semibold'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/40'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-fuchsia-400 stroke-[2]" />
+            <span>Técnicas</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-zinc-900 border border-zinc-750 text-zinc-300 font-mono">
+              {masteredUpgradesCount}/{TECHNIQUE_UPGRADES.length}
+            </span>
+          </button>
         </div>
 
         {/* Dashboard de Métricas Rápidas ao Vivo */}
         <div className="grid grid-cols-2 gap-2 pt-0.5">
-          <div className="px-2.5 py-1.5 rounded-xl bg-zinc-950/60 border border-zinc-850/80 flex items-center justify-between">
+          <div className="px-2.5 py-1.5 rounded-xl bg-zinc-950/60 border border-zinc-850/80 flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-1.5">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -275,7 +329,7 @@ export const EconomyPanel: React.FC = () => {
             </span>
           </div>
 
-          <div className="px-2.5 py-1.5 rounded-xl bg-zinc-950/60 border border-zinc-850/80 flex items-center justify-between">
+          <div className="px-2.5 py-1.5 rounded-xl bg-zinc-950/60 border border-zinc-850/80 flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-1.5">
               <Users className="w-3 h-3 text-cyan-400" />
               <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Recrutas</span>
@@ -288,7 +342,7 @@ export const EconomyPanel: React.FC = () => {
 
         {/* Controles de Lote e Filtros Dinâmicos (Ativos no painel de Tropas) */}
         {panelView === 'generators' && (
-          <div className="space-y-2 pt-1">
+          <div className="space-y-2 pt-0.5">
             <QuantitySelector
               mode={shopMode}
               qty={shopQty}
@@ -305,7 +359,7 @@ export const EconomyPanel: React.FC = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar tropa, clã ou lore..."
-                  className="w-full pl-8 pr-7 py-1 text-xs bg-zinc-950/70 border border-zinc-800/80 rounded-lg text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-cyan-500/60 transition"
+                  className="w-full pl-8 pr-7 py-1 text-xs bg-zinc-950/70 border border-zinc-800/80 rounded-lg text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-cyan-500/60 transition shadow-inner"
                 />
                 {searchQuery && (
                   <button
@@ -320,10 +374,10 @@ export const EconomyPanel: React.FC = () => {
               <button
                 onClick={() => setOnlyAffordable(!onlyAffordable)}
                 title={onlyAffordable ? 'Mostrando apenas tropas viáveis' : 'Mostrar todas as tropas'}
-                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition border ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium transition border cursor-pointer ${
                   onlyAffordable
-                    ? 'bg-emerald-950/50 text-emerald-300 border-emerald-700/60 shadow-sm'
-                    : 'bg-zinc-950/50 text-zinc-400 hover:text-zinc-200 border-zinc-800/80'
+                    ? 'bg-emerald-950/60 text-emerald-300 border-emerald-600/70 shadow-sm shadow-emerald-950/50'
+                    : 'bg-zinc-950/50 text-zinc-400 hover:text-zinc-200 border-zinc-800/80 hover:bg-zinc-900'
                 }`}
               >
                 <Filter className="w-3 h-3" />
@@ -331,13 +385,13 @@ export const EconomyPanel: React.FC = () => {
               </button>
             </div>
 
-            {/* Seletor de Tiers / Categorias */}
+            {/* Seletor de Tiers / Categorias com Ícones */}
             <div className="flex items-center gap-1 overflow-x-auto pb-0.5 custom-scrollbar">
               <button
                 onClick={() => setSelectedTier('all')}
-                className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition border whitespace-nowrap ${
+                className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition border whitespace-nowrap cursor-pointer ${
                   selectedTier === 'all'
-                    ? 'bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm'
+                    ? 'bg-zinc-800 text-zinc-100 border-zinc-650 shadow-sm'
                     : 'bg-zinc-950/40 text-zinc-400 hover:text-zinc-200 border-zinc-850'
                 }`}
               >
@@ -345,19 +399,22 @@ export const EconomyPanel: React.FC = () => {
               </button>
               {(Object.keys(TIER_CONFIG) as TroopTierCategory[]).map((tierKey) => {
                 const conf = TIER_CONFIG[tierKey];
+                const TierIcon = conf.icon;
                 const isActive = selectedTier === tierKey;
                 const count = generatorKeys.filter((k) => generators[k]?.tierCategory === tierKey).length;
                 return (
                   <button
                     key={tierKey}
                     onClick={() => setSelectedTier(tierKey)}
-                    className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition border whitespace-nowrap ${
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium transition border whitespace-nowrap cursor-pointer ${
                       isActive
                         ? conf.pillActive
-                        : 'bg-zinc-950/40 text-zinc-400 hover:text-zinc-200 border-zinc-850'
+                        : 'bg-zinc-950/40 text-zinc-400 hover:text-zinc-200 border-zinc-850 hover:bg-zinc-900'
                     }`}
                   >
-                    {conf.label} ({count})
+                    <TierIcon className="w-2.5 h-2.5" />
+                    <span>{conf.label}</span>
+                    <span className="font-mono opacity-80">({count})</span>
                   </button>
                 );
               })}
@@ -382,7 +439,7 @@ export const EconomyPanel: React.FC = () => {
                     setSelectedTier('all');
                     setOnlyAffordable(false);
                   }}
-                  className="mt-2 text-[11px] text-cyan-400 hover:underline"
+                  className="mt-2 text-[11px] text-cyan-400 hover:underline cursor-pointer"
                 >
                   Limpar todos os filtros
                 </button>
@@ -443,6 +500,7 @@ export const EconomyPanel: React.FC = () => {
                 const tierConf = gen.tierCategory
                   ? TIER_CONFIG[gen.tierCategory]
                   : TIER_CONFIG.INICIANTE;
+                const TierIcon = tierConf.icon;
 
                 return (
                   <div
@@ -450,10 +508,13 @@ export const EconomyPanel: React.FC = () => {
                     onClick={() => buyGenerator(key)}
                     className={`group/card p-3 rounded-xl border transition-all duration-200 flex flex-col gap-2 cursor-pointer select-none relative overflow-hidden ${
                       canAfford
-                        ? `${tierConf.borderAffordable} border-zinc-800/90 text-zinc-100 hover:shadow-lg hover:shadow-cyan-950/20 active:scale-[0.99]`
-                        : `bg-zinc-950/50 ${tierConf.borderMuted} opacity-70 text-zinc-400 hover:opacity-85`
+                        ? `${tierConf.borderAffordable} border-zinc-800/90 text-zinc-100 hover:shadow-xl active:scale-[0.99]`
+                        : `${tierConf.borderMuted} opacity-75 text-zinc-400 hover:opacity-90`
                     }`}
                   >
+                    {/* Linha de brilho superior no hover */}
+                    <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-300" />
+
                     {/* Header do Card da Tropa */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2.5 min-w-0">
@@ -472,8 +533,9 @@ export const EconomyPanel: React.FC = () => {
 
                             {/* Badge do Tier */}
                             <span
-                              className={`text-[9px] uppercase font-mono tracking-wider px-1.5 py-0.2 rounded border font-medium ${tierConf.badgeStyle}`}
+                              className={`text-[9px] uppercase font-mono tracking-wider px-1.5 py-0.2 rounded border flex items-center gap-1 ${tierConf.badgeStyle}`}
                             >
+                              <TierIcon className="w-2.5 h-2.5" />
                               {tierConf.label}
                             </span>
 
@@ -490,7 +552,7 @@ export const EconomyPanel: React.FC = () => {
 
                           {/* Lore poético do Shinobi */}
                           {gen.lore && (
-                            <p className="text-[10px] text-zinc-400/90 italic truncate mt-0.5 max-w-[260px]">
+                            <p className="text-[10px] text-zinc-400/90 italic truncate mt-0.5 max-w-[240px]">
                               {gen.lore}
                             </p>
                           )}
@@ -499,7 +561,7 @@ export const EconomyPanel: React.FC = () => {
 
                       {/* Contador de Nível */}
                       <div className="text-right flex-shrink-0 flex flex-col items-end">
-                        <span className="text-xs font-mono font-semibold text-zinc-200 px-2 py-0.5 rounded-lg bg-zinc-950/80 border border-zinc-750 shadow-sm">
+                        <span className="text-xs font-mono font-bold text-zinc-200 px-2 py-0.5 rounded-lg bg-zinc-950/80 border border-zinc-700/80 shadow-sm">
                           Nv. {gen.level}
                         </span>
                         {sharePercent > 0 && (
@@ -512,8 +574,8 @@ export const EconomyPanel: React.FC = () => {
                     </div>
 
                     {/* Linha de Produção & Custo Dinâmico */}
-                    <div className="flex items-center justify-between pt-1 border-t border-zinc-800/40 text-[11px] font-mono">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between pt-1 border-t border-zinc-800/50 text-[11px] font-mono">
+                      <div className="flex items-center gap-1.5">
                         <span className="text-emerald-400 font-medium">
                           +{formatBigNumber(gen.baseCPS.mul(milestone.cpsMultiplier))} CPS
                         </span>
@@ -559,7 +621,7 @@ export const EconomyPanel: React.FC = () => {
                         </div>
                         <div className="w-full h-1 bg-zinc-950/80 rounded-full overflow-hidden border border-zinc-850/60">
                           <div
-                            className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 rounded-full transition-all duration-300"
+                            className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 rounded-full transition-all duration-300 shadow-sm shadow-cyan-500/50"
                             style={{ width: `${milestoneProgress}%` }}
                           />
                         </div>
@@ -575,3 +637,4 @@ export const EconomyPanel: React.FC = () => {
     </aside>
   );
 };
+
