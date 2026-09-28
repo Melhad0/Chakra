@@ -56,6 +56,9 @@ import {
 import { normalizeItemRarity, RARITY_ORDER } from '../types/rarity';
 import { ItemDropToast } from '../types/notifications';
 import { rollBossLoot } from '../constants/equipmentCatalog';
+import { GachaDropResult } from '../types/gacha';
+import { rollGachaSingle } from '../constants/gachaPool';
+import { FORGE_RECIPES_CATALOG } from '../constants/forgeCatalog';
 import { audio } from '../engine/audio';
 import { apiUrl } from '../config/api';
 
@@ -181,7 +184,16 @@ export interface GameStoreState {
   forgeFragments: number;
   startMission: (missionId: string, choiceId: string) => boolean;
   resolveMissionChoice: () => MissionOutcome | null;
+  resolveMissionWithMinigameBonus: (bonusSuccessRate: number, isCritical: boolean) => MissionOutcome | null;
+  rushMissionCooldownWithTicket: () => boolean;
+  speedUpRunningMissionWithTicket: () => boolean;
   clearMissionOutcome: () => void;
+
+  // Pavilhão Gacha e Forja Lendária
+  performGachaPull: (count: 1 | 10) => GachaDropResult[] | null;
+  craftForgeWeapon: (recipeId: string) => boolean;
+  refineEquippedItem: (slotKey: GearSlotKey) => boolean;
+  dismantleBagItem: (slotIndex: number) => number;
 
   // Módulo Completo de Equipamentos, Inventário & Afinidade Elemental
   inventory: PlayerInventoryState;
@@ -1348,6 +1360,294 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         lastOutcome: null,
       },
     }));
+  },
+
+  rushMissionCooldownWithTicket: () => {
+    const s = get();
+    if (s.gachaTickets < 1) return false;
+    const now = Date.now();
+    if (!s.activeMission.cooldownExpiresAt || s.activeMission.cooldownExpiresAt <= now) return false;
+
+    set((state) => ({
+      gachaTickets: state.gachaTickets - 1,
+      activeMission: {
+        ...state.activeMission,
+        cooldownExpiresAt: null,
+      },
+    }));
+    audio.playLevelUp();
+    return true;
+  },
+
+  speedUpRunningMissionWithTicket: () => {
+    const s = get();
+    if (s.gachaTickets < 1) return false;
+    const now = Date.now();
+    if (!s.activeMission.activeMissionId || !s.activeMission.resolvesAt || s.activeMission.resolvesAt <= now) return false;
+
+    set((state) => ({
+      gachaTickets: state.gachaTickets - 1,
+      activeMission: {
+        ...state.activeMission,
+        resolvesAt: now,
+      },
+    }));
+    audio.playLevelUp();
+    return true;
+  },
+
+  resolveMissionWithMinigameBonus: (bonusSuccessRate: number, isCritical: boolean) => {
+    const s = get();
+    if (!s.activeMission.activeMissionId || !s.activeMission.selectedChoiceId) return null;
+
+    const mission = SHINOBI_MISSIONS_CATALOG.find((m) => m.id === s.activeMission.activeMissionId);
+    if (!mission) return null;
+
+    const choice = mission.choices.find((c) => c.id === s.activeMission.selectedChoiceId);
+    if (!choice) return null;
+
+    const roll = Math.random();
+    const effectiveProb = Math.min(1.0, choice.successProbability + bonusSuccessRate);
+    const isSuccess = isCritical || roll <= effectiveProb;
+    let outcome = isSuccess ? { ...choice.successOutcome } : { ...choice.failureOutcome };
+
+    let extraChakra = D(0);
+    let extraAncestral = 0;
+    let extraTickets = 0;
+    let extraFragments = 0;
+    let newPermMult = s.missionPermanentCpsMult;
+    let newBuffTimer = s.missionBuffTimer;
+    let newBuffMult = s.missionBuffMult;
+    let newExhaust = s.exhaustionTimer;
+    let newClickExhaust = s.clickExhaustionTimer;
+    let muralCd: number | null = s.activeMission.cooldownExpiresAt;
+    let chakraMultiplier = 1;
+
+    if (isSuccess) {
+      audio.playMissionSuccess();
+      const dropMult = isCritical ? 2 : 1;
+
+      if (isCritical) {
+        outcome = {
+          ...outcome,
+          narrativeResult: `⚡ [SUCESSO CRÍTICO SHINOBI]: ${outcome.narrativeResult} (Espólios dobrados pelo desempenho perfeito!)`,
+        };
+      }
+
+      if (outcome.rewardChakraSeconds) {
+        const cpsBase = s.stableRollingCPS && s.stableRollingCPS.gt(0) ? s.stableRollingCPS : D(10);
+        extraChakra = extraChakra.add(cpsBase.mul(outcome.rewardChakraSeconds * dropMult));
+      }
+      if (outcome.rewardChakraFixed) {
+        extraChakra = extraChakra.add(outcome.rewardChakraFixed.mul(dropMult));
+      }
+      if (outcome.rewardAncestral) {
+        extraAncestral += outcome.rewardAncestral * dropMult;
+      }
+      if (outcome.rewardGachaTickets) {
+        extraTickets += outcome.rewardGachaTickets * dropMult;
+      }
+      if (outcome.rewardForgeFragments) {
+        extraFragments += outcome.rewardForgeFragments * dropMult;
+      }
+      if (outcome.permanentCpsMultiplier) {
+        newPermMult *= outcome.permanentCpsMultiplier;
+      }
+      if (outcome.buffDurationSeconds) {
+        newBuffTimer = Math.max(newBuffTimer, outcome.buffDurationSeconds);
+        newBuffMult = outcome.buffCpsMultiplier || 2.0;
+      }
+    } else {
+      audio.playMissionFailure();
+      if (outcome.penaltyExhaustionSeconds) {
+        newExhaust = Math.max(newExhaust, outcome.penaltyExhaustionSeconds);
+      }
+      if (outcome.penaltyClickExhaustionSeconds) {
+        newClickExhaust = Math.max(newClickExhaust, outcome.penaltyClickExhaustionSeconds);
+      }
+      if (outcome.penaltyChakraLossPercent) {
+        chakraMultiplier = Math.max(0, 1 - outcome.penaltyChakraLossPercent / 100);
+      }
+      if (outcome.penaltyCooldownSeconds) {
+        muralCd = Date.now() + outcome.penaltyCooldownSeconds * 1000;
+      }
+    }
+
+    set((state) => ({
+      chakra: state.chakra.mul(chakraMultiplier).add(extraChakra),
+      chakraAncestral: state.chakraAncestral.add(extraAncestral),
+      gachaTickets: state.gachaTickets + extraTickets,
+      forgeFragments: state.forgeFragments + extraFragments,
+      missionPermanentCpsMult: newPermMult,
+      missionBuffTimer: newBuffTimer,
+      missionBuffMult: newBuffMult,
+      exhaustionTimer: newExhaust,
+      clickExhaustionTimer: newClickExhaust,
+      stats: {
+        ...state.stats,
+        totalChakraEarned: state.stats.totalChakraEarned.add(extraChakra),
+      },
+      activeMission: {
+        ...state.activeMission,
+        activeMissionId: null,
+        selectedChoiceId: null,
+        startedAt: null,
+        resolvesAt: null,
+        lastOutcome: outcome,
+        cooldownExpiresAt: muralCd,
+      },
+    }));
+
+    return outcome;
+  },
+
+  performGachaPull: (count: 1 | 10) => {
+    const s = get();
+    if (s.gachaTickets < count) return null;
+
+    const drops: GachaDropResult[] = [];
+    const newItems: EquipmentItem[] = [];
+    let extraFrags = 0;
+    let extraAncestral = 0;
+    let extraCpsSeconds = 0;
+
+    for (let i = 0; i < count; i++) {
+      const isGuaranteed = count === 10 && i === count - 1;
+      const drop = rollGachaSingle(isGuaranteed);
+      drops.push(drop);
+
+      if (drop.type === 'EQUIPMENT' && drop.equipment) {
+        newItems.push(drop.equipment);
+      } else if (drop.type === 'FORGE_FRAGMENTS' && drop.amount) {
+        extraFrags += drop.amount;
+      } else if (drop.type === 'ANCESTRAL_CHAKRA' && drop.amount) {
+        extraAncestral += drop.amount;
+      } else if (drop.type === 'CPS_BURST' && drop.cpsSeconds) {
+        extraCpsSeconds += drop.cpsSeconds;
+      }
+    }
+
+    const cpsBase = s.stableRollingCPS && s.stableRollingCPS.gt(0) ? s.stableRollingCPS : D(10);
+    const chakraGain = cpsBase.mul(extraCpsSeconds);
+
+    set((state) => ({
+      gachaTickets: state.gachaTickets - count,
+      forgeFragments: state.forgeFragments + extraFrags,
+      chakraAncestral: state.chakraAncestral.add(extraAncestral),
+      chakra: state.chakra.add(chakraGain),
+      inventory: {
+        ...state.inventory,
+        inventoryBag: [...state.inventory.inventoryBag, ...newItems],
+      },
+    }));
+
+    audio.playLevelUp();
+    return drops;
+  },
+
+  craftForgeWeapon: (recipeId: string) => {
+    const s = get();
+    const recipe = FORGE_RECIPES_CATALOG.find((r) => r.id === recipeId);
+    if (!recipe) return false;
+    if (s.forgeFragments < recipe.costFragments) return false;
+
+    const craftedItem: EquipmentItem = {
+      ...recipe.resultItem,
+      id: `${recipe.resultItem.id}_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+    };
+
+    set((state) => ({
+      forgeFragments: state.forgeFragments - recipe.costFragments,
+      inventory: {
+        ...state.inventory,
+        inventoryBag: [...state.inventory.inventoryBag, craftedItem],
+      },
+    }));
+
+    audio.playLevelUp();
+    return true;
+  },
+
+  refineEquippedItem: (slotKey: GearSlotKey) => {
+    const s = get();
+    const currentGear = s.inventory.equippedGear || { ...DEFAULT_EQUIPPED_GEAR };
+    const item = currentGear[slotKey];
+    if (!item) return false;
+
+    const currentLevel = (item as any).refinementLevel || 0;
+    if (currentLevel >= 10) return false;
+
+    const cost = Math.min(600, Math.floor(15 * Math.pow(1.6, currentLevel)));
+    if (s.forgeFragments < cost) return false;
+
+    const refinedItem: EquipmentItem = {
+      ...item,
+      bonusCpsMult: item.bonusCpsMult.mul(1.1),
+      bonusClickMult: item.bonusClickMult.mul(1.1),
+      bonusCritChance: (item.bonusCritChance || 0) + 0.01,
+      name: currentLevel === 0 ? `${item.name} +1` : item.name.replace(/\+\d+$/, `+${currentLevel + 1}`),
+    };
+    (refinedItem as any).refinementLevel = currentLevel + 1;
+
+    const newEquippedGear: EquippedGearSlots = {
+      ...currentGear,
+      [slotKey]: refinedItem,
+    };
+
+    set((state) => ({
+      forgeFragments: state.forgeFragments - cost,
+      inventory: {
+        ...state.inventory,
+        equippedGear: newEquippedGear,
+        equippedArmor: newEquippedGear.CHESTPLATE,
+        equippedWeapon: newEquippedGear.WEAPON_MELEE,
+      },
+    }));
+
+    audio.playLevelUp();
+    return true;
+  },
+
+  dismantleBagItem: (slotIndex: number) => {
+    const s = get();
+    const item = s.inventory.inventoryBag[slotIndex];
+    if (!item) return 0;
+
+    let frags = 2;
+    switch (item.rarity) {
+      case 'COMMON':
+        frags = 2;
+        break;
+      case 'UNCOMMON':
+        frags = 5;
+        break;
+      case 'RARE':
+        frags = 12;
+        break;
+      case 'EPIC':
+        frags = 30;
+        break;
+      case 'LEGENDARY':
+        frags = 80;
+        break;
+      case 'MYTHIC':
+        frags = 250;
+        break;
+    }
+
+    const newBag = [...s.inventory.inventoryBag];
+    newBag.splice(slotIndex, 1);
+
+    set((state) => ({
+      forgeFragments: state.forgeFragments + frags,
+      inventory: {
+        ...state.inventory,
+        inventoryBag: newBag,
+      },
+    }));
+
+    audio.playClick();
+    return frags;
   },
 
   claimOnlinePresenceReward: (tierId: string) => {

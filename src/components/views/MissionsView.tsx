@@ -5,10 +5,13 @@ import { SHINOBI_MISSIONS_CATALOG } from '../../constants/missionsCatalog';
 import { ShinobiMission, MissionRank } from '../../types/missions';
 import { SHINOBI_RANKS, getCurrentRank } from '../../constants/rankings';
 import { ViewHeader } from './ViewHeader';
+import { MinigameHandSeals, MinigameResult } from '../missions/MinigameHandSeals';
+import { MinigameChakraPulse } from '../missions/MinigameChakraPulse';
+import { GachaTemplePanel } from '../missions/GachaTemplePanel';
+import { LegendaryForgePanel } from '../missions/LegendaryForgePanel';
 import {
   Scroll,
   ShieldAlert,
-  Swords,
   Dice5,
   CheckCircle2,
   Clock,
@@ -18,6 +21,10 @@ import {
   ArrowRight,
   TrendingUp,
   Percent,
+  Zap,
+  Hammer,
+  FastForward,
+  Activity,
 } from 'lucide-react';
 
 export const MissionsView: React.FC = () => {
@@ -26,11 +33,23 @@ export const MissionsView: React.FC = () => {
   const activeMission = useGameStore((s) => s.activeMission);
   const startMission = useGameStore((s) => s.startMission);
   const resolveMissionChoice = useGameStore((s) => s.resolveMissionChoice);
+  const resolveMissionWithMinigameBonus = useGameStore((s) => s.resolveMissionWithMinigameBonus);
+  const rushMissionCooldownWithTicket = useGameStore((s) => s.rushMissionCooldownWithTicket);
+  const speedUpRunningMissionWithTicket = useGameStore((s) => s.speedUpRunningMissionWithTicket);
   const clearMissionOutcome = useGameStore((s) => s.clearMissionOutcome);
   const gachaTickets = useGameStore((s) => s.gachaTickets);
   const forgeFragments = useGameStore((s) => s.forgeFragments);
   const missionPermanentCpsMult = useGameStore((s) => s.missionPermanentCpsMult);
   const passedExams = useGameStore((s) => s.passedExams);
+
+  // Aba Ativa Principal
+  const [activeMainTab, setActiveMainTab] = useState<'MISSIONS' | 'MINIGAMES' | 'GACHA' | 'FORGE'>('MISSIONS');
+
+  // Tipo de Minigame no Dojo de Treino
+  const [selectedDojoMinigame, setSelectedDojoMinigame] = useState<'SEALS' | 'PULSE'>('SEALS');
+
+  // Modal de Minigame para a Missão em Andamento
+  const [missionMinigameModal, setMissionMinigameModal] = useState<'SEALS' | 'PULSE' | null>(null);
 
   // Patente do Jogador
   const currentRank = useMemo(() => {
@@ -133,12 +152,18 @@ export const MissionsView: React.FC = () => {
     }
   };
 
+  // Concluir Minigame vinculado à missão ativa
+  const handleMissionMinigameComplete = (result: MinigameResult) => {
+    setMissionMinigameModal(null);
+    resolveMissionWithMinigameBonus(result.bonusSuccessRate, result.isCritical);
+  };
+
   return (
     <div className="w-full h-full bg-zinc-950 text-zinc-100 flex flex-col overflow-hidden select-none">
       {/* Cabeçalho Universal com Atalho ESC */}
       <ViewHeader
         title="Quadro Oficial de Missões Shinobi"
-        subtitle="Escala Canônica de Prestígio • Ranks E a SS • Tomada de Decisão e Risco/Recompensa"
+        subtitle="Escala Canônica • Minigames Interativos • Templo Gacha & Forja Lendária"
         badgeText={
           isMuralCooldownActive
             ? `Cooldown: ${formatSeconds(Math.ceil(muralCooldownRemainingMs / 1000))}`
@@ -159,6 +184,57 @@ export const MissionsView: React.FC = () => {
         }
       />
 
+      {/* Barra de Navegação Superior entre Abas */}
+      <div className="flex items-center gap-2 border-b border-zinc-800/80 px-4 lg:px-6 py-2.5 bg-zinc-900/60 overflow-x-auto custom-scrollbar flex-shrink-0">
+        <button
+          onClick={() => setActiveMainTab('MISSIONS')}
+          className={`px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeMainTab === 'MISSIONS'
+              ? 'bg-zinc-800 border border-zinc-600 text-zinc-100 shadow-sm'
+              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/50'
+          }`}
+        >
+          <Scroll className="w-3.5 h-3.5 text-amber-400" />
+          <span>Mural de Missões</span>
+        </button>
+
+        <button
+          onClick={() => setActiveMainTab('MINIGAMES')}
+          className={`px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeMainTab === 'MINIGAMES'
+              ? 'bg-zinc-800 border border-zinc-600 text-zinc-100 shadow-sm'
+              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/50'
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+          <span>Dojo de Minigames</span>
+        </button>
+
+        <button
+          onClick={() => setActiveMainTab('GACHA')}
+          className={`px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeMainTab === 'GACHA'
+              ? 'bg-zinc-800 border border-zinc-600 text-zinc-100 shadow-sm'
+              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/50'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+          <span>Templo Gacha ({gachaTickets} Bilhetes)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveMainTab('FORGE')}
+          className={`px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeMainTab === 'FORGE'
+              ? 'bg-zinc-800 border border-zinc-600 text-zinc-100 shadow-sm'
+              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/50'
+          }`}
+        >
+          <Hammer className="w-3.5 h-3.5 text-purple-400" />
+          <span>A Forja Lendária ({forgeFragments} Frags)</span>
+        </button>
+      </div>
+
       {/* Conteúdo Principal */}
       <div className="flex-1 p-4 lg:p-6 overflow-y-auto custom-scrollbar flex flex-col gap-5">
         {/* BARRA SUPERIOR DE INVENTÁRIO TÁTICO E STATUS DO MURAL */}
@@ -177,7 +253,10 @@ export const MissionsView: React.FC = () => {
           </div>
 
           {/* Card 2: Fragmentos de Forja */}
-          <div className="p-3 bg-zinc-900/40 backdrop-blur-md border border-zinc-800/80 rounded-xl flex items-center justify-between">
+          <div
+            onClick={() => setActiveMainTab('FORGE')}
+            className="p-3 bg-zinc-900/40 hover:bg-zinc-900/70 backdrop-blur-md border border-zinc-800/80 hover:border-purple-500/50 rounded-xl flex items-center justify-between cursor-pointer transition"
+          >
             <div>
               <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 block">
                 Fragmentos de Forja
@@ -186,11 +265,14 @@ export const MissionsView: React.FC = () => {
                 {forgeFragments} Fragmentos
               </h4>
             </div>
-            <Swords className="w-4 h-4 text-purple-400 stroke-[1.75]" />
+            <Hammer className="w-4 h-4 text-purple-400 stroke-[1.75]" />
           </div>
 
-          {/* Card 3: Bilhetes de Forja Gacha */}
-          <div className="p-3 bg-zinc-900/40 backdrop-blur-md border border-zinc-800/80 rounded-xl flex items-center justify-between">
+          {/* Card 3: Bilhetes de Invocação Gacha */}
+          <div
+            onClick={() => setActiveMainTab('GACHA')}
+            className="p-3 bg-zinc-900/40 hover:bg-zinc-900/70 backdrop-blur-md border border-zinc-800/80 hover:border-amber-500/50 rounded-xl flex items-center justify-between cursor-pointer transition"
+          >
             <div>
               <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 block">
                 Bilhetes de Invocação
@@ -216,18 +298,24 @@ export const MissionsView: React.FC = () => {
           </div>
         </div>
 
-        {/* ALERTA DE COOLDOWN DO MURAL */}
+        {/* ALERTA DE COOLDOWN DO MURAL COM ATALHO DE BILHETE */}
         {isMuralCooldownActive && (
-          <div className="p-3.5 bg-amber-950/30 border border-amber-800/50 rounded-xl flex items-center justify-between gap-3 text-amber-300 text-xs font-mono">
+          <div className="p-3.5 bg-amber-950/30 border border-amber-800/50 rounded-xl flex items-center justify-between gap-3 text-amber-300 text-xs font-mono flex-wrap">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 animate-spin text-amber-400 flex-shrink-0" />
               <span>
-                <strong>Mural em Recuperação:</strong> A aldeia está restabelecendo as rotas de patrulha após ocorrências anteriores.
+                <strong>Mural em Recuperação:</strong> A aldeia está restabelecendo as patrulhas. (Tempo restante: {formatSeconds(Math.ceil(muralCooldownRemainingMs / 1000))})
               </span>
             </div>
-            <div className="font-bold text-amber-200 bg-amber-950/80 px-2.5 py-1 rounded-md border border-amber-700/60 whitespace-nowrap">
-              Tempo Restante: {formatSeconds(Math.ceil(muralCooldownRemainingMs / 1000))}
-            </div>
+
+            <button
+              disabled={gachaTickets < 1}
+              onClick={() => rushMissionCooldownWithTicket()}
+              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-40 disabled:cursor-not-allowed text-zinc-950 font-bold rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <Zap className="w-3.5 h-3.5" />
+              <span>Quebrar Cooldown (1 Bilhete)</span>
+            </button>
           </div>
         )}
 
@@ -249,20 +337,53 @@ export const MissionsView: React.FC = () => {
                 </div>
               </div>
 
-              {isMissionReadyToResolve ? (
+              {/* Botões de Ação para a Missão */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Desafiar Minigame para garantir Sucesso Crítico 2x */}
                 <button
-                  onClick={() => resolveMissionChoice()}
-                  className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono text-xs font-bold rounded-xl shadow-lg shadow-emerald-950/50 border border-emerald-400 animate-pulse transition cursor-pointer flex items-center gap-2"
+                  onClick={() => setMissionMinigameModal('SEALS')}
+                  className="px-3.5 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono text-xs font-bold rounded-xl shadow-md border border-cyan-400 transition cursor-pointer flex items-center gap-1.5"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  Revelar Desfecho da Missão
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>⚡ Desafiar Selos Ninja (Crítico 2x)</span>
                 </button>
-              ) : (
-                <div className="flex items-center gap-2 font-mono text-xs text-rose-300 bg-rose-950/60 px-3 py-1.5 rounded-lg border border-rose-800/60">
-                  <Clock className="w-3.5 h-3.5 animate-spin" />
-                  <span>Em Operação: {formatSeconds(missionRemainingSeconds)}</span>
-                </div>
-              )}
+
+                <button
+                  onClick={() => setMissionMinigameModal('PULSE')}
+                  className="px-3.5 py-1.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-zinc-950 font-mono text-xs font-bold rounded-xl shadow-md border border-amber-300 transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <Activity className="w-3.5 h-3.5" />
+                  <span>Sincronia de Pulso</span>
+                </button>
+
+                {/* Finalizar Imediatamente com 1 Bilhete */}
+                {!isMissionReadyToResolve && (
+                  <button
+                    disabled={gachaTickets < 1}
+                    onClick={() => speedUpRunningMissionWithTicket()}
+                    className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-amber-300 font-mono text-xs font-bold rounded-xl border border-zinc-700 transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <FastForward className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Acelerar (1 Bilhete)</span>
+                  </button>
+                )}
+
+                {/* Revelar Desfecho se já estiver pronto */}
+                {isMissionReadyToResolve ? (
+                  <button
+                    onClick={() => resolveMissionChoice()}
+                    className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono text-xs font-bold rounded-xl shadow-lg shadow-emerald-950/50 border border-emerald-400 animate-pulse transition cursor-pointer flex items-center gap-2"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Revelar Desfecho
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2 font-mono text-xs text-rose-300 bg-rose-950/60 px-3 py-1.5 rounded-lg border border-rose-800/60">
+                    <Clock className="w-3.5 h-3.5 animate-spin" />
+                    <span>Em Operação: {formatSeconds(missionRemainingSeconds)}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Barra de Progresso da Incursão */}
@@ -277,97 +398,173 @@ export const MissionsView: React.FC = () => {
           </div>
         )}
 
-        {/* FILTROS POR RANK (RANKS E A SS) */}
-        <div className="flex items-center justify-between gap-2 flex-wrap border-b border-zinc-800/80 pb-3">
-          <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar text-xs font-mono">
-            {['Todos', 'E', 'D', 'C', 'B', 'A', 'S', 'SS'].map((rank) => (
-              <button
-                key={rank}
-                onClick={() => setSelectedRankFilter(rank)}
-                className={`px-3 py-1.5 rounded-lg border transition ${
-                  selectedRankFilter === rank
-                    ? 'bg-zinc-800 border-zinc-600 text-zinc-100 font-bold shadow-sm'
-                    : 'bg-zinc-950/40 border-zinc-850 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'
-                }`}
-              >
-                {rank === 'Todos' ? 'Todos os Ranks' : `Rank ${rank}`}
-              </button>
-            ))}
-          </div>
+        {/* ================================================================= */}
+        {/* CONTEÚDO DA ABA: MURAL DE MISSÕES                                 */}
+        {/* ================================================================= */}
+        {activeMainTab === 'MISSIONS' && (
+          <div className="space-y-4">
+            {/* FILTROS POR RANK (RANKS E A SS) */}
+            <div className="flex items-center justify-between gap-2 flex-wrap border-b border-zinc-800/80 pb-3">
+              <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar text-xs font-mono">
+                {['Todos', 'E', 'D', 'C', 'B', 'A', 'S', 'SS'].map((rank) => (
+                  <button
+                    key={rank}
+                    onClick={() => setSelectedRankFilter(rank)}
+                    className={`px-3 py-1.5 rounded-lg border transition cursor-pointer ${
+                      selectedRankFilter === rank
+                        ? 'bg-zinc-800 border-zinc-600 text-zinc-100 font-bold shadow-sm'
+                        : 'bg-zinc-950/40 border-zinc-850 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'
+                    }`}
+                  >
+                    {rank === 'Todos' ? 'Todos os Ranks' : `Rank ${rank}`}
+                  </button>
+                ))}
+              </div>
 
-          <span className="text-xs font-mono text-zinc-500">
-            {filteredMissions.length} missões catalogadas
-          </span>
-        </div>
+              <span className="text-xs font-mono text-zinc-500">
+                {filteredMissions.length} missões catalogadas
+              </span>
+            </div>
 
-        {/* GRADE DE MISSÕES DO MURAL */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredMissions.map((mission) => {
-            const isRankLocked = playerRankIndex < mission.requiredRankTier;
-            const isThisRunning = activeMission.activeMissionId === mission.id;
-            const isAnyRunning = !!activeMission.activeMissionId;
+            {/* GRADE DE MISSÕES DO MURAL */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredMissions.map((mission) => {
+                const isRankLocked = playerRankIndex < mission.requiredRankTier;
+                const isThisRunning = activeMission.activeMissionId === mission.id;
+                const isAnyRunning = !!activeMission.activeMissionId;
 
-            return (
-              <div
-                key={mission.id}
-                className={`p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${
-                  isThisRunning
-                    ? 'bg-zinc-900/90 border-rose-500/70 shadow-lg'
-                    : isRankLocked
-                    ? 'bg-zinc-950/30 border-zinc-900 opacity-60'
-                    : 'bg-zinc-900/40 hover:bg-zinc-900/70 border-zinc-800/80 hover:border-zinc-700 shadow-sm'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`px-2.5 py-0.5 rounded text-[11px] border font-mono ${getRankBadgeClass(mission.rank)}`}>
-                      RANK {mission.rank}
-                    </span>
-                    <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-400">
-                      <Clock className="w-3 h-3 text-zinc-500" />
-                      <span>{mission.durationSeconds}s</span>
+                return (
+                  <div
+                    key={mission.id}
+                    className={`p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${
+                      isThisRunning
+                        ? 'bg-zinc-900/90 border-rose-500/70 shadow-lg'
+                        : isRankLocked
+                        ? 'bg-zinc-950/30 border-zinc-900 opacity-60'
+                        : 'bg-zinc-900/40 hover:bg-zinc-900/70 border-zinc-800/80 hover:border-zinc-700 shadow-sm'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`px-2.5 py-0.5 rounded text-[11px] border font-mono ${getRankBadgeClass(mission.rank)}`}>
+                          RANK {mission.rank}
+                        </span>
+                        <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-400">
+                          <Clock className="w-3 h-3 text-zinc-500" />
+                          <span>{mission.durationSeconds}s</span>
+                        </div>
+                      </div>
+
+                      <h3 className="text-sm font-bold text-zinc-100 mb-1">{mission.title}</h3>
+                      <p className="text-xs text-zinc-400 font-mono leading-relaxed mb-4">
+                        {mission.loreBriefing}
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-zinc-800/70 flex items-center justify-between gap-2 flex-wrap">
+                      <div className="text-[11px] font-mono text-zinc-500">
+                        {isRankLocked ? (
+                          <span className="flex items-center gap-1 text-zinc-500">
+                            <Lock className="w-3 h-3" /> Requer: {mission.requiredRankName}
+                          </span>
+                        ) : (
+                          <span className="text-emerald-400/80 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Patente Compatível
+                          </span>
+                        )}
+                      </div>
+
+                      {isThisRunning ? (
+                        <span className="text-xs font-mono font-bold text-rose-300 animate-pulse">
+                          Em Execução...
+                        </span>
+                      ) : (
+                        <button
+                          disabled={isRankLocked || isAnyRunning || isMuralCooldownActive}
+                          onClick={() => setInspectingMission(mission)}
+                          className="px-3.5 py-1.5 rounded-xl font-mono text-xs font-semibold transition border cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-zinc-800 hover:bg-zinc-750 text-zinc-100 border-zinc-700 hover:border-zinc-600 flex items-center gap-1.5 shadow-sm"
+                        >
+                          <Dice5 className="w-3.5 h-3.5" />
+                          Analisar Abordagens
+                        </button>
+                      )}
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-                  <h3 className="text-sm font-bold text-zinc-100 mb-1">{mission.title}</h3>
-                  <p className="text-xs text-zinc-400 font-mono leading-relaxed mb-4">
-                    {mission.loreBriefing}
-                  </p>
-                </div>
+        {/* ================================================================= */}
+        {/* CONTEÚDO DA ABA: DOJO DE MINIGAMES SHINOBI                        */}
+        {/* ================================================================= */}
+        {activeMainTab === 'MINIGAMES' && (
+          <div className="flex flex-col items-center gap-6">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setSelectedDojoMinigame('SEALS')}
+                className={`px-4 py-2 rounded-xl font-mono text-xs font-bold border transition flex items-center gap-2 cursor-pointer ${
+                  selectedDojoMinigame === 'SEALS'
+                    ? 'bg-amber-950/60 border-amber-500 text-amber-300 shadow-md'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Zap className="w-4 h-4 text-amber-400" />
+                <span>Kuji-in: Rito dos Selos de Mão</span>
+              </button>
 
-                <div className="pt-3 border-t border-zinc-800/70 flex items-center justify-between gap-2 flex-wrap">
-                  <div className="text-[11px] font-mono text-zinc-500">
-                    {isRankLocked ? (
-                      <span className="flex items-center gap-1 text-zinc-500">
-                        <Lock className="w-3 h-3" /> Requer: {mission.requiredRankName}
-                      </span>
-                    ) : (
-                      <span className="text-emerald-400/80 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Patente Compatível
-                      </span>
-                    )}
-                  </div>
+              <button
+                onClick={() => setSelectedDojoMinigame('PULSE')}
+                className={`px-4 py-2 rounded-xl font-mono text-xs font-bold border transition flex items-center gap-2 cursor-pointer ${
+                  selectedDojoMinigame === 'PULSE'
+                    ? 'bg-cyan-950/60 border-cyan-500 text-cyan-300 shadow-md'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Activity className="w-4 h-4 text-cyan-400" />
+                <span>Sincronia do Pulso de Chakra</span>
+              </button>
+            </div>
 
-                  {isThisRunning ? (
-                    <span className="text-xs font-mono font-bold text-rose-300 animate-pulse">
-                      Em Execução...
-                    </span>
-                  ) : (
-                    <button
-                      disabled={isRankLocked || isAnyRunning || isMuralCooldownActive}
-                      onClick={() => setInspectingMission(mission)}
-                      className="px-3.5 py-1.5 rounded-xl font-mono text-xs font-semibold transition border cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-zinc-800 hover:bg-zinc-750 text-zinc-100 border-zinc-700 hover:border-zinc-600 flex items-center gap-1.5 shadow-sm"
-                    >
-                      <Dice5 className="w-3.5 h-3.5" />
-                      Analisar Abordagens
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+            {selectedDojoMinigame === 'SEALS' ? (
+              <MinigameHandSeals difficulty="HARD" />
+            ) : (
+              <MinigameChakraPulse />
+            )}
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* CONTEÚDO DA ABA: TEMPLO GACHA (UTILIDADE DOS BILHETES)            */}
+        {/* ================================================================= */}
+        {activeMainTab === 'GACHA' && <GachaTemplePanel />}
+
+        {/* ================================================================= */}
+        {/* CONTEÚDO DA ABA: A FORJA LENDÁRIA (UTILIDADE DOS FRAGMENTOS)      */}
+        {/* ================================================================= */}
+        {activeMainTab === 'FORGE' && <LegendaryForgePanel />}
       </div>
+
+      {/* ===================================================================== */}
+      {/* MODAL DE MINIGAME PARA RESOLUÇÃO DA MISSÃO ATIVA                      */}
+      {/* ===================================================================== */}
+      {missionMinigameModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          {missionMinigameModal === 'SEALS' ? (
+            <MinigameHandSeals
+              onComplete={handleMissionMinigameComplete}
+              onCancel={() => setMissionMinigameModal(null)}
+              difficulty="NORMAL"
+            />
+          ) : (
+            <MinigameChakraPulse
+              onComplete={handleMissionMinigameComplete}
+              onCancel={() => setMissionMinigameModal(null)}
+            />
+          )}
+        </div>
+      )}
 
       {/* ===================================================================== */}
       {/* MODAL DE ESCOLHA TÁTICA (DILEMA: DUAS CARTAS LADO A LADO)             */}
@@ -394,7 +591,7 @@ export const MissionsView: React.FC = () => {
 
               <button
                 onClick={() => setInspectingMission(null)}
-                className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 transition"
+                className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -405,7 +602,7 @@ export const MissionsView: React.FC = () => {
                 <Dice5 className="w-4 h-4" /> Escolha Obrigatória de Abordagem Tática
               </span>
               <p className="text-xs text-zinc-500 font-mono mt-0.5">
-                Cada via oferece um balanço distinto entre probabilidade matemática de sucesso e magnitude de consequências.
+                Você poderá intervir a qualquer instante com os Minigames Shinobi para garantir Sucesso Crítico 2x!
               </p>
             </div>
 
@@ -502,7 +699,7 @@ export const MissionsView: React.FC = () => {
                       onClick={() => handleConfirmChoice(inspectingMission.id, choice.id)}
                       className="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-mono text-xs font-bold rounded-xl border border-zinc-700 hover:border-zinc-500 transition shadow-sm cursor-pointer flex items-center justify-center gap-2"
                     >
-                      <span>Adotar Esta Abordagem</span>
+                      <span>Iniciar Esta Abordagem</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -514,7 +711,7 @@ export const MissionsView: React.FC = () => {
       )}
 
       {/* ===================================================================== */}
-      {/* MODAL DE DESFECHO ANIMADO (CARD COM SOM PROCEDURAL & REVELAÇÃO)       */}
+      {/* MODAL DE DESFECHO ANIMADO                                             */}
       {/* ===================================================================== */}
       {activeMission.lastOutcome && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
