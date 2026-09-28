@@ -247,13 +247,13 @@ export const RankingDashboard: React.FC = () => {
       return `${formatBigNumber(D(ninja.highestCPS))} CPS`;
     }
     if (activeLeaderboard === 'totalTroops') {
-      return `${formatBigNumber(ninja.totalTroops)} Tropas`;
+      return `${ninja.totalTroops.toLocaleString('pt-BR')} Tropas`;
     }
     if (activeLeaderboard === 'gauntletBoss') {
       const boss = GAUNTLET_BOSSES.find((b) => b.id === ninja.gauntletBoss);
       return boss ? `Chefe #${ninja.gauntletBoss} (${boss.name})` : `Chefe #${ninja.gauntletBoss}`;
     }
-    return `${formatBigNumber(ninja.allTimeClicks)} clq`;
+    return `${ninja.allTimeClicks.toLocaleString('pt-BR')} clq`;
   };
 
   return (

@@ -165,7 +165,7 @@ export const RankPromotionView: React.FC = () => {
       setCelebrationData({
         rankTitle: targetRankDef.title,
         chakraBonus: formatBigNumber(activeMission.bonusRewards.chakra),
-        ancestralBonus: formatBigNumber(activeMission.bonusRewards.ancestral),
+        ancestralBonus: activeMission.bonusRewards.ancestral.toString(),
         permanentBonus: activeMission.bonusRewards.permanentEffectDescription,
         gachaTickets: activeMission.bonusRewards.gachaTickets,
         forgeFragments: activeMission.bonusRewards.forgeFragments,
@@ -474,10 +474,10 @@ export const RankPromotionView: React.FC = () => {
                 </div>
                 <div className="flex items-baseline justify-between mb-2">
                   <span className="text-sm font-bold text-zinc-100">
-                    {formatBigNumber(reqStatus.clicks.current)}
+                    {reqStatus.clicks.current.toLocaleString()}
                   </span>
                   <span className="text-[11px] text-zinc-400">
-                    / {formatBigNumber(reqStatus.clicks.target)}
+                    / {reqStatus.clicks.target.toLocaleString()}
                   </span>
                 </div>
                 <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
@@ -633,7 +633,7 @@ export const RankPromotionView: React.FC = () => {
                 <div>
                   <span className="text-zinc-400 text-[10px] block">Chakra Ancestral</span>
                   <span className="text-sm font-bold text-amber-300">
-                    +{formatBigNumber(activeMission.bonusRewards.ancestral)} Ancestrais
+                    +{activeMission.bonusRewards.ancestral.toString()} Ancestrais
                   </span>
                 </div>
               </div>

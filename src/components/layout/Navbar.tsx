@@ -155,7 +155,7 @@ export const Navbar: React.FC = () => {
             Ancestral
           </span>
           <span className="text-sm font-mono tracking-tight text-amber-300 font-medium">
-            {formatBigNumber(chakraAncestral)}
+            {chakraAncestral.toString()}
           </span>
         </div>
 

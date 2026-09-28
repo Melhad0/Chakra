@@ -194,7 +194,7 @@ export const ClanTreeView: React.FC = () => {
                   Chakra Ancestral Acumulado
                 </span>
                 <span className="text-xl sm:text-2xl font-mono font-bold text-purple-300">
-                  {formatBigNumber(chakraAncestral)}
+                  {chakraAncestral.toString()}
                 </span>
                 <div className="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-zinc-400 flex-wrap">
                   <span className="text-emerald-400 font-semibold">{clanCPSMultiplier.toFixed(1)}x CPS</span>
@@ -242,14 +242,14 @@ export const ClanTreeView: React.FC = () => {
 
               <div className="flex items-center justify-between text-[10px]">
                 <span className="text-zinc-500">
-                  Ganho: <strong className="text-purple-300">+{formatBigNumber(pendingAncestral)} Ancestral</strong>
+                  Ganho: <strong className="text-purple-300">+{pendingAncestral} Ancestral</strong>
                 </span>
                 <button
                   disabled={!canPrestige}
                   onClick={() => {
                     if (
                       confirm(
-                        `Executar Renascimento Shinobi? Você receberá +${formatBigNumber(pendingAncestral)} Chakra Ancestral e reiniciará sua jornada atual para despertar novas linhagens.`
+                        `Executar Renascimento Shinobi? Você receberá +${pendingAncestral} Chakra Ancestral e reiniciará sua jornada atual para despertar novas linhagens.`
                       )
                     ) {
                       performPrestige();
@@ -391,7 +391,7 @@ export const ClanTreeView: React.FC = () => {
                                     canAfford ? 'text-amber-300' : 'text-zinc-500'
                                   }`}
                                 >
-                                  {formatBigNumber(node.cost)} Anc
+                                  {node.cost} Anc
                                 </span>
                               )}
                             </div>
@@ -485,7 +485,7 @@ export const ClanTreeView: React.FC = () => {
             <div className="flex items-center justify-between text-xs font-mono mb-2.5">
               <span className="text-zinc-400">Custo de Despertar:</span>
               <strong className="text-purple-300 text-sm">
-                {formatBigNumber(selectedNode.cost)} Chakra Ancestral
+                {selectedNode.cost} Chakra Ancestral
               </strong>
             </div>
 
@@ -513,7 +513,7 @@ export const ClanTreeView: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" /> Despertar Linhagem (-{formatBigNumber(selectedNode.cost)} Ancestral)
+                    <Sparkles className="w-4 h-4" /> Despertar Linhagem (-{selectedNode.cost} Ancestral)
                   </>
                 )}
               </button>

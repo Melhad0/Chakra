@@ -79,7 +79,7 @@ export const OperationsPanel: React.FC = () => {
                   <GitFork className="w-3.5 h-3.5" />
                 </div>
                 <span className="text-[10px] font-mono font-bold text-purple-400">
-                  {formatBigNumber(chakraAncestral)}
+                  {chakraAncestral.toString()}
                 </span>
               </div>
               <div>
@@ -332,7 +332,7 @@ export const OperationsPanel: React.FC = () => {
                 Chakra Ancestral Disponível
               </span>
               <span className="text-sm font-mono font-medium text-amber-300">
-                {formatBigNumber(chakraAncestral)}
+                {chakraAncestral.toString()}
               </span>
             </div>
 
@@ -371,7 +371,7 @@ export const OperationsPanel: React.FC = () => {
                         {isUnlocked ? (
                           <Badge variant="production">Desperto</Badge>
                         ) : (
-                          `Custo: ${formatBigNumber(node.cost)} Ancestral`
+                          `Custo: ${node.cost} Ancestral`
                         )}
                       </span>
 

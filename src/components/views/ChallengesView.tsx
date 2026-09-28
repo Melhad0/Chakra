@@ -207,7 +207,7 @@ export const ChallengesView: React.FC = () => {
     setVictoryMessage(
       `Vitória conquistada contra #${currentBoss.id} ${currentBoss.name}!\nRecompensa: +${formatBigNumber(
         effectiveReward
-      )} Chakra, +${formatBigNumber(currentBoss.bountyAncestral)} Ancestral e +${formatBigNumber(xpGained)} XP de Combate!`
+      )} Chakra, +${currentBoss.bountyAncestral} Ancestral e +${formatBigNumber(xpGained)} XP de Combate!`
     );
     setTimeout(() => setVictoryMessage(null), 4000);
 
@@ -295,7 +295,7 @@ export const ChallengesView: React.FC = () => {
             setIsPlayerHit(true);
             setTimeout(() => setIsPlayerHit(false), 200);
 
-            setPlayerDmgFeedback(`-${formatBigNumber(bossAttackDamage)} HP`);
+            setPlayerDmgFeedback(`-${bossAttackDamage} HP`);
             setTimeout(() => setPlayerDmgFeedback(null), 800);
 
             const nextHp = Math.max(0, playerHpRef.current - bossAttackDamage);
@@ -697,7 +697,7 @@ export const ChallengesView: React.FC = () => {
                 <div className="px-2.5 py-1 rounded-lg bg-zinc-900/80 backdrop-blur-sm border border-white/10 text-right font-mono text-xs shadow">
                   <span className="text-[10px] text-zinc-500 uppercase block">Recompensa</span>
                   <span className="text-orange-400 font-bold">+{formatBigNumber(effectiveRewardChakra)}</span>
-                  <span className="text-amber-300 text-[10px] ml-1.5 font-semibold">+{formatBigNumber(currentBoss.bountyAncestral)} Anc</span>
+                  <span className="text-amber-300 text-[10px] ml-1.5 font-semibold">+{currentBoss.bountyAncestral} Anc</span>
                   <span className="text-cyan-400 text-[10px] ml-1.5 font-semibold">+{formatBigNumber(bossXpReward)} XP</span>
                 </div>
               </div>
@@ -757,7 +757,7 @@ export const ChallengesView: React.FC = () => {
                 <div className="flex items-center justify-between text-[11px] font-mono mb-1">
                   <span className="text-amber-400/90 flex items-center gap-1.5">
                     <Flame className={`w-3.5 h-3.5 ${gauntlet.isFighting ? 'animate-pulse text-orange-400' : 'text-zinc-500'}`} />
-                    Ataque do Chefe ({formatBigNumber(bossAttackDamage)} Dano • Cada {bossAttackIntervalSec.toFixed(1)}s)
+                    Ataque do Chefe ({bossAttackDamage} Dano • Cada {bossAttackIntervalSec.toFixed(1)}s)
                   </span>
                   <span className={`font-bold ${bossAttackProgress >= 80 && gauntlet.isFighting ? 'text-rose-400 animate-pulse' : 'text-zinc-400'}`}>
                     {gauntlet.isFighting ? `${Math.round(bossAttackProgress)}%` : 'Aguardando Início'}
@@ -913,7 +913,7 @@ export const ChallengesView: React.FC = () => {
                   </div>
                   <div className="p-2 rounded-lg bg-zinc-900/70 backdrop-blur-sm border border-white/10">
                     <span className="text-zinc-500 block">Dano Chefe</span>
-                    <span className="text-rose-400 font-bold">{formatBigNumber(bossAttackDamage)}</span>
+                    <span className="text-rose-400 font-bold">{bossAttackDamage}</span>
                   </div>
                 </div>
 
