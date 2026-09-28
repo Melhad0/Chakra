@@ -6,6 +6,7 @@ import {
   getBulkCost,
   getBulkSellRefund,
   getMaxBuyable,
+  getSingleGeneratorCost,
   getGeneratorCostDiscount,
   calculateTotalCPS,
 } from '../../engine/formulas';
@@ -215,7 +216,9 @@ export const EconomyPanel: React.FC = () => {
         const discount = getGeneratorCostDiscount(key, gen.level, upgrades, claimedRankRewards);
         let effectiveQty: number = typeof shopQty === 'number' ? shopQty : 1;
         if (shopQty === 'max') {
-          effectiveQty = Math.max(1, getMaxBuyable(gen.baseCost, gen.level, chakra, discount));
+          const maxBuyable = getMaxBuyable(gen.baseCost, gen.level, chakra, discount);
+          if (maxBuyable <= 0) return false;
+          effectiveQty = maxBuyable;
         }
         const cost = getBulkCost(gen.baseCost, gen.level, effectiveQty, discount);
         if (chakra.lt(cost)) return false;
@@ -455,21 +458,33 @@ export const EconomyPanel: React.FC = () => {
                 );
                 const milestone = getGeneratorMilestoneEffects(gen.level);
 
-                let effectiveQty: number = typeof shopQty === 'number' ? shopQty : 1;
-                if (shopQty === 'max') {
-                  effectiveQty =
-                    shopMode === 'buy'
-                      ? Math.max(1, getMaxBuyable(gen.baseCost, gen.level, chakra, discount))
-                      : Math.max(1, gen.level);
+                let effectiveQty = 1;
+                let cost = new Decimal(0);
+                let canAfford = false;
+
+                if (shopMode === 'buy') {
+                  if (shopQty === 'max') {
+                    const maxBuyable = getMaxBuyable(gen.baseCost, gen.level, chakra, discount);
+                    if (maxBuyable > 0) {
+                      effectiveQty = maxBuyable;
+                      cost = getBulkCost(gen.baseCost, gen.level, effectiveQty, discount);
+                      canAfford = true;
+                    } else {
+                      effectiveQty = 1;
+                      cost = getSingleGeneratorCost(gen.baseCost, gen.level, discount);
+                      canAfford = false;
+                    }
+                  } else {
+                    effectiveQty = shopQty;
+                    cost = getBulkCost(gen.baseCost, gen.level, effectiveQty, discount);
+                    canAfford = chakra.gte(cost) && effectiveQty > 0;
+                  }
+                } else {
+                  // Venda
+                  effectiveQty = shopQty === 'max' ? Math.max(1, gen.level) : Math.min(shopQty, Math.max(1, gen.level));
+                  cost = getBulkSellRefund(gen.baseCost, gen.level, effectiveQty, discount);
+                  canAfford = gen.level > 0;
                 }
-
-                const cost =
-                  shopMode === 'buy'
-                    ? getBulkCost(gen.baseCost, gen.level, effectiveQty, discount)
-                    : getBulkSellRefund(gen.baseCost, gen.level, effectiveQty, discount);
-
-                const canAfford =
-                  shopMode === 'buy' ? chakra.gte(cost) && effectiveQty > 0 : gen.level > 0;
 
                 // Contribuição específica desta tropa para o CPS total
                 const genCurrentCPS = gen.baseCPS.mul(gen.level).mul(milestone.cpsMultiplier);
@@ -505,11 +520,15 @@ export const EconomyPanel: React.FC = () => {
                 return (
                   <div
                     key={key}
-                    onClick={() => buyGenerator(key)}
-                    className={`group/card p-3 rounded-xl border transition-all duration-200 flex flex-col gap-2 cursor-pointer select-none relative overflow-hidden ${
+                    onClick={() => {
+                      if (canAfford) {
+                        buyGenerator(key);
+                      }
+                    }}
+                    className={`group/card p-3 rounded-xl border transition-all duration-200 flex flex-col gap-2 select-none relative overflow-hidden ${
                       canAfford
-                        ? `${tierConf.borderAffordable} border-zinc-800/90 text-zinc-100 hover:shadow-xl active:scale-[0.99]`
-                        : `${tierConf.borderMuted} opacity-75 text-zinc-400 hover:opacity-90`
+                        ? `${tierConf.borderAffordable} border-zinc-800/90 text-zinc-100 hover:shadow-xl active:scale-[0.99] cursor-pointer`
+                        : `${tierConf.borderMuted} opacity-60 text-zinc-400 cursor-not-allowed`
                     }`}
                   >
                     {/* Linha de brilho superior no hover */}
@@ -588,7 +607,11 @@ export const EconomyPanel: React.FC = () => {
 
                       <div className="flex items-center gap-1.5">
                         <span className="text-zinc-400 text-[10px]">
-                          {shopMode === 'buy' ? 'Custo:' : 'Reembolso:'}
+                          {shopMode === 'buy'
+                            ? shopQty === 'max' && effectiveQty > 0 && canAfford
+                              ? `Custo (x${effectiveQty}):`
+                              : 'Custo:'
+                            : 'Reembolso:'}
                         </span>
                         <span
                           className={`font-semibold ${

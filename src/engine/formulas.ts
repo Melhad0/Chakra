@@ -35,19 +35,20 @@ export function getGeneratorInflationRate(level: number): number {
  * n > 100: 1.18^50 * 1.22^50 * 1.28^(n - 100)
  */
 export function getGeneratorLevelMultiplier(level: number): Decimal {
-  if (level <= 0) return D(1);
+  const safeLevel = Number.isFinite(level) ? Math.max(0, Math.floor(level)) : 0;
+  if (safeLevel <= 0) return D(1);
 
-  if (level <= TIER1_MAX) {
-    return D(TIER1_RATE).pow(level);
+  if (safeLevel <= TIER1_MAX) {
+    return D(TIER1_RATE).pow(safeLevel);
   }
 
   const base50 = D(TIER1_RATE).pow(TIER1_MAX);
-  if (level <= TIER2_MAX) {
-    return base50.mul(D(TIER2_RATE).pow(level - TIER1_MAX));
+  if (safeLevel <= TIER2_MAX) {
+    return base50.mul(D(TIER2_RATE).pow(safeLevel - TIER1_MAX));
   }
 
   const base100 = base50.mul(D(TIER2_RATE).pow(TIER2_MAX - TIER1_MAX));
-  return base100.mul(D(TIER3_RATE).pow(level - TIER2_MAX));
+  return base100.mul(D(TIER3_RATE).pow(safeLevel - TIER2_MAX));
 }
 
 /**
@@ -95,8 +96,9 @@ export function getSingleGeneratorCost(
   level: number,
   discountFactor: number = 0
 ): Decimal {
+  const safeLevel = Number.isFinite(level) ? Math.max(0, Math.floor(level)) : 0;
   const scaledBase = baseCost.mul(Math.max(0.25, 1 - discountFactor));
-  return scaledBase.mul(getGeneratorLevelMultiplier(level));
+  return scaledBase.mul(getGeneratorLevelMultiplier(safeLevel));
 }
 
 /**
@@ -108,24 +110,26 @@ export function calculateBatchCost(
   qty: number,
   discountFactor: number = 0
 ): Decimal {
-  if (qty <= 0) return D(0);
-  if (qty === 1) return getSingleGeneratorCost(baseCost, currentLevel, discountFactor);
+  const safeQty = Number.isFinite(qty) ? Math.floor(qty) : 0;
+  if (safeQty <= 0) return D(0);
+  const safeLevel = Number.isFinite(currentLevel) ? Math.max(0, Math.floor(currentLevel)) : 0;
+  if (safeQty === 1) return getSingleGeneratorCost(baseCost, safeLevel, discountFactor);
 
   const scaledBase = baseCost.mul(Math.max(0.25, 1 - discountFactor));
 
   // Para pequenos lotes (<= 100), computação iterativa garante exatidão nos limites de transição
-  if (qty <= 100) {
+  if (safeQty <= 100) {
     let total = D(0);
-    for (let i = 0; i < qty; i++) {
-      total = total.add(scaledBase.mul(getGeneratorLevelMultiplier(currentLevel + i)));
+    for (let i = 0; i < safeQty; i++) {
+      total = total.add(scaledBase.mul(getGeneratorLevelMultiplier(safeLevel + i)));
     }
     return total;
   }
 
   // Para lotes massivos, computação analítica por faixas
   let total = D(0);
-  let remaining = qty;
-  let cur = currentLevel;
+  let remaining = safeQty;
+  let cur = safeLevel;
 
   // Faixa 1: até 50 (taxa 1.18)
   if (cur < TIER1_MAX && remaining > 0) {
@@ -165,6 +169,7 @@ export const getBulkCost = calculateBatchCost;
 
 /**
  * Calcula a quantidade máxima de geradores compráveis com o chakra atual.
+ * Utiliza logaritmo natural diretamente em Decimal (factor.ln()) evitando overflow para Infinity.
  */
 export function calculateMaxBuy(
   baseCost: Decimal,
@@ -172,12 +177,15 @@ export function calculateMaxBuy(
   currentChakra: Decimal,
   discountFactor: number = 0
 ): number {
-  const initialCost = getSingleGeneratorCost(baseCost, currentLevel, discountFactor);
+  const safeLevel = Number.isFinite(currentLevel) ? Math.max(0, Math.floor(currentLevel)) : 0;
+  if (!currentChakra || currentChakra.lte(0)) return 0;
+
+  const initialCost = getSingleGeneratorCost(baseCost, safeLevel, discountFactor);
   if (currentChakra.lt(initialCost)) return 0;
 
   let remainingChakra = currentChakra;
   let bought = 0;
-  let cur = currentLevel;
+  let cur = safeLevel;
 
   // Segmento 1: até 50 (r = 1.18)
   if (cur < TIER1_MAX) {
@@ -187,8 +195,8 @@ export function calculateMaxBuy(
       const initial = getSingleGeneratorCost(baseCost, cur, discountFactor);
       const r = TIER1_RATE;
       const factor = remainingChakra.mul(r - 1).div(initial).add(1);
-      const n = Math.floor(Math.log(factor.toNumber()) / Math.log(r));
-      return Math.max(1, n);
+      const n = factor.gt(1) ? Math.floor(factor.ln() / Math.log(r)) : 0;
+      return Math.min(maxInTier, Math.max(0, n));
     }
     remainingChakra = remainingChakra.sub(tierCost);
     bought += maxInTier;
@@ -203,8 +211,8 @@ export function calculateMaxBuy(
       const initial = getSingleGeneratorCost(baseCost, cur, discountFactor);
       const r = TIER2_RATE;
       const factor = remainingChakra.mul(r - 1).div(initial).add(1);
-      const n = Math.floor(Math.log(factor.toNumber()) / Math.log(r));
-      return Math.max(1, bought + Math.max(0, n));
+      const n = factor.gt(1) ? Math.floor(factor.ln() / Math.log(r)) : 0;
+      return Math.min(bought + maxInTier, bought + Math.max(0, n));
     }
     remainingChakra = remainingChakra.sub(tierCost);
     bought += maxInTier;
@@ -216,10 +224,10 @@ export function calculateMaxBuy(
   const r = TIER3_RATE;
   try {
     const factor = remainingChakra.mul(r - 1).div(initial).add(1);
-    const n = Math.floor(Math.log(factor.toNumber()) / Math.log(r));
-    return Math.max(1, bought + Math.max(0, n));
+    const n = factor.gt(1) ? Math.floor(factor.ln() / Math.log(r)) : 0;
+    return bought + Math.max(0, n);
   } catch {
-    return Math.max(1, bought);
+    return bought;
   }
 }
 
@@ -234,10 +242,12 @@ export function getBulkSellRefund(
   qty: number,
   discountFactor: number = 0
 ): Decimal {
-  const sellQty = Math.min(qty, currentLevel);
+  const safeLevel = Number.isFinite(currentLevel) ? Math.max(0, Math.floor(currentLevel)) : 0;
+  const safeQty = Number.isFinite(qty) ? Math.floor(qty) : 0;
+  const sellQty = Math.min(safeQty, safeLevel);
   if (sellQty <= 0) return D(0);
 
-  const startLevel = currentLevel - sellQty;
+  const startLevel = safeLevel - sellQty;
   const spent = calculateBatchCost(baseCost, startLevel, sellQty, discountFactor);
   return spent.mul(0.8);
 }

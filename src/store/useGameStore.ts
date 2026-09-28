@@ -393,10 +393,11 @@ function restoreStateFromSaveData(state: GameStoreState, data: any): Partial<Gam
     for (const key in data.generators) {
       if (restoredGenerators[key]) {
         const genVal = data.generators[key];
-        const lvl = typeof genVal === 'object' && genVal !== null ? genVal.level : Number(genVal);
+        const rawLvl = typeof genVal === 'object' && genVal !== null ? genVal.level : Number(genVal);
+        const lvl = Number.isFinite(rawLvl) && rawLvl >= 0 ? Math.floor(rawLvl) : 0;
         restoredGenerators[key] = {
           ...restoredGenerators[key],
-          level: lvl || 0,
+          level: lvl,
           unlocked: typeof genVal === 'object' && genVal !== null ? !!genVal.unlocked : !!lvl,
         };
       }
@@ -2109,16 +2110,25 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const gen = s.generators[id];
     if (!gen) return;
 
-    const discount = getGeneratorCostDiscount(id, gen.level, s.upgrades, s.claimedRankRewards);
+    const safeLevel = Number.isFinite(gen.level) && gen.level >= 0 ? Math.floor(gen.level) : 0;
+    const discount = getGeneratorCostDiscount(id, safeLevel, s.upgrades, s.claimedRankRewards);
 
     if (s.shopMode === 'buy') {
       let qtyToBuy: number = typeof s.shopQty === 'number' ? s.shopQty : 1;
       if (s.shopQty === 'max') {
-        qtyToBuy = Math.max(1, getMaxBuyable(gen.baseCost, gen.level, s.chakra, discount));
+        qtyToBuy = getMaxBuyable(gen.baseCost, safeLevel, s.chakra, discount);
       }
 
-      const cost = getBulkCost(gen.baseCost, gen.level, qtyToBuy, discount);
-      if (s.chakra.gte(cost) && qtyToBuy > 0) {
+      if (!Number.isFinite(qtyToBuy) || qtyToBuy <= 0) return;
+
+      const cost = getBulkCost(gen.baseCost, safeLevel, qtyToBuy, discount);
+      if (
+        cost &&
+        cost.gt(0) &&
+        Number.isFinite(cost.mantissa) &&
+        !Number.isNaN(cost.mantissa) &&
+        s.chakra.gte(cost)
+      ) {
         audio.playBuy();
         set((state) => ({
           chakra: state.chakra.sub(cost),
@@ -2126,7 +2136,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
             ...state.generators,
             [id]: {
               ...gen,
-              level: gen.level + qtyToBuy,
+              level: safeLevel + qtyToBuy,
               unlocked: true,
             },
           },
@@ -2135,9 +2145,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     } else {
       // Venda
       const numericQty = typeof s.shopQty === 'number' ? s.shopQty : 1;
-      const qtyToSell: number = s.shopQty === 'max' ? gen.level : Math.min(numericQty, gen.level);
+      const qtyToSell: number = s.shopQty === 'max' ? safeLevel : Math.min(numericQty, safeLevel);
       if (qtyToSell > 0) {
-        const refund = getBulkSellRefund(gen.baseCost, gen.level, qtyToSell, discount);
+        const refund = getBulkSellRefund(gen.baseCost, safeLevel, qtyToSell, discount);
         audio.playBuy();
         set((state) => ({
           chakra: state.chakra.add(refund),
@@ -2145,7 +2155,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
             ...state.generators,
             [id]: {
               ...gen,
-              level: gen.level - qtyToSell,
+              level: Math.max(0, safeLevel - qtyToSell),
             },
           },
         }));
