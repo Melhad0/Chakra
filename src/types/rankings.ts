@@ -12,9 +12,10 @@ export type ShinobiRankId =
   | 'rikudou';
 
 export type LeaderboardType =
-  | 'sessionClicks'
-  | 'allTimeClicks'
   | 'peakCps'
+  | 'totalTroops'
+  | 'gauntletBoss'
+  | 'allTimeClicks'
   | 'prestiges';
 
 export interface RankPromotionReward {
@@ -64,19 +65,32 @@ export interface RankingSyncPayload {
   manualClicksSession: number;
   manualClicksAllTime: number;
   highestCpsRecord: string;
+  highestCpsNum?: number;
+  totalTroopsRecruited?: number;
+  gauntletBossMax?: number;
   totalPrestiges: number;
   currentRank: ShinobiRankId;
+  avatar?: string;
+  ninjaTitle?: string;
 }
 
 export interface GlobalLeaderboardEntry {
   ninjaId: number;
   username: string;
-  rank: ShinobiRankId;
-  scoreFormatted: string;
-  highestCpsRecord: string;
-  manualClicksAllTime: number;
-  totalPrestiges: number;
-  updatedAt: string;
+  rank?: ShinobiRankId;
+  currentRank?: string;
+  scoreFormatted?: string;
+  highestCpsRecord?: string;
+  highestCpsNum?: number;
+  highestCpsDisplay?: string;
+  totalTroopsRecruited?: number;
+  gauntletBossMax?: number;
+  manualClicksAllTime?: number;
+  manualClicksSession?: number;
+  totalPrestiges?: number;
+  avatar?: string;
+  ninjaTitle?: string;
+  updatedAt?: string;
 }
 
 export type ShinobiExamId = 'chunin' | 'jonin' | ShinobiRankId;

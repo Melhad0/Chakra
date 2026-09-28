@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useGameStore } from '../../store/useGameStore';
-import { formatBigNumber } from '../../engine/BigNumber';
+import { formatBigNumber, D } from '../../engine/BigNumber';
 import {
   SHINOBI_RANKS,
   RIVAL_SHINOBIS,
@@ -8,19 +8,22 @@ import {
   getNextRank,
   calculateRankProgress,
 } from '../../constants/rankings';
-import { LeaderboardType } from '../../types/rankings';
+import { GAUNTLET_BOSSES } from '../../data/gauntletBosses';
+import { LeaderboardType, GlobalLeaderboardEntry, RankingSyncPayload } from '../../types/rankings';
 import { IconRenderer } from '../common/IconRenderer';
 import { ViewHeader } from './ViewHeader';
-import { Badge } from '../common/Badge';
+import { apiUrl } from '../../config/api';
 import {
   Trophy,
   Award,
   Medal,
   Target,
-  BarChart3,
   Zap,
   RefreshCw,
   Gift,
+  Users,
+  Swords,
+  Globe2,
 } from 'lucide-react';
 
 export const RankingsView: React.FC = () => {
@@ -29,15 +32,28 @@ export const RankingsView: React.FC = () => {
   const claimRankReward = useGameStore((s) => s.claimRankReward);
   const currentUser = useGameStore((s) => s.currentUser);
   const passedExams = useGameStore((s) => s.passedExams);
+  const generators = useGameStore((s) => s.generators);
+  const gauntlet = useGameStore((s) => s.gauntlet);
 
   const [activeLeaderboard, setActiveLeaderboard] = useState<LeaderboardType>('peakCps');
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [cloudRankings, setCloudRankings] = useState<GlobalLeaderboardEntry[]>([]);
+  const [cloudPlayerRank, setCloudPlayerRank] = useState<number | null>(null);
+  const [isCloudLoaded, setIsCloudLoaded] = useState<boolean>(false);
 
   const sessionClicks = stats.manualClicksSession || stats.manualClicksCurrentSession || 0;
   const allTimeClicks = stats.manualClicksAllTime;
   const highestCPS = stats.highestCPSRecord;
   const prestiges = stats.totalPrestiges;
+
+  // Total de tropas recrutadas
+  const totalTroops = useMemo(() => {
+    return Object.values(generators).reduce((acc, g) => acc + g.level, 0);
+  }, [generators]);
+
+  // Chefe máximo derrotado no Gauntlet
+  const gauntletBossMax = gauntlet.highestBossDefeated || gauntlet.maxUnlockedBoss || 0;
 
   // Determina patente atual e próxima
   const currentRank = useMemo(
@@ -51,31 +67,74 @@ export const RankingsView: React.FC = () => {
     [currentRank, nextRank, allTimeClicks, highestCPS, prestiges]
   );
 
-  // Sync com o Backend Flask (/api/rankings/sync)
+  // Busca do Leaderboard Global no Neon Postgres
+  const fetchTopRankings = useCallback(async (cat: LeaderboardType) => {
+    try {
+      const categoryParam =
+        cat === 'peakCps' ? 'cps' :
+        cat === 'totalTroops' ? 'troops' :
+        cat === 'gauntletBoss' ? 'gauntlet' : 'clicks';
+
+      const usernameParam = currentUser?.username
+        ? `&username=${encodeURIComponent(currentUser.username)}`
+        : '';
+
+      const res = await fetch(apiUrl(`/api/rankings/top?category=${categoryParam}${usernameParam}&limit=50`));
+      if (res.ok) {
+        const payload = await res.json();
+        if (payload.status === 'success' && Array.isArray(payload.rankings) && payload.rankings.length > 0) {
+          setCloudRankings(payload.rankings);
+          if (payload.playerRank) {
+            setCloudPlayerRank(payload.playerRank);
+          }
+          setIsCloudLoaded(true);
+          return;
+        }
+      }
+      setIsCloudLoaded(false);
+    } catch {
+      setIsCloudLoaded(false);
+    }
+  }, [currentUser?.username]);
+
+  // Sync com o Backend Neon (/api/rankings/sync)
   const handleSyncRankings = async () => {
     if (!currentUser) return;
     setIsSyncing(true);
     setSyncStatus(null);
     try {
-      const payload = {
+      let numericCPS = 0;
+      try {
+        numericCPS = highestCPS.toNumber();
+      } catch {
+        numericCPS = 0;
+      }
+
+      const payload: RankingSyncPayload = {
         username: currentUser.username,
         ninjaId: currentUser.ninjaId,
         manualClicksSession: sessionClicks,
         manualClicksAllTime: allTimeClicks,
         highestCpsRecord: highestCPS.toString(),
+        highestCpsNum: numericCPS,
+        totalTroopsRecruited: totalTroops,
+        gauntletBossMax: gauntletBossMax,
         totalPrestiges: prestiges,
         currentRank: currentRank.id,
+        avatar: currentUser.avatar || 'naruto',
+        ninjaTitle: currentRank.title,
       };
 
-      const res = await fetch('/api/rankings/sync', {
+      const res = await fetch(apiUrl('/api/rankings/sync'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
       if (res.ok) {
-        setSyncStatus('Sincronizado');
+        setSyncStatus('Sincronizado na Nuvem');
         setTimeout(() => setSyncStatus(null), 3000);
+        await fetchTopRankings(activeLeaderboard);
       } else {
         setSyncStatus('Falha ao sincronizar');
         setTimeout(() => setSyncStatus(null), 3000);
@@ -89,60 +148,130 @@ export const RankingsView: React.FC = () => {
   };
 
   useEffect(() => {
+    fetchTopRankings(activeLeaderboard);
+  }, [activeLeaderboard, fetchTopRankings]);
+
+  useEffect(() => {
     const timer = setInterval(() => {
-      if (currentUser) {
+      if (currentUser && currentUser.username !== 'convidado') {
         handleSyncRankings();
       }
     }, 60000);
     return () => clearInterval(timer);
-  }, [currentUser, sessionClicks, allTimeClicks, highestCPS, prestiges]);
+  }, [currentUser, sessionClicks, allTimeClicks, highestCPS, prestiges, totalTroops, gauntletBossMax]);
 
-  // Lista dinâmica do leaderboard selecionado mesclando o jogador com os rivais
-  const sortedRivals = useMemo(() => {
+  // Lista dinâmica do leaderboard (Usa Neon Postgres se disponível, ou mescla rivais locais)
+  const displayLeaderboard = useMemo(() => {
+    if (isCloudLoaded && cloudRankings.length > 0) {
+      return cloudRankings.map((entry, index) => {
+        const isCurrentPlayer =
+          currentUser?.username &&
+          entry.username.toLowerCase() === currentUser.username.toLowerCase();
+
+        return {
+          position: index + 1,
+          isPlayer: !!isCurrentPlayer,
+          name: isCurrentPlayer ? (currentUser?.fullName || entry.username) : entry.username,
+          title: entry.ninjaTitle || entry.currentRank || 'Shinobi Ativo',
+          avatar: entry.avatar || 'naruto',
+          highestCPS: entry.highestCpsRecord || '0',
+          totalTroops: entry.totalTroopsRecruited || 0,
+          gauntletBoss: entry.gauntletBossMax || 0,
+          allTimeClicks: entry.manualClicksAllTime || 0,
+          prestiges: entry.totalPrestiges || 0,
+        };
+      });
+    }
+
+    // Fallback: Rivais locais emulação
     const playerEntry = {
       isPlayer: true,
       name: currentUser ? currentUser.fullName : 'Você (Shinobi)',
       title: currentRank.title,
-      rankId: currentRank.id,
-      avatar: 'ninja_mask',
+      avatar: currentUser?.avatar || 'naruto',
       sessionClicks,
       allTimeClicks,
-      peakCPS: highestCPS,
+      highestCPS: highestCPS.toString(),
+      totalTroops,
+      gauntletBoss: gauntletBossMax,
       prestiges,
-      quote: 'Determinado a superar todos os ancestrais da Folha.',
     };
 
-    const rivalsList = RIVAL_SHINOBIS.map((r) => ({
-      ...r,
+    const rivalsList = RIVAL_SHINOBIS.map((r, idx) => ({
       isPlayer: false,
+      name: r.name,
+      title: r.title,
+      avatar: r.avatar,
+      sessionClicks: r.sessionClicks,
+      allTimeClicks: r.allTimeClicks,
+      highestCPS: r.peakCPS.toString(),
+      totalTroops: Math.max(10, (10 - idx) * 35),
+      gauntletBoss: Math.max(1, 15 - idx),
+      prestiges: r.prestiges,
     }));
 
     const combined = [...rivalsList, playerEntry];
 
-    return combined.sort((a, b) => {
-      if (activeLeaderboard === 'sessionClicks') {
-        return b.sessionClicks - a.sessionClicks;
+    combined.sort((a, b) => {
+      if (activeLeaderboard === 'totalTroops') {
+        return b.totalTroops - a.totalTroops;
+      }
+      if (activeLeaderboard === 'gauntletBoss') {
+        return b.gauntletBoss - a.gauntletBoss;
       }
       if (activeLeaderboard === 'allTimeClicks') {
         return b.allTimeClicks - a.allTimeClicks;
       }
-      if (activeLeaderboard === 'peakCps') {
-        return b.peakCPS.gt(a.peakCPS) ? 1 : -1;
-      }
-      return b.prestiges - a.prestiges;
+      // peakCps
+      return D(b.highestCPS).gt(D(a.highestCPS)) ? 1 : -1;
     });
-  }, [activeLeaderboard, currentUser, currentRank, sessionClicks, allTimeClicks, highestCPS, prestiges]);
+
+    return combined.map((item, idx) => ({ ...item, position: idx + 1 }));
+  }, [
+    isCloudLoaded,
+    cloudRankings,
+    currentUser,
+    currentRank,
+    activeLeaderboard,
+    sessionClicks,
+    allTimeClicks,
+    highestCPS,
+    totalTroops,
+    gauntletBossMax,
+    prestiges,
+  ]);
 
   const playerPosition = useMemo(() => {
-    return sortedRivals.findIndex((r) => r.isPlayer) + 1;
-  }, [sortedRivals]);
+    if (cloudPlayerRank) return cloudPlayerRank;
+    const found = displayLeaderboard.find((r) => r.isPlayer);
+    return found ? found.position : 1;
+  }, [cloudPlayerRank, displayLeaderboard]);
+
+  const formatMetricDisplay = (entry: {
+    highestCPS: string;
+    totalTroops: number;
+    gauntletBoss: number;
+    allTimeClicks: number;
+  }) => {
+    if (activeLeaderboard === 'peakCps') {
+      return `${formatBigNumber(D(entry.highestCPS))} CPS`;
+    }
+    if (activeLeaderboard === 'totalTroops') {
+      return `${entry.totalTroops.toLocaleString('pt-BR')} Tropas`;
+    }
+    if (activeLeaderboard === 'gauntletBoss') {
+      const boss = GAUNTLET_BOSSES.find((b) => b.id === entry.gauntletBoss);
+      return boss ? `Chefe #${entry.gauntletBoss} (${boss.name})` : `Chefe #${entry.gauntletBoss}`;
+    }
+    return `${entry.allTimeClicks.toLocaleString('pt-BR')} clq`;
+  };
 
   return (
     <div className="w-screen h-screen flex flex-col bg-[#08090d] text-zinc-100 overflow-hidden select-none">
       {/* Cabeçalho Fixo Universal */}
       <ViewHeader
-        title="Hall da Fama e Patentes Shinobi"
-        subtitle="Registros Oficiais e Quadro de Honra da Aldeia da Folha"
+        title="Hall da Fama e Rankings Globais Shinobi"
+        subtitle="Quadro de Honra Oficial da Aldeia da Folha sincronizado no Neon Postgres"
         badgeText={`Graduação: ${currentRank.title}`}
         badgeVariant="chakra"
         icon={<Trophy className="w-4 h-4 text-amber-400 stroke-[1.75]" />}
@@ -151,101 +280,115 @@ export const RankingsView: React.FC = () => {
       {/* Conteúdo Principal em 2 Colunas */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden p-4 lg:p-6 gap-4 lg:gap-6">
         {/* ================================================================= */}
-        {/* COLUNA ESQUERDA: QUADRO DE LÍDERES & TABELA DE RIVAIS              */}
+        {/* COLUNA ESQUERDA: QUADRO DE LÍDERES GLOBAIS                        */}
         {/* ================================================================= */}
-        <section className="flex-1 bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl shadow-2xl p-6 flex flex-col overflow-hidden">
+        <section className="flex-1 bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl shadow-2xl p-5 lg:p-6 flex flex-col overflow-hidden">
           {/* Topo do Placares: Seletor de 4 Abas Segmentadas */}
-          <div className="flex items-center justify-between pb-4 border-b border-zinc-800/80 gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 bg-zinc-950 p-1.5 rounded-xl border border-zinc-800 flex-wrap">
+          <div className="flex items-center justify-between pb-3.5 border-b border-zinc-800/80 gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5 bg-zinc-950 p-1.5 rounded-xl border border-zinc-800/80 flex-wrap">
               <button
-                onClick={() => setActiveLeaderboard('sessionClicks')}
+                onClick={() => setActiveLeaderboard('peakCps')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition ${
-                  activeLeaderboard === 'sessionClicks'
-                    ? 'bg-zinc-800 text-zinc-100 border border-zinc-700 shadow-sm'
+                  activeLeaderboard === 'peakCps'
+                    ? 'bg-zinc-800 text-emerald-300 border border-zinc-700 shadow-sm'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
-                <Target className="w-3.5 h-3.5 text-orange-400" /> Mestre dos Selos
+                <Zap className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Pico de Poder (CPS)</span>
+              </button>
+
+              <button
+                onClick={() => setActiveLeaderboard('totalTroops')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition ${
+                  activeLeaderboard === 'totalTroops'
+                    ? 'bg-zinc-800 text-cyan-300 border border-zinc-700 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Exército Shinobi</span>
+              </button>
+
+              <button
+                onClick={() => setActiveLeaderboard('gauntletBoss')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition ${
+                  activeLeaderboard === 'gauntletBoss'
+                    ? 'bg-zinc-800 text-rose-300 border border-zinc-700 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Swords className="w-3.5 h-3.5 text-rose-400" />
+                <span>Mestres do Gauntlet</span>
               </button>
 
               <button
                 onClick={() => setActiveLeaderboard('allTimeClicks')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition ${
                   activeLeaderboard === 'allTimeClicks'
-                    ? 'bg-zinc-800 text-zinc-100 border border-zinc-700 shadow-sm'
+                    ? 'bg-zinc-800 text-amber-300 border border-zinc-700 shadow-sm'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
-                <BarChart3 className="w-3.5 h-3.5 text-cyan-400" /> Lenda Histórica
-              </button>
-
-              <button
-                onClick={() => setActiveLeaderboard('peakCps')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition ${
-                  activeLeaderboard === 'peakCps'
-                    ? 'bg-zinc-800 text-zinc-100 border border-zinc-700 shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                <Zap className="w-3.5 h-3.5 text-emerald-400" /> Pico de Poder
-              </button>
-
-              <button
-                onClick={() => setActiveLeaderboard('prestiges')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition ${
-                  activeLeaderboard === 'prestiges'
-                    ? 'bg-zinc-800 text-zinc-100 border border-zinc-700 shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                <RefreshCw className="w-3.5 h-3.5 text-purple-400" /> Reencarnações
+                <Target className="w-3.5 h-3.5 text-amber-400" />
+                <span>Cliques Manuais</span>
               </button>
             </div>
 
-            {/* Sincronização */}
+            {/* Status e Botão de Sincronização */}
             <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-[11px] font-mono text-zinc-400 bg-zinc-950/60 px-2 py-1 rounded-lg border border-zinc-850">
+                <Globe2 className="w-3 h-3 text-cyan-400" />
+                <span>{isCloudLoaded ? 'Neon Nuvem' : 'Local'}</span>
+              </div>
+
               {syncStatus && (
                 <span className="text-[11px] font-mono text-emerald-400 font-medium">{syncStatus}</span>
               )}
+
               <button
                 onClick={handleSyncRankings}
                 disabled={isSyncing}
-                title="Sincronizar dados com o Livro Bingo da Aldeia"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950/70 hover:bg-zinc-800 border border-zinc-800 rounded-lg text-xs font-mono text-zinc-300 transition"
+                title="Sincronizar dados com o banco Neon Postgres"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950/80 hover:bg-zinc-800 border border-zinc-800 rounded-lg text-xs font-mono text-zinc-300 transition active:scale-95 cursor-pointer"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                <span>Sync</span>
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-cyan-400' : ''}`} />
+                <span>Atualizar</span>
               </button>
             </div>
           </div>
 
           {/* Destaque da Posição do Jogador */}
-          <div className="my-4 p-3.5 rounded-xl bg-amber-950/20 border border-amber-800/40 flex items-center justify-between font-mono text-xs">
+          <div className="my-3.5 p-3.5 rounded-xl bg-gradient-to-r from-amber-950/30 via-zinc-950/80 to-zinc-950/80 border border-amber-800/40 flex items-center justify-between font-mono text-xs shadow-inner">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-amber-300 font-bold text-sm shadow-md">
                 #{playerPosition}
               </div>
               <div>
-                <span className="text-zinc-400 block text-[10px]">Sua Colocação no Placar Oficial:</span>
+                <span className="text-zinc-400 block text-[10px] uppercase tracking-wider">
+                  Sua Colocação Global no Placar:
+                </span>
                 <strong className="text-zinc-100 text-sm">{currentUser ? currentUser.fullName : 'Você'}</strong>
               </div>
             </div>
 
             <div className="text-right">
-              <span className="text-zinc-400 block text-[10px]">Métrica Ativa:</span>
+              <span className="text-zinc-400 block text-[10px] uppercase tracking-wider">
+                Sua Métrica Atual:
+              </span>
               <strong className="text-amber-300 text-sm">
-                {activeLeaderboard === 'sessionClicks' && `${sessionClicks.toLocaleString()} cliques`}
-                {activeLeaderboard === 'allTimeClicks' && `${allTimeClicks.toLocaleString()} cliques`}
                 {activeLeaderboard === 'peakCps' && `${formatBigNumber(highestCPS)} CPS`}
-                {activeLeaderboard === 'prestiges' && `${prestiges} renascimentos`}
+                {activeLeaderboard === 'totalTroops' && `${totalTroops.toLocaleString('pt-BR')} Tropas`}
+                {activeLeaderboard === 'gauntletBoss' && `Chefe #${gauntletBossMax}`}
+                {activeLeaderboard === 'allTimeClicks' && `${allTimeClicks.toLocaleString('pt-BR')} cliques`}
               </strong>
             </div>
           </div>
 
-          {/* Tabela Comparativa de Rivais Ilustres */}
+          {/* Tabela Comparativa do Ranking Shinobi */}
           <div className="flex-1 overflow-y-auto custom-scrollbar border border-zinc-800/80 rounded-xl bg-zinc-950/40">
             <table className="w-full text-left font-mono text-xs">
-              <thead className="bg-zinc-950/80 text-zinc-400 text-[10px] uppercase tracking-wider sticky top-0 border-b border-zinc-800 z-10">
+              <thead className="bg-zinc-950/90 text-zinc-400 text-[10px] uppercase tracking-wider sticky top-0 border-b border-zinc-800 z-10 backdrop-blur-md">
                 <tr>
                   <th className="py-2.5 px-4 w-12 text-center">Pos</th>
                   <th className="py-2.5 px-4">Shinobi</th>
@@ -254,48 +397,42 @@ export const RankingsView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-850/60">
-                {sortedRivals.map((ninja, index) => {
+                {displayLeaderboard.map((ninja, index) => {
                   const isCurrentPlayer = ninja.isPlayer;
 
                   return (
                     <tr
-                      key={ninja.name}
+                      key={`${ninja.name}-${index}`}
                       className={`transition ${
                         isCurrentPlayer
-                          ? 'bg-amber-950/30 font-bold text-amber-300'
+                          ? 'bg-amber-950/40 font-bold text-amber-300 border-l-2 border-amber-400'
                           : 'hover:bg-zinc-850/40 text-zinc-300'
                       }`}
                     >
                       <td className="py-3 px-4 text-center">
-                        {index === 0 ? (
+                        {ninja.position === 1 ? (
                           <Medal className="w-4 h-4 text-amber-400 mx-auto" />
-                        ) : index === 1 ? (
+                        ) : ninja.position === 2 ? (
                           <Medal className="w-4 h-4 text-zinc-300 mx-auto" />
-                        ) : index === 2 ? (
+                        ) : ninja.position === 3 ? (
                           <Medal className="w-4 h-4 text-amber-700 mx-auto" />
                         ) : (
-                          <span className="text-zinc-500 font-bold">#{index + 1}</span>
+                          <span className="text-zinc-500 font-bold">#{ninja.position}</span>
                         )}
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-md bg-zinc-900 border border-zinc-800 flex items-center justify-center flex-shrink-0 text-zinc-300">
-                            <IconRenderer name={ninja.avatar} className="w-3.5 h-3.5" />
+                          <div className="w-7 h-7 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center flex-shrink-0 text-zinc-300">
+                            <IconRenderer name={ninja.avatar} className="w-4 h-4 stroke-[1.8]" />
                           </div>
                           <div>
-                            <span className="font-semibold block">{ninja.name}</span>
-                            <span className="text-[10px] text-zinc-500 font-normal truncate block max-w-[200px]">
-                              {ninja.quote}
-                            </span>
+                            <span className="font-semibold block truncate max-w-[200px]">{ninja.name}</span>
                           </div>
                         </div>
                       </td>
                       <td className="py-3 px-4 text-zinc-400">{ninja.title}</td>
-                      <td className="py-3 px-4 text-right font-semibold">
-                        {activeLeaderboard === 'sessionClicks' && `${ninja.sessionClicks.toLocaleString()} clq`}
-                        {activeLeaderboard === 'allTimeClicks' && `${ninja.allTimeClicks.toLocaleString()} clq`}
-                        {activeLeaderboard === 'peakCps' && `${formatBigNumber(ninja.peakCPS)}`}
-                        {activeLeaderboard === 'prestiges' && `${ninja.prestiges} rnc`}
+                      <td className="py-3 px-4 text-right font-semibold text-emerald-400">
+                        {formatMetricDisplay(ninja)}
                       </td>
                     </tr>
                   );
@@ -369,24 +506,17 @@ export const RankingsView: React.FC = () => {
                           : 'bg-zinc-950/60 border-zinc-850/80 text-zinc-500'
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-semibold text-zinc-200">{rank.title}</span>
-                            {isClaimed && <Badge variant="neutral">Resgatado</Badge>}
-                          </div>
-                          <span className="text-[10px] text-zinc-400 block mt-0.5">
-                            [{rank.reward.title}]: {rank.reward.description}
-                          </span>
-                        </div>
-
-                        {!isClaimed && (
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="font-semibold text-zinc-200">{rank.title}</span>
+                        {isClaimed ? (
+                          <span className="text-[10px] text-emerald-400 font-bold">Resgatado</span>
+                        ) : (
                           <button
                             disabled={!qualifies}
                             onClick={() => claimRankReward(rank.id)}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border flex-shrink-0 ${
+                            className={`px-2.5 py-0.5 rounded text-[10px] font-bold transition border ${
                               qualifies
-                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400 shadow-sm cursor-pointer'
+                                ? 'bg-emerald-600 text-zinc-950 border-emerald-500 hover:bg-emerald-500 cursor-pointer shadow-sm active:scale-95'
                                 : 'bg-zinc-900 border-zinc-800 text-zinc-600 cursor-not-allowed'
                             }`}
                           >
@@ -394,6 +524,7 @@ export const RankingsView: React.FC = () => {
                           </button>
                         )}
                       </div>
+                      <p className="text-[11px] text-zinc-400 leading-snug">{rank.reward.description}</p>
                     </div>
                   );
                 })}

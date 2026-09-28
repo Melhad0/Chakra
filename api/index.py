@@ -548,21 +548,138 @@ def load_user_save(username):
     except Exception:
         return copy.deepcopy(DEFAULT_STATE)
 
+def extract_state_metrics(state):
+    chakra_val = 0.0
+    cps_num = 0.0
+    cps_display = "0"
+    total_troops = 0
+    max_boss = 0
+    manual_clicks = 0
+    total_prestiges = 0
+    
+    raw_chakra = state.get("chakra", 0)
+    try:
+        if isinstance(raw_chakra, (int, float)):
+            chakra_val = float(raw_chakra)
+        elif isinstance(raw_chakra, str):
+            chakra_val = float(raw_chakra)
+    except Exception:
+        chakra_val = 0.0
+        
+    stats = state.get("stats", {})
+    if isinstance(stats, dict):
+        manual_clicks = int(stats.get("manualClicksAllTime", 0) or stats.get("clicks", 0) or 0)
+        total_prestiges = int(stats.get("totalPrestiges", 0) or state.get("total_prestige_points", 0) or 0)
+        raw_cps = stats.get("highestCPSRecord", "0")
+        cps_display = str(raw_cps)
+        try:
+            cps_num = float(raw_cps)
+        except Exception:
+            cps_num = 0.0
+    else:
+        manual_clicks = int(state.get("clicks", 0))
+        total_prestiges = int(state.get("total_prestige_points", 0))
+
+    generators = state.get("generators", {})
+    if isinstance(generators, dict):
+        for gen_val in generators.values():
+            if isinstance(gen_val, dict):
+                total_troops += int(gen_val.get("level", 0))
+            elif isinstance(gen_val, (int, float)):
+                total_troops += int(gen_val)
+                
+    gauntlet = state.get("gauntlet", {})
+    if isinstance(gauntlet, dict):
+        max_boss = int(gauntlet.get("maxUnlockedBoss", 0))
+    elif "boss" in state:
+        max_boss = int(state.get("boss", 0))
+        
+    return {
+        "chakra_numeric": chakra_val,
+        "highest_cps_num": cps_num,
+        "highest_cps_display": cps_display,
+        "total_troops": total_troops,
+        "max_boss_defeated": max_boss,
+        "manual_clicks": manual_clicks,
+        "total_prestiges": total_prestiges,
+    }
+
 def write_user_save(username, state):
     safe_name = sanitize_username(username).lower()
+    metrics = extract_state_metrics(state)
     if DATABASE_URL:
         conn = get_db()
         if conn:
             try:
                 with conn.cursor() as cur:
                     cur.execute("""
-                        INSERT INTO saves (username_key, username, state, updated_at)
-                        VALUES (%s, %s, %s, NOW())
+                        INSERT INTO saves (
+                            username_key, username, state, 
+                            chakra_numeric, highest_cps_numeric, total_troops, 
+                            max_boss_defeated, save_version, client_saved_at, updated_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, 'v2', NOW(), NOW())
                         ON CONFLICT (username_key) DO UPDATE SET
                             username = EXCLUDED.username,
                             state = EXCLUDED.state,
+                            chakra_numeric = EXCLUDED.chakra_numeric,
+                            highest_cps_numeric = EXCLUDED.highest_cps_numeric,
+                            total_troops = EXCLUDED.total_troops,
+                            max_boss_defeated = EXCLUDED.max_boss_defeated,
                             updated_at = NOW();
-                    """, (safe_name, username, Json(state)))
+                    """, (
+                        safe_name, username, Json(state),
+                        metrics["chakra_numeric"], metrics["highest_cps_num"],
+                        metrics["total_troops"], metrics["max_boss_defeated"]
+                    ))
+
+                    # Buscar metadados do usuário para enriquecer o ranking
+                    cur.execute("SELECT ninja_id, data FROM users WHERE username_key = %s", (safe_name,))
+                    user_row = cur.fetchone()
+                    ninja_id = user_row[0] if user_row and user_row[0] else 0
+                    user_data = user_row[1] if user_row and len(user_row) > 1 and isinstance(user_row[1], dict) else {}
+                    avatar = user_data.get("avatar", "naruto")
+                    ninja_title = user_data.get("ninjaTitle", "Estudante da Academia")
+                    
+                    combat = state.get("combatStats", {})
+                    current_rank = f"Nível {combat.get('level', 1)}" if isinstance(combat, dict) else "Gennin"
+
+                    # Sincroniza tabela rankings do Neon
+                    cur.execute("""
+                        INSERT INTO rankings (
+                            username_key, username, ninja_id, 
+                            manual_clicks_all_time, highest_cps_record, highest_cps_num, 
+                            highest_cps_display, total_troops_recruited, gauntlet_boss_max, 
+                            total_prestiges, current_rank, avatar, ninja_title, updated_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                        ON CONFLICT (username_key) DO UPDATE SET
+                            username = EXCLUDED.username,
+                            manual_clicks_all_time = GREATEST(rankings.manual_clicks_all_time, EXCLUDED.manual_clicks_all_time),
+                            highest_cps_record = EXCLUDED.highest_cps_record,
+                            highest_cps_num = GREATEST(rankings.highest_cps_num, EXCLUDED.highest_cps_num),
+                            highest_cps_display = EXCLUDED.highest_cps_display,
+                            total_troops_recruited = GREATEST(rankings.total_troops_recruited, EXCLUDED.total_troops_recruited),
+                            gauntlet_boss_max = GREATEST(rankings.gauntlet_boss_max, EXCLUDED.gauntlet_boss_max),
+                            total_prestiges = GREATEST(rankings.total_prestiges, EXCLUDED.total_prestiges),
+                            current_rank = EXCLUDED.current_rank,
+                            avatar = COALESCE(EXCLUDED.avatar, rankings.avatar),
+                            ninja_title = COALESCE(EXCLUDED.ninja_title, rankings.ninja_title),
+                            updated_at = NOW();
+                    """, (
+                        safe_name, username, ninja_id,
+                        metrics["manual_clicks"], metrics["highest_cps_display"],
+                        metrics["highest_cps_num"], metrics["highest_cps_display"],
+                        metrics["total_troops"], metrics["max_boss_defeated"],
+                        metrics["total_prestiges"], current_rank, avatar, ninja_title
+                    ))
+
+                    # Registrar log de auditoria de Cloud Save
+                    cur.execute("""
+                        INSERT INTO audit_sync_logs (username_key, action, status, client_timestamp, created_at)
+                        VALUES (%s, 'SAVE_SYNC', 'success', NOW(), NOW());
+                    """, (safe_name,))
+
                     conn.commit()
             except Exception as e:
                 print(f"[Neon Postgres] Erro em write_user_save: {e}")
@@ -1171,36 +1288,6 @@ def save_game():
         client_state["lastSaveTimestamp"] = int(current_time * 1000)
         write_user_save(username, client_state)
         
-        # Sincroniza tabela rankings do Neon se houver dados de stats
-        safe_name = sanitize_username(username).lower()
-        if DATABASE_URL:
-            try:
-                stats = client_state.get("stats", {})
-                combat = client_state.get("combatStats", {})
-                manual_clicks = stats.get("manualClicksAllTime", 0)
-                highest_cps = str(stats.get("highestCPSRecord", "0"))
-                total_prestiges = stats.get("totalPrestiges", 0)
-                current_rank = f"Nível {combat.get('level', 1)}"
-                
-                conn = get_db()
-                if conn:
-                    with conn.cursor() as cur:
-                        cur.execute("""
-                            INSERT INTO rankings (username_key, username, manual_clicks_all_time, highest_cps_record, total_prestiges, current_rank, updated_at)
-                            VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                            ON CONFLICT (username_key) DO UPDATE SET
-                                username = EXCLUDED.username,
-                                manual_clicks_all_time = GREATEST(rankings.manual_clicks_all_time, EXCLUDED.manual_clicks_all_time),
-                                highest_cps_record = EXCLUDED.highest_cps_record,
-                                total_prestiges = GREATEST(rankings.total_prestiges, EXCLUDED.total_prestiges),
-                                current_rank = EXCLUDED.current_rank,
-                                updated_at = NOW();
-                        """, (safe_name, username, manual_clicks, highest_cps, total_prestiges, current_rank))
-                        conn.commit()
-                    conn.close()
-            except Exception as e:
-                print(f"[Neon Postgres] Erro ao sincronizar ranking no save v2: {e}")
-                
         return jsonify({
             "status": "success",
             "state": client_state,
@@ -1240,14 +1327,26 @@ def sync_ranking():
             matched_key = k
             break
 
+    raw_cps = data.get("highestCpsRecord", "0")
+    cps_num = 0.0
+    try:
+        cps_num = float(raw_cps)
+    except Exception:
+        cps_num = 0.0
+
     ranking_entry = {
         "ninjaId": data.get("ninjaId", 0),
         "username": username,
         "manualClicksSession": int(data.get("manualClicksSession", 0)),
         "manualClicksAllTime": int(data.get("manualClicksAllTime", 0)),
-        "highestCpsRecord": str(data.get("highestCpsRecord", "0")),
+        "highestCpsRecord": str(raw_cps),
+        "highestCpsNum": cps_num,
+        "totalTroopsRecruited": int(data.get("totalTroopsRecruited", 0)),
+        "gauntletBossMax": int(data.get("gauntletBossMax", 0)),
         "totalPrestiges": int(data.get("totalPrestiges", 0)),
         "currentRank": data.get("currentRank", "estudante"),
+        "avatar": data.get("avatar", "naruto"),
+        "ninjaTitle": data.get("ninjaTitle", "Estudante da Academia"),
         "updatedAt": datetime.now(timezone.utc).isoformat()
     }
 
@@ -1257,16 +1356,27 @@ def sync_ranking():
             try:
                 with conn.cursor() as cur:
                     cur.execute("""
-                        INSERT INTO rankings (username_key, username, ninja_id, manual_clicks_session, manual_clicks_all_time, highest_cps_record, total_prestiges, current_rank, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                        INSERT INTO rankings (
+                            username_key, username, ninja_id, manual_clicks_session, 
+                            manual_clicks_all_time, highest_cps_record, highest_cps_num, 
+                            highest_cps_display, total_troops_recruited, gauntlet_boss_max, 
+                            total_prestiges, current_rank, avatar, ninja_title, updated_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                         ON CONFLICT (username_key) DO UPDATE SET
                             username = EXCLUDED.username,
                             ninja_id = EXCLUDED.ninja_id,
                             manual_clicks_session = EXCLUDED.manual_clicks_session,
-                            manual_clicks_all_time = EXCLUDED.manual_clicks_all_time,
+                            manual_clicks_all_time = GREATEST(rankings.manual_clicks_all_time, EXCLUDED.manual_clicks_all_time),
                             highest_cps_record = EXCLUDED.highest_cps_record,
-                            total_prestiges = EXCLUDED.total_prestiges,
+                            highest_cps_num = GREATEST(rankings.highest_cps_num, EXCLUDED.highest_cps_num),
+                            highest_cps_display = EXCLUDED.highest_cps_display,
+                            total_troops_recruited = GREATEST(rankings.total_troops_recruited, EXCLUDED.total_troops_recruited),
+                            gauntlet_boss_max = GREATEST(rankings.gauntlet_boss_max, EXCLUDED.gauntlet_boss_max),
+                            total_prestiges = GREATEST(rankings.total_prestiges, EXCLUDED.total_prestiges),
                             current_rank = EXCLUDED.current_rank,
+                            avatar = COALESCE(EXCLUDED.avatar, rankings.avatar),
+                            ninja_title = COALESCE(EXCLUDED.ninja_title, rankings.ninja_title),
                             updated_at = NOW();
                     """, (
                         username.lower(),
@@ -1275,8 +1385,14 @@ def sync_ranking():
                         ranking_entry["manualClicksSession"],
                         ranking_entry["manualClicksAllTime"],
                         ranking_entry["highestCpsRecord"],
+                        ranking_entry["highestCpsNum"],
+                        ranking_entry["highestCpsRecord"],
+                        ranking_entry["totalTroopsRecruited"],
+                        ranking_entry["gauntletBossMax"],
                         ranking_entry["totalPrestiges"],
-                        ranking_entry["currentRank"]
+                        ranking_entry["currentRank"],
+                        ranking_entry["avatar"],
+                        ranking_entry["ninjaTitle"]
                     ))
                     conn.commit()
             except Exception as e:
@@ -1309,31 +1425,69 @@ def sync_ranking():
 @app.route("/rankings/top", methods=["GET"])
 @app.route("/api/api/rankings/top", methods=["GET"])
 def get_top_rankings():
+    category = request.args.get("category", "cps").strip().lower()
+    current_username = request.args.get("username", "").strip().lower()
+    limit = min(100, max(10, int(request.args.get("limit", 50))))
+
+    order_clause = "highest_cps_num DESC, manual_clicks_all_time DESC"
+    if category == "troops":
+        order_clause = "total_troops_recruited DESC, highest_cps_num DESC"
+    elif category == "gauntlet":
+        order_clause = "gauntlet_boss_max DESC, highest_cps_num DESC"
+    elif category == "clicks":
+        order_clause = "manual_clicks_all_time DESC"
+
     if DATABASE_URL:
         conn = get_db()
         if conn:
             try:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                    cur.execute("""
+                    query = f"""
                         SELECT 
                             ninja_id AS "ninjaId",
                             username,
                             manual_clicks_session AS "manualClicksSession",
                             manual_clicks_all_time AS "manualClicksAllTime",
                             highest_cps_record AS "highestCpsRecord",
+                            highest_cps_num AS "highestCpsNum",
+                            highest_cps_display AS "highestCpsDisplay",
+                            total_troops_recruited AS "totalTroopsRecruited",
+                            gauntlet_boss_max AS "gauntletBossMax",
                             total_prestiges AS "totalPrestiges",
                             current_rank AS "currentRank",
+                            avatar,
+                            ninja_title AS "ninjaTitle",
                             updated_at AS "updatedAt"
                         FROM rankings
-                        ORDER BY manual_clicks_all_time DESC
-                        LIMIT 50;
-                    """)
+                        ORDER BY {order_clause}
+                        LIMIT %s;
+                    """
+                    cur.execute(query, (limit,))
                     rows = cur.fetchall()
+
+                    player_rank = None
+                    if current_username:
+                        cur.execute(f"""
+                            WITH ranked AS (
+                                SELECT username_key, ROW_NUMBER() OVER (ORDER BY {order_clause}) as pos
+                                FROM rankings
+                            )
+                            SELECT pos FROM ranked WHERE username_key = %s;
+                        """, (current_username,))
+                        pos_row = cur.fetchone()
+                        if pos_row:
+                            player_rank = int(pos_row["pos"])
+
                     if rows:
                         for r in rows:
                             if r.get("updatedAt"):
                                 r["updatedAt"] = r["updatedAt"].isoformat()
-                        return jsonify({"status": "success", "rankings": rows})
+                        return jsonify({
+                            "status": "success", 
+                            "category": category, 
+                            "rankings": rows,
+                            "playerRank": player_rank
+                        })
             except Exception as e:
                 print(f"[Neon Postgres] Erro em get_top_rankings: {e}")
             finally:
