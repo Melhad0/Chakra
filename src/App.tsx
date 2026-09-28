@@ -13,6 +13,7 @@ import { RankingsView } from './components/views/RankingsView';
 import { MissionsView } from './components/views/MissionsView';
 import { InventoryView } from './components/views/InventoryView';
 import { ItemDropNotifier } from './components/common/ItemDropNotifier';
+import { ShinobiChatWidget } from './components/chat/ShinobiChatWidget';
 
 export const App: React.FC = () => {
   // Inicializa o motor desacoplado de Game Loop, delta time e auto-save (SEMPRE ATIVO EM SEGUNDO PLANO)
@@ -106,6 +107,7 @@ export const App: React.FC = () => {
 
       <OnlineRewardsModal />
       <ItemDropNotifier />
+      <ShinobiChatWidget />
     </div>
   );
 };

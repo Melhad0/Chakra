@@ -4,7 +4,7 @@ import { formatBigNumber, toggleNotationMode, getNotationMode } from '../../engi
 import { calculateTotalCPS } from '../../engine/formulas';
 import { usePlaytime } from '../../hooks/usePlaytime';
 import { audio } from '../../engine/audio';
-import { Volume2, VolumeX, Sparkles, Hash, Flame, SunMedium, User, LogOut, Gift, AlertTriangle, Swords, Clock, Scroll, Briefcase, Cloud, CloudOff, RefreshCw } from 'lucide-react';
+import { Volume2, VolumeX, Sparkles, Hash, Flame, SunMedium, User, LogOut, Gift, AlertTriangle, Swords, Clock, Scroll, Briefcase, Cloud, CloudOff, RefreshCw, MessageSquare } from 'lucide-react';
 import { getCurrentRank } from '../../constants/rankings';
 import { getAvatarById, getFrameById } from '../../constants/profileCustomization';
 
@@ -36,6 +36,8 @@ export const Navbar: React.FC = () => {
   const isCloudSyncing = useGameStore((s) => s.isCloudSyncing);
   const cloudSyncStatus = useGameStore((s) => s.cloudSyncStatus);
   const saveGame = useGameStore((s) => s.saveGame);
+  const isChatOpen = useGameStore((s) => s.isChatOpen);
+  const toggleChat = useGameStore((s) => s.toggleChat);
 
   const { rewardCountdown, readyToClaimCount } = usePlaytime();
 
@@ -379,6 +381,20 @@ export const Navbar: React.FC = () => {
           }`}
         >
           <Sparkles className="w-4 h-4 stroke-[1.75]" />
+        </button>
+
+        {/* Botão de Chat Shinobi da Aldeia */}
+        <button
+          onClick={toggleChat}
+          title="Abrir Chat Shinobi da Aldeia da Folha"
+          className={`relative p-2 rounded-lg border transition cursor-pointer ${
+            isChatOpen
+              ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+              : 'bg-zinc-900/60 hover:bg-zinc-850 border-zinc-800 hover:border-amber-500/40 text-zinc-400 hover:text-amber-300'
+          }`}
+        >
+          <MessageSquare className="w-4 h-4 stroke-[1.75]" />
+          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
         </button>
       </div>
     </header>

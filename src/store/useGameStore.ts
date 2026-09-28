@@ -224,6 +224,12 @@ export interface GameStoreState {
   setCurrentUser: (user: ShinobiUser | null) => void;
   guestLogin: () => void;
   logout: () => void;
+
+  // Chat Shinobi
+  isChatOpen: boolean;
+  openChat: () => void;
+  closeChat: () => void;
+  toggleChat: () => void;
 }
 
 export const STORAGE_KEY = 'chakra_clicker_save_react_v2';
@@ -478,6 +484,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   isAuthModalOpen: false,
   openAuthModal: () => set({ isAuthModalOpen: true }),
   closeAuthModal: () => set({ isAuthModalOpen: false }),
+  isChatOpen: false,
+  openChat: () => set({ isChatOpen: true }),
+  closeChat: () => set({ isChatOpen: false }),
+  toggleChat: () => set((state) => ({ isChatOpen: !state.isChatOpen })),
   setCurrentUser: (user: ShinobiUser | null) => {
     if (user) {
       try {
