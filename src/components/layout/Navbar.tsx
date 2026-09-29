@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { formatBigNumber, toggleNotationMode, getNotationMode } from '../../engine/BigNumber';
 import { calculateTotalCPS } from '../../engine/formulas';
@@ -9,37 +9,22 @@ import {
   VolumeX,
   Sparkles,
   Hash,
-  Flame,
   SunMedium,
   User,
   LogOut,
   Gift,
   AlertTriangle,
-  Swords,
-  Clock,
-  Scroll,
-  Briefcase,
   Cloud,
   CloudOff,
   RefreshCw,
   MessageSquare,
-  ChevronDown,
-  GitFork,
-  Trophy,
-  PanelRight,
 } from 'lucide-react';
-import { getCurrentRank } from '../../constants/rankings';
 import { getAvatarById, getFrameById } from '../../constants/profileCustomization';
 
 export const Navbar: React.FC = () => {
-  const setView = useGameStore((s) => s.setView);
-  const gauntlet = useGameStore((s) => s.gauntlet);
-  const activeMission = useGameStore((s) => s.activeMission);
   const currentUser = useGameStore((s) => s.currentUser);
   const openAuthModal = useGameStore((s) => s.openAuthModal);
   const logout = useGameStore((s) => s.logout);
-  const stats = useGameStore((s) => s.stats);
-  const passedExams = useGameStore((s) => s.passedExams);
   const chakra = useGameStore((s) => s.chakra);
   const chakraAncestral = useGameStore((s) => s.chakraAncestral);
   const generators = useGameStore((s) => s.generators);
@@ -61,43 +46,11 @@ export const Navbar: React.FC = () => {
   const saveGame = useGameStore((s) => s.saveGame);
   const isChatOpen = useGameStore((s) => s.isChatOpen);
   const toggleChat = useGameStore((s) => s.toggleChat);
-  const isRightSidebarOpen = useGameStore((s) => s.isRightSidebarOpen);
-  const toggleRightSidebar = useGameStore((s) => s.toggleRightSidebar);
 
   const { rewardCountdown, readyToClaimCount } = usePlaytime();
 
   const [isMuted, setIsMuted] = useState(audio.isMuted());
   const [notation, setNotation] = useState(getNotationMode());
-  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
-  const [isOpsOpen, setIsOpsOpen] = useState(false);
-
-  const opsDropdownRef = useRef<HTMLDivElement>(null);
-
-  // Fechar dropdown ao clicar fora
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (opsDropdownRef.current && !opsDropdownRef.current.contains(e.target as Node)) {
-        setIsOpsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Cooldown de Desafios (Gauntlet)
-  useEffect(() => {
-    const updateCooldown = () => {
-      if (gauntlet.cooldownExpiresAt && gauntlet.cooldownExpiresAt > Date.now()) {
-        const remaining = Math.max(0, Math.ceil((gauntlet.cooldownExpiresAt - Date.now()) / 1000));
-        setCooldownRemaining(remaining);
-      } else {
-        setCooldownRemaining(0);
-      }
-    };
-    updateCooldown();
-    const interval = setInterval(updateCooldown, 1000);
-    return () => clearInterval(interval);
-  }, [gauntlet.cooldownExpiresAt]);
 
   const currentCPS = useMemo(() => {
     const missionMult = missionPermanentCpsMult * (missionBuffTimer > 0 ? missionBuffMult : 1);
@@ -141,28 +94,7 @@ export const Navbar: React.FC = () => {
     setNotation(next);
   };
 
-  const currentRank = useMemo(() => {
-    return getCurrentRank(
-      stats.manualClicksAllTime,
-      stats.highestCPSRecord,
-      stats.totalPrestiges,
-      passedExams
-    );
-  }, [stats.manualClicksAllTime, stats.highestCPSRecord, stats.totalPrestiges, passedExams]);
 
-  // Alertas dinâmicos para a Central de Operações
-  const isMissionReady = !!(
-    activeMission.activeMissionId &&
-    activeMission.resolvesAt &&
-    Date.now() >= activeMission.resolvesAt
-  );
-  const isMissionRunning = !!(
-    activeMission.activeMissionId &&
-    activeMission.resolvesAt &&
-    activeMission.resolvesAt > Date.now()
-  );
-  const hasOpsAlert = isMissionReady || (cooldownRemaining === 0 && !gauntlet.isFighting);
-  const inventoryItemCount = inventory ? inventory.inventoryBag.filter(Boolean).length : 0;
 
   return (
     <header className="h-14 px-4 bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-800/80 flex items-center justify-between z-30 select-none shadow-sm relative">
@@ -225,208 +157,8 @@ export const Navbar: React.FC = () => {
         )}
       </div>
 
-      {/* 3. Controles & Operações Shinobi */}
+      {/* 3. Controles */}
       <div className="flex items-center gap-2">
-        {/* BOTÃO UNIFICADO: OPERAÇÕES SHINOBI (Agrupa Desafios, Missões, Inventário e mais) */}
-        <div className="relative" ref={opsDropdownRef}>
-          <button
-            onClick={() => setIsOpsOpen((prev) => !prev)}
-            title="Abrir Central de Operações Shinobi (Desafios, Missões, Inventário, Clãs e Rankings)"
-            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border transition-all shadow-sm font-mono text-xs cursor-pointer select-none ${
-              isOpsOpen
-                ? 'bg-purple-950/80 border-purple-500/70 text-purple-200 shadow-[0_0_15px_rgba(168,85,247,0.25)]'
-                : hasOpsAlert
-                ? 'bg-zinc-900 border-amber-500/60 text-amber-300 hover:border-amber-400'
-                : 'bg-zinc-900/80 hover:bg-zinc-850 border-zinc-800 hover:border-zinc-700 text-zinc-200'
-            }`}
-          >
-            <div className="w-5 h-5 rounded-md bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 flex-shrink-0">
-              <Scroll className="w-3 h-3 stroke-[2]" />
-            </div>
-            <span className="font-semibold tracking-wide">Operações Shinobi</span>
-            {hasOpsAlert && (
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-            )}
-            <ChevronDown
-              className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 ${
-                isOpsOpen ? 'rotate-180 text-purple-300' : ''
-              }`}
-            />
-          </button>
-
-          {/* Dropdown Menu com Desafio, Missão, Inventário e Demais Módulos */}
-          {isOpsOpen && (
-            <div className="absolute right-0 mt-2 w-72 bg-zinc-950/95 backdrop-blur-xl border border-zinc-800/90 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 space-y-1">
-              <div className="px-2.5 py-1 flex items-center justify-between text-[10px] font-mono text-zinc-400 border-b border-zinc-850/80">
-                <span className="font-bold uppercase tracking-wider text-purple-400">
-                  Operações Principais
-                </span>
-                <span className="text-zinc-500">Navegação</span>
-              </div>
-
-              {/* Opção 1: Arena de Desafios (Gauntlet) */}
-              <button
-                onClick={() => {
-                  setView('CHALLENGES');
-                  setIsOpsOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl hover:bg-rose-950/40 border border-transparent hover:border-rose-900/50 text-left transition group cursor-pointer"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-rose-950/60 border border-rose-800/60 flex items-center justify-center text-rose-400 group-hover:scale-105 transition-transform">
-                    <Swords className="w-3.5 h-3.5 stroke-[2]" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-zinc-100 group-hover:text-rose-200 transition-colors">
-                      Desafios
-                    </div>
-                    <div className="text-[10px] font-mono text-zinc-400">
-                      Chefe Gauntlet #{gauntlet.currentActiveBossId}
-                    </div>
-                  </div>
-                </div>
-                {cooldownRemaining > 0 ? (
-                  <span className="text-[10px] font-mono text-amber-400 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/50 flex items-center gap-1">
-                    <Clock className="w-2.5 h-2.5 animate-spin" />
-                    {cooldownRemaining}s
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-mono text-rose-400 bg-rose-950/60 px-1.5 py-0.5 rounded border border-rose-800/50">
-                    Batalhar
-                  </span>
-                )}
-              </button>
-
-              {/* Opção 2: Mural de Missões Shinobi */}
-              <button
-                onClick={() => {
-                  setView('MISSIONS');
-                  setIsOpsOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl hover:bg-emerald-950/40 border border-transparent hover:border-emerald-900/50 text-left transition group cursor-pointer"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-950/60 border border-emerald-800/60 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
-                    <Scroll className="w-3.5 h-3.5 stroke-[2]" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-zinc-100 group-hover:text-emerald-200 transition-colors">
-                      Missões
-                    </div>
-                    <div className="text-[10px] font-mono text-zinc-400">
-                      Ranks E a SS • Minigames & Forja
-                    </div>
-                  </div>
-                </div>
-                {isMissionReady ? (
-                  <span className="text-[10px] font-mono text-emerald-300 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-600 animate-pulse font-bold">
-                    Pronto!
-                  </span>
-                ) : isMissionRunning ? (
-                  <span className="text-[10px] font-mono text-amber-400 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/50">
-                    Em Curso
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-mono text-zinc-500">14 Missões</span>
-                )}
-              </button>
-
-              {/* Opção 3: Arsenal & Inventário RPG */}
-              <button
-                onClick={() => {
-                  setView('INVENTORY');
-                  setIsOpsOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl hover:bg-cyan-950/40 border border-transparent hover:border-cyan-900/50 text-left transition group cursor-pointer"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-cyan-950/60 border border-cyan-800/60 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform">
-                    <Briefcase className="w-3.5 h-3.5 stroke-[2]" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-zinc-100 group-hover:text-cyan-200 transition-colors">
-                      Inventário
-                    </div>
-                    <div className="text-[10px] font-mono text-zinc-400">
-                      Arsenal & Afinidades Elementais
-                    </div>
-                  </div>
-                </div>
-                <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/50">
-                  {inventoryItemCount} Itens
-                </span>
-              </button>
-
-              <div className="h-px bg-zinc-850/80 my-1" />
-
-              {/* Opção 4: Árvore de Clãs */}
-              <button
-                onClick={() => {
-                  setView('CLAN_TREE');
-                  setIsOpsOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-purple-950/30 text-left transition group cursor-pointer text-xs"
-              >
-                <div className="flex items-center gap-2 text-zinc-300 group-hover:text-purple-300">
-                  <GitFork className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Árvore de Clãs</span>
-                </div>
-                <span className="text-[10px] font-mono text-purple-400">
-                  {chakraAncestral.toString()}
-                </span>
-              </button>
-
-              {/* Opção 5: Graduação & Exames */}
-              <button
-                onClick={() => {
-                  setView('CHUNIN_EXAM');
-                  setIsOpsOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-amber-950/30 text-left transition group cursor-pointer text-xs"
-              >
-                <div className="flex items-center gap-2 text-zinc-300 group-hover:text-amber-300">
-                  <Flame className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Graduação Shinobi</span>
-                </div>
-                <span className="text-[10px] font-mono text-amber-400">
-                  {currentRank.title}
-                </span>
-              </button>
-
-              {/* Opção 6: Rankings Globais */}
-              <button
-                onClick={() => {
-                  setView('RANKINGS');
-                  setIsOpsOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-cyan-950/30 text-left transition group cursor-pointer text-xs"
-              >
-                <div className="flex items-center gap-2 text-zinc-300 group-hover:text-cyan-300">
-                  <Trophy className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Hall da Fama (Rankings)</span>
-                </div>
-                <span className="text-[10px] font-mono text-cyan-400">Top 100</span>
-              </button>
-
-              <div className="h-px bg-zinc-850/80 my-1" />
-
-              {/* Alternar Painel Lateral */}
-              <button
-                onClick={() => {
-                  toggleRightSidebar();
-                  setIsOpsOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-zinc-900/60 hover:bg-zinc-850 text-left transition text-zinc-400 hover:text-zinc-200 cursor-pointer text-xs font-mono"
-              >
-                <span className="flex items-center gap-2">
-                  <PanelRight className="w-3.5 h-3.5" />
-                  {isRightSidebarOpen ? 'Recolher Painel Lateral' : 'Abrir Painel Lateral'}
-                </span>
-                <span className="text-[9px] text-zinc-500">Lateral</span>
-              </button>
-            </div>
-          )}
-        </div>
 
         {/* Provisões de Presença */}
         <button
