@@ -473,7 +473,6 @@ export const ShinobiChatWidget: React.FC = () => {
             </button>
           </form>
         </div>
-      )}
     </aside>
   );
 };

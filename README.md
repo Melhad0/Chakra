@@ -1,264 +1,348 @@
-# ⚡ Chakra Clicker: A Jornada Ninja (v2.0)
-
 <p align="center">
-  <img src="https://img.shields.io/badge/Versão-2.0.0-orange?style=for-the-badge&logo=react" alt="Versão 2.0" />
-  <img src="https://img.shields.io/badge/React-18.3-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
-  <img src="https://img.shields.io/badge/TypeScript-5.4-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Vite-5.2-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
-  <img src="https://img.shields.io/badge/TailwindCSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind" />
-  <img src="https://img.shields.io/badge/Python-Flask%203.0-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Flask" />
-  <img src="https://img.shields.io/badge/Database-Neon%20Postgres-00E599?style=for-the-badge&logo=postgresql&logoColor=white" alt="Neon Postgres" />
+  <img src="https://img.shields.io/badge/chakra-clicker-F59E0B?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIj48cGF0aCBkPSJNMjEgMTVhMiAyIDAgMCAxLTIgMkg3bC00IDRWNWE0IDIgMCAwIDEgMi0yaDE0YTIgMiAwIDAgMSAyIDJ6Ii8+PC9zdmc+" alt="Chakra Clicker" />
 </p>
 
-Um RPG incremental (clicker/idle) web de alta performance e imersão profunda ambientado no universo de **Naruto**. 
+<h1 align="center">⚡ Chakra Clicker ⚡</h1>
 
-O jogador canaliza Chakra através de selos manuais, recruta legiões de shinobis, domina os 8 Portões Internos, forja equipamentos em um **Paper Doll rúnico de 11 slots**, enfrenta chefes lendários em combates em tempo real com atributos de RPG até o **Nível 700**, executa missões táticas e desperta kekkei genkai ancestrais através do ciclo de prestígio.
+<p align="center">
+  <strong>Recrute o exército ninja definitivo, desbloqueie os Oito Portões Internos e ascenda ao patamar de Deus Otsutsuki — um clique de cada vez.</strong>
+</p>
 
----
+<p align="center">
+  <img src="https://img.shields.io/badge/Engine-React_18_+_Vite_5-61DAFB?style=flat-square&logo=react&logoColor=white" alt="React 18" />
+  <img src="https://img.shields.io/badge/Lang-TypeScript_5-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/State-Zustand_4-6D3F1E?style=flat-square" alt="Zustand" />
+  <img src="https://img.shields.io/badge/Styling-Tailwind_CSS_3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/Backend-Flask_+_Neon_Postgres-000?style=flat-square&logo=postgresql&logoColor=white" alt="Flask + Neon" />
+  <img src="https://img.shields.io/badge/Math-break__infinity.js-FF6B6B?style=flat-square" alt="break_infinity.js" />
+  <img src="https://img.shields.io/badge/Deploy-Vercel-000?style=flat-square&logo=vercel" alt="Vercel" />
+  <img src="https://img.shields.io/badge/Versão-2.0.0-F59E0B?style=flat-square" alt="v2.0.0" />
+</p>
 
-## 🌟 Principais Sistemas e Funcionalidades
-
-### 🌀 1. Palco Central & Núcleo Econômico
-- **Selo de Mão Interativo**: Clique manual reativo com detecção de coordenadas, partículas flutuantes dinâmicas (+Chakra), ondas de choque expansivas (*shockwaves*), acertos críticos e vibração de tela (*camera shake*).
-- **Cenários Animados do Palco**: Alternância visual dinâmica entre a *Floresta de Konohagakure* e o mítico *Vale do Fim Noturno*.
-- **Mais de 30 Geradores Shinobi**: De *Estudante da Academia* e *Clones das Sombras* a *Sannin Lendários*, *Hokages*, *Reencarnações de Indra/Asura* e *Deuses Otsutsuki*.
-- **Compra e Venda em Lotes**: Modos de aquisição rápida `x1`, `x10`, `x100` e `MÁXIMO`.
-- **Escalação Numérica Infinita**: Integração com a biblioteca `break_infinity.js` para cálculos com valores que superam `1e308` sem perda de precisão ou travamentos de ponto flutuante.
-
-### ⚡ 2. Técnicas Ninja & Os Oito Portões Internos
-- **Árvore de Upgrades Passivos**: Dezenas de aprimoramentos canônicos (*Pergaminho de Clones*, *Sharingan*, *Modo Sábio dos Sapos*, *Manto da Kyuubi*, *Esferas da Busca da Verdade*, etc.).
-- **Liberação dos 8 Portões Internos**: Da *Abertura* ao lendário *Portão da Morte*.
-  - Multiplicadores massivos de CPS global e poder de impacto por tempo limitado.
-  - Mecânica de exaustão muscular e fadiga temporária pós-ativação, exigindo timing estratégico do jogador.
-
-### ⚔️ 3. Gauntlet Roguelike & Combate RPG em Tempo Real
-- **Progressão por Arcos Canônicos**: Dezenas de chefes escalonados organizados em arcos (*Clássico*, *Shippuden*, *Guerra Shinobi*, *Otsutsuki*).
-- **Modos de Combate Duplos**:
-  - `PUSH`: Avance na linha de chefes inéditos para desbloquear patamares mais altos.
-  - `FARM`: Repita batalhas contra chefes já superados para coletar XP, ouro, fragmentos e equipamentos.
-- **Sistema de Atributos RPG Shinobi (Nível 1 a 700)**:
-  - **Força**: Aumenta exponencialmente o dano direto infligido aos chefes por clique.
-  - **Vitalidade**: Expande os pontos de vida máximos (HP) do shinobi e sua resistência.
-  - **Agilidade**: Amplia a taxa de acerto crítico e a chance de esquiva (*dodge*).
-- **IA de Ataque dos Chefes & Esquiva Dinâmica**:
-  - Chefes desfere ataques telegrafados com barras de conjuração em tempo real.
-  - Botão de Esquiva reativo e sem tempos de recarga abusivos.
-- **Cenário de Guerra Animado na Box de Duelo**:
-  - Tempestade com relâmpagos e raios celestiais.
-  - Fissuras incandescentes no solo com vazamento de chakra.
-  - Detritos de pedras e meteoritos com física gravitacional de *Chibaku Tensei*.
-  - Camada de fumaça volumétrica dupla, feixes solares divinos (*god rays*) e radar holográfico de combate.
-
-### 🛡️ 4. Inventário & Paper Doll Rúnico de 11 Slots
-- **Interface Estilo ARPG Clássico**:
-  - 11 slots dedicados para equipar o shinobi: *Capacete/Protetor*, *Peitoral/Colete*, *Luvas/Manoplas*, *Botas/Sandálias*, *Arma Corpo a Corpo (Melee)*, *Arma de Longo Alcance (Ranged)*, *Máscara Shinobi*, *Capa/Manto*, *Mochila Tática*, *Colar/Amuleto* e *Runa/Magatama*.
-- **Mochila Ninja com 32 Slots**: Organização visual de equipamentos e materiais com badges, filtros dinâmicos e painel de inspeção detalhado.
-- **Sistema de 10 Tiers Oficiais de Raridade**:
-  - `01. Básico` (#71717A - Cinza Neutro, borda fosca)
-  - `02. Comum` (#15803D - Verde Terroso)
-  - `03. Incomum` (#22C55E - Verde Vívido Jade, brilho esmeralda)
-  - `04. Raro` (#1D4ED8 - Azul Safira Profundo)
-  - `05. Muito Raro` (#00F0FF - Azul Neon Cyan Glow)
-  - `06. Épico` (#A855F7 - Roxo Místico Astral)
-  - `07. Lendário` (#EAB308 - Âmbar Dourado Solar)
-  - `08. Mítico` (#EC4899 - Shimmer Prismático Arco-Íris Animado)
-  - `09. Divino` (#FFFFFF - Luz Celestial Branca Estelar)
-  - `10. ADM's` (#09090B - Vácuo Obsidiana Absoluta com Borda Cromada)
-- **Armas Canônicas Dedicadas para os 40 Chefes**: Cada um dos 40 chefes do Gauntlet possui sua arma temática exclusiva distribuída coerentemente nos 10 tiers (desde a *Shuriken Gigante* de Mizuki até a *Lança Daikokuten* de Isshiki Otsutsuki).
-- **Os 5 Grandes Elementos (Katon, Fūton, Raiton, Doton e Suiton)**:
-  - Afinidade natal sorteada ao iniciar.
-  - Sub-aba dedicada aos 5 Elementos com sistema de **Sacrifício Elemental** de armas excedentes (Épicas, Lendárias, Míticas, Divinas e ADM) para desbloquear novas naturezas de chakra.
-  - Conquista do status primordial de **Shinobi Avatar**.
-
-### 📜 5. Quadro de Missões Shinobi
-- **Classificação por Dificuldade**: Missões de Rank **E**, **D**, **C**, **B**, **A**, **S** e **SS**.
-- **Tomada de Decisões Táticas**: Escolhas contextuais com diferentes chances de sucesso, riscos de colapso e recompensas.
-- **Recompensas Variadas**: Chakra em grande escala, multiplicadores permanentes de CPS, fragmentos de forja e tickets de invocação gacha.
-
-### 🎖️ 6. Exame Chūnin & Promoções de Patamar
-- **Hierarquia Oficial Shinobi**:
-  - *Estudante da Academia* ➔ *Gennin* ➔ *Chūnin* ➔ *Tokubetsu Jōnin* ➔ *Jōnin de Elite* ➔ *Capitão ANBU* ➔ *Sannin Lendário* ➔ *Kage* ➔ *Sábio dos Seis Caminhos (Rikudou)*.
-- **Missões Oficiais de Promoção**:
-  - Examinadores canônicos (Kakashi, Anko, Ibiki, Mestres Sapos, Conselho de Anciãos, Hagoromo).
-  - Pré-requisitos de cliques, CPS, chakra total e prestígios.
-  - Desbloqueio de auras cosméticas douradas e bônus de produção permanentes.
-
-### 🧬 7. Árvore de Clãs & Prestígio (Chakra Ancestral)
-- **Renascimento Shinobi**: Reinicie seu ciclo acumulando *Chakra Ancestral* baseado no progresso da era anterior.
-- **Nós de Linhagem Sanguínea (Kekkei Genkai)**:
-  - **Uchiha**: Despertar do Sharingan, Mangekyō Sharingan Eterno e Susano'o Perfeito.
-  - **Senju**: Vitalidade infinita e Liberação de Madeira (*Mokuton*).
-  - **Hyuuga**: Visão 360 Graus do Byakugan e fechamento de Tenketsu (+50% em missões).
-  - **Otsutsuki**: Consumo do Fruto Proibido de Chakra (multiplicadores massivos globais).
-
-### 🎵 8. Sintetizador de Áudio Procedural (Web Audio API)
-- **Motor Sonoro 100% Nativo**: Não requer downloads de arquivos `.mp3` ou `.wav` externos.
-- Síntese de áudio em tempo real via osciladores harmônicos:
-  - Feedback sutil de cliques manuais e acertos críticos brilhantes.
-  - Sons de compra e upgrades na loja.
-  - Fanfarras triunfais para conclusões de missões e promoções.
-  - Acordes graves e ressonantes para derrotas no Gauntlet.
-  - Controle de áudio global com persistência no LocalStorage.
-
-### 🌐 9. Autenticação, Nuvem Neon Postgres & Economia Offline
-- **IAM Shinobi Completo**: Sistema de registro e login com senhas protegidas por criptografia (Werkzeug Hash).
-- **Modo Convidado (Guest)**: Permite iniciar a jornada imediatamente sem necessidade de registro prévio.
-- **Persistência Híbrida de Dados**:
-  - Armazenamento em nuvem com **Neon PostgreSQL** (tabelas serverless com tipo `JSONB`).
-  - Fallback automático para armazenamento em arquivos locais (`saves/` e `users.json`).
-  - Cache local instantâneo via `localStorage` versionado.
-- **Cálculo de Progresso Offline**: Resgate justo de Chakra gerado enquanto o navegador esteve fechado.
-- **Recompensas de Presença Online**: Bônus progressivos (*Rolling CPS Buffs*) para ninjas dedicados.
-- **Ranking Global**: Leaderboards em tempo real integrados à API.
+<p align="center">
+  <code>📸 Espaço reservado para Screenshot / GIF da Gameplay</code>
+</p>
 
 ---
 
-## 📁 Arquitetura do Repositório
+## 📜 Visão Geral & Enredo
 
-```text
-Chakra/
-├── api/
-│   └── index.py                    # Serverless Functions entrypoint (Vercel)
-├── docs/
-│   ├── MARKDONW.md                 # Diretrizes internas de design e desenvolvimento
-│   └── SKILL.md                    # Especificações técnicas e mecânicas do jogo
-├── scripts/                        # Utilitários de migração e balanceamento (Python/JS)
-│   ├── migrate_to_neon.py          # Script de migração para Neon PostgreSQL
-│   └── sanity_check_balance.js     # Verificador de integridade de dados e balanceamento
-├── src/
-│   ├── components/
-│   │   ├── auth/                   # Modais de Login, Registro e Sessão Shinobi
-│   │   ├── challenges/             # Arena de Batalha, Gauntlet, Cenário de Guerra e Radar
-│   │   ├── common/                 # Modais utilitários, seletores de lote e ícones
-│   │   ├── core/                   # Palco central de clique e backgrounds animados
-│   │   ├── economy/                # Painéis de geradores, upgrades e lista de técnicas
-│   │   ├── layout/                 # Navbar superior, Cockpit e HUD responsivo
-│   │   └── views/                  # Telas modulares (Desafios, Inventário, Clãs, Missões, Ranks)
-│   ├── config/                     # Configuração dinâmica de URLs de API (local e nuvem)
-│   ├── constants/                  # Catálogos de chefes, missões, equipamentos e patentes
-│   ├── engine/                     # BigNumber (break_infinity), GameLoop, Áudio Web API e Fórmulas
-│   ├── store/                      # Zustand Store central (useGameStore) com persistência
-│   ├── styles/                     # Tailwind CSS, camadas e temas personalizados
-│   ├── types/                      # Definições completas de TypeScript (Combate, Itens, Ranks)
-│   ├── App.tsx                     # Orquestrador de views e ciclo de renderização
-│   └── main.tsx                    # Ponto de entrada React 18
-├── index.html                      # Ponto de montagem da aplicação Vite
-├── package.json                    # Dependências e scripts do ecossistema Node.js
-├── script.py                       # Servidor backend Python Flask (Autenticação, Saves e Rankings)
-├── requirements.txt                # Dependências Python (Flask, psycopg2, gunicorn)
-├── .env.example                    # Modelo de variáveis de ambiente (Neon DB, portas, CORS)
-├── Makefile                        # Automação de tarefas para Linux, macOS e Windows
-├── run.bat                         # Runner inteligente de 1-clique para Windows
-├── run.sh                          # Runner inteligente para Linux / macOS / WSL
-└── README.md
+**Chakra Clicker** é um **idle/clicker game incremental** ambientado no universo ninja de Naruto, construído como uma Single Page Application reativa com arquitetura desacoplada de game loop determinístico.
+
+Você assume o papel de um jovem aspirante da **Academia Ninja de Konoha**. Seu objetivo é acumular **chakra** através de cliques manuais e geradores automáticos (tropas), investir em **técnicas**, subir de **patente shinobi**, enfrentar **chefes lendários** em um gauntlet roguelike, forjar **armas raras** e, eventualmente, **renascer** (prestígio) para desbloquear a **Árvore Genealógica de Clãs** — uma progressão meta que transcende ciclos de jogo.
+
+A progressão escala de **0.5 chakra/s** (Estudantes da Academia) até produtividades na faixa de **10^30 chakra/s** (Shibai Otsutsuki), suportada pela biblioteca `break_infinity.js` para aritmética de números arbitrariamente grandes.
+
+---
+
+## 🎮 Como Jogar — Mapa de Controles
+
+| Entrada | Ação |
+|---|---|
+| **Clique Esquerdo** no Palco Central | Gerar chakra manual (com floating numbers e shockwaves cinéticas) |
+| **Toque / Tap** (Mobile) | Mesmo efeito do clique — touch-friendly |
+| **ESC** | Retornar à visão principal do Cockpit Shinobi |
+| **Botões da Navbar** | Navegar entre módulos: Desafios, Missões, Inventário, Rankings, etc. |
+| **🔊 / 🔇** (Navbar) | Toggle de áudio procedural (SFX sintetizado via Web Audio API) |
+| **#** (Navbar) | Alternar entre notação por sufixos (K, M, B, T…) e científica (1.23e15) |
+| **⚡** (Navbar) | Toggle do Modo Cinético (partículas, tremor, screen shake em crits) |
+| **Painéis Laterais** (◀ ▶) | Expandir/colapsar sidebars do Cockpit (Economy / Operations) |
+
+---
+
+## ⚙️ Mecânicas & Funcionalidades
+
+### 🏯 Economia & Geradores (42 Tropas)
+
+- **42 tropas** organizadas em 5 tiers progressivos: **Iniciante** → **Elite** → **Lendário** → **Cósmico** → **Divino**
+- Cada tropa possui **lore canônico**, custo exponencial com inflação geométrica escalonada (1.18× → 1.22× → 1.28× por patamar de nível) e produção de chakra por segundo (CPS)
+- Compras em modo **×1, ×10, ×25, ×100** ou **MAX**, com suporte a **venda** com reembolso parcial
+- **Marcos de Nível** (milestones) que concedem bônus passivos ao atingir níveis específicos (25, 50, 75, 100, 150, 200)
+
+### 🔮 Técnicas & Melhorias (27+ Upgrades)
+
+- **Técnicas ninja** com cadeias evolutivas (v1 → v2 → v3): Fūinjutsu, Ninjutsu, Taijutsu
+- Upgrades globais: multiplicadores de CPS (×2, ×5, ×8, ×10), conversão CPS→Clique, redução de custo de geradores
+- Desbloqueio temático (Rasengan, Manto da Kyuubi, Susano'o Perfeito, Tsukuyomi Infinito, Fruto da Árvore Divina…)
+
+### 🚪 Oito Portões Internos (Hachimon Tonkō)
+
+- **8 Portões** desbloqueáveis com custo crescente de chakra
+- Ativação temporária com **multiplicador massivo de CPS** (até 80×), seguida de período de exaustão muscular
+- Sidebar dedicada com visualização do estado de cada portão
+
+### 🌳 Árvore Genealógica de Clãs (Prestígio)
+
+- Sistema de **Renascimento Shinobi** que reseta o progresso em troca de **Chakra Ancestral**
+- **60 nós** distribuídos em 5 branches: **Raiz**, **Senju**, **Uchiha**, **Hyūga** e **Ōtsutsuki**
+- Cada nó concede bônus permanentes: multiplicadores de CPS, poder de clique, chance de crítico, dano crítico e multiplicador de recompensas
+- Revelação progressiva dos nós por compra
+
+### ⚔️ Gauntlet Roguelike — Arena de Desafios
+
+- **125+ chefes canônicos** organizados em arcos narrativos: Clássico, Shippuden, Guerra & Ōtsutsuki, Boruto & Pós-Guerra
+- Cada chefe possui **HP escalável**, temporizador de batalha, mecânica exclusiva (escudos, regeneração, veneno, QTEs…), loot temático e recompensas de chakra + XP
+- **Loot de boss**: 10 drops temáticos por chefe com sistema de raridades (Básico → Divino → ADM)
+- **Auto-avanço** e **auto-loop** para farming automático
+- **Sistema RPG de Combate**: nível 1-700 com atributos distribuíveis (Força / Vitalidade / Agilidade)
+
+### 📋 Missões Shinobi (Ranks E a SS)
+
+- **Quadro de missões** com briefing narrativo, escolhas táticas e probabilidade de sucesso
+- Cada missão requer patente mínima e possui tempo de execução
+- **Minigames** embutidos que concedem bônus de taxa de sucesso
+- Recompensas: chakra, chakra ancestral, bilhetes gacha, fragmentos de forja, buffs temporários, multiplicadores permanentes
+- Penalidades de falha: exaustão, drenagem de chakra, cooldown
+
+### 🎰 Pavilhão Gacha & Forja Lendária
+
+- **Templo de Invocação** com pulls ×1 e ×10 usando bilhetes ganhos em missões e boss fights
+- **Forja de Armas Lendárias** usando fragmentos de forja com catálogo de receitas
+- **Refinamento** de equipamentos equipados para subir nível de refinação
+- **Desmontagem** de itens para obter fragmentos
+
+### 🎒 Inventário RPG & Afinidade Elemental
+
+- **Paper Doll** com **11 slots** de equipamento: Elmo, Peitoral, Luvas, Botas, Capa, Mochila, Colar, Máscara, Arma Corpo a Corpo, Arma de Longo Alcance, Runa
+- **10 níveis de raridade**: Básico, Comum, Incomum, Raro, Muito Raro, Épico, Lendário, Mítico, Divino, ADM
+- **5 Afinidades Elementais** (Katon, Fūton, Raiton, Doton, Suiton) com sistema de sacrifício elemental
+- Mochila com filtros por raridade e classe de equipamento
+
+### 🏅 Patentes & Promoções Shinobi
+
+- **Hierarquia completa** de patentes: Estudante → Genin → Chūnin → Jōnin → ANBU → Sannin → Kage → Sábio → Deus Shinobi
+- **Missões de promoção** sequenciais para ascender de patamar
+- **Recompensas exclusivas** por patente: descontos de custo, multiplicadores, novos ranks de missão desbloqueados
+
+### 🏆 Rankings & Leaderboards
+
+- **Quadro de Honra Global** sincronizado com Neon Postgres (leaderboard em tempo real)
+- Ranking por chakra total, nível de combate, chefes derrotados e patente
+
+### 🎁 Recompensas de Presença Online
+
+- **Sistema de provisões** com metas de tempo online perpétuas
+- Recompensas escalonadas por tier de presença
+- Buff temporário de CPS ao resgatar recompensas
+
+### 💬 Chat Shinobi da Aldeia
+
+- Chat integrado com **3 canais** (Geral, Clãs, Anúncios)
+- Mensagens ambientais simuladas da comunidade
+- Sistema de **reações com emoji** e picker de emojis rápidos
+
+### 🔊 Motor de Áudio Procedural
+
+- **SFX 100% sintetizado via Web Audio API** — sem arquivos de áudio externos
+- Efeitos sonoros distintos: clique, crítico, compra, level up, jutsu, sucesso de missão, falha, drop mítico
+- Toggle de mute com persistência em `localStorage`
+
+### 💾 Salvamento & Persistência
+
+- **Auto-save** a cada 10 segundos em `localStorage`
+- **Save ao fechar** a aba (`beforeunload`)
+- **Cloud Save** sincronizado com **Neon Postgres** para contas autenticadas
+- Cada usuário possui sua própria chave de save isolada
+
+---
+
+## 🏗️ Arquitetura Técnica
+
+```
+src/
+├── engine/                    # Núcleo do motor de jogo
+│   ├── GameLoop.ts            # Loop desacoplado: 20 ticks lógicos/s (fixo) + 60 FPS render
+│   ├── BigNumber.ts           # Wrapper break_infinity.js com formatação e notação dinâmica
+│   ├── formulas.ts            # Fórmulas de custo, CPS, clique, desconto, prestígio, presença
+│   ├── audio.ts               # Sintetizador procedural (Web Audio API) com 7 efeitos
+│   └── data.ts                # 42 geradores, 27 upgrades e 8 portões (definições iniciais)
+│
+├── store/
+│   └── useGameStore.ts        # Zustand store monolítico (~2500 linhas) com todo o estado do jogo
+│
+├── hooks/
+│   ├── useGameLoop.ts         # Hook React: inicializa loop, auto-save e beforeunload
+│   └── usePlaytime.ts         # Tracker de tempo online e contagem de recompensas
+│
+├── types/                     # 15 módulos de tipagem TypeScript
+│   ├── auth.ts                # Schemas Zod para autenticação shinobi
+│   ├── combat.ts              # Boss, Gauntlet, RPG stats, loot preview
+│   ├── economy.ts             # Geradores e modos de loja
+│   ├── inventory.ts           # 11 slots de gear, Paper Doll, materiais
+│   ├── missions.ts            # Missões E-SS, escolhas táticas, outcomes
+│   ├── prestige.ts            # Árvore de clãs, branches, nós
+│   ├── rarity.ts              # 10 tiers de raridade com pesos estocásticos
+│   ├── rankings.ts            # Patentes e definições de promoção
+│   └── ...
+│
+├── constants/                 # Dados estáticos e catálogos
+│   ├── upgrades.ts            # 27+ técnicas com evolução v1/v2/v3
+│   ├── rankings.ts            # Hierarquia de 9 patentes e cálculos de rank
+│   ├── missionsCatalog.ts     # Catálogo completo de missões (ranks E a SS)
+│   ├── bossLootData.ts        # 10 drops temáticos × 125 chefes = 1250 definições
+│   ├── clanNodes.ts           # 60 nós da Árvore Genealógica de Clãs
+│   ├── gachaPool.ts           # Pool de invocação do Pavilhão Gacha
+│   ├── forgeCatalog.ts        # Receitas da Forja Lendária
+│   └── ...
+│
+├── data/
+│   └── gauntletBosses.ts      # 125+ chefes com HP, mecânicas, lore e loot
+│
+├── components/
+│   ├── core/                  # Palco de ação, background animado, Oito Portões
+│   ├── layout/                # Navbar, CockpitLayout (3 colunas responsivas)
+│   ├── economy/               # Painel econômico, cards de upgrade, lista de tropas
+│   ├── challenges/            # Painel de operações, cenário de batalha, ranking dashboard
+│   ├── views/                 # 7 views dedicadas (Challenges, ClanTree, Missions, Inventory…)
+│   ├── missions/              # Componentes de missões e minigames
+│   ├── chat/                  # Chat Shinobi (widget integrado)
+│   ├── auth/                  # Login, cadastro, modal de autenticação
+│   └── common/                # Badge, IconRenderer, modais, notificadores
+│
+├── config/
+│   └── api.ts                 # URL da API com suporte a Vercel e local
+│
+└── App.tsx                    # Roteamento por estado, gate de auth, montagem de views
 ```
 
----
+### Padrão do Game Loop
 
-## 🚀 Como Executar
+O motor utiliza um **loop fixo-variável desacoplado** (`GameEngineLoop`):
 
-### Pré-requisitos
-- **Node.js**: Versão 18.0 ou superior instalada.
-- **Python**: Versão 3.10 ou superior instalada.
+- **20 ticks lógicos por segundo** (50ms cada) — determinísticos, acumulados via `requestAnimationFrame`
+- **Renderização visual** a 60 FPS (variável, sincronizada ao monitor)
+- **Proteção contra espiral de morte**: delta time travado em 1000ms quando a aba fica suspensa
+- O tick lógico processa: acúmulo de CPS, timers de buff/cooldown/exaustão, regeneração de boss, auto-save trigger
 
----
+### Gerenciamento de Estado
 
-### Opção 1: Execução Automática Unificada (Recomendado)
+Todo o estado do jogo vive em um único **Zustand store** (`useGameStore.ts`, ~2500 linhas), incluindo:
 
-O projeto conta com um **Orquestrador Inteligente** que detecta ferramentas disponíveis, cria automaticamente o ambiente virtual `.venv`, instala dependências (`npm` e `pip`), libera portas travadas (`5000` e `5173`), inicia simultaneamente o backend e o frontend com logs sincronizados e abre o navegador automaticamente:
+- Estado econômico (chakra, geradores, upgrades, clãs)
+- Estado de combate (gauntlet, boss HP, atributos RPG)
+- Estado de inventário (Paper Doll, mochila, afinidade elemental)
+- Estado de missões, presença, chat, auth e navegação
+- Actions (clickChakra, buyGenerator, tick, saveGame, loadGame…)
 
-- **Windows (CMD, PowerShell ou Duplo Clique)**:
-  ```cmd
-  run.bat
-  ```
-  *(Ou dê duplo clique no arquivo `run.bat` pelo Explorador de Arquivos)*
+### Backend & Cloud
 
-- **Linux / macOS / WSL**:
-  ```bash
-  chmod +x run.sh
-  ./run.sh
-  ```
-
-- **GNU Make**:
-  ```bash
-  make run
-  ```
-  *(Execute `make help` para ver todos os comandos disponíveis)*
-
-- **NPM Concurrently**:
-  ```bash
-  npm run dev:all
-  ```
+| Componente | Tecnologia |
+|---|---|
+| API REST | Flask (Python) com CORS |
+| Banco de Dados | Neon Postgres Serverless (JSONB para saves) |
+| Auth | Registro/Login com bcrypt hash (Werkzeug) |
+| Deploy | Vercel (frontend Vite + API serverless Python) |
+| Local Dev | `concurrently` orquestrando Flask (porta 5000) + Vite (porta 5173) |
 
 ---
 
-### Opção 2: Execução Manual dos Serviços
+## 🚀 Como Executar Localmente
 
-Caso deseje rodar os serviços individualmente em abas de terminal separadas:
+### Pré-Requisitos
 
-#### 1. Configurar Variáveis de Ambiente (Opcional)
-Copie o arquivo de exemplo e configure sua string de conexão Neon PostgreSQL (ou use o fallback local):
+- **Node.js** ≥ 18 LTS ([nodejs.org](https://nodejs.org/))
+- **Python** ≥ 3.10 ([python.org](https://www.python.org/))
+- **Git** ([git-scm.com](https://git-scm.com/))
+- *(Opcional)* Conta gratuita no [Neon](https://neon.tech) para cloud saves e leaderboards
+
+### Instalação
+
 ```bash
+# 1. Clone o repositório
+git clone https://github.com/Melhad0/Chakra.git
+cd Chakra
+
+# 2. Instale as dependências do frontend
+npm install
+
+# 3. Crie o ambiente virtual Python e instale as dependências do backend
+python -m venv .venv
+
+# Windows:
+.venv\Scripts\pip install -r requirements.txt
+
+# Linux/macOS:
+.venv/bin/pip install -r requirements.txt
+
+# 4. (Opcional) Configure o banco de dados Neon
+#    Copie .env.example para .env e preencha DATABASE_URL
 cp .env.example .env
 ```
 
-#### 2. Iniciar o Backend Flask (Porta 5000)
-```bash
-# Windows
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python script.py
+### Execução
 
-# Linux / macOS
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python script.py
-```
-
-#### 3. Iniciar o Frontend Vite (Porta 5173)
 ```bash
-npm install
+# Opção 1 — Script orquestrador (Windows) — Recomendado
+run.bat
+
+# Opção 2 — Manualmente com concurrently
+npm run dev:all
+
+# Opção 3 — Apenas o frontend (sem backend/cloud saves)
 npm run dev
 ```
 
-Acesse a aplicação no navegador em: **`http://localhost:5173`**.
+O jogo estará disponível em **http://localhost:5173** e o backend em **http://localhost:5000**.
+
+### Build de Produção
+
+```bash
+npm run build
+npm run preview
+```
 
 ---
 
-## 🛠️ Comandos do Makefile
+## 📐 Stack Técnica Detalhada
 
-O `Makefile` incluído padroniza o ciclo de desenvolvimento em todos os sistemas operacionais:
-
-| Comando | Descrição |
-| :--- | :--- |
-| `make run` | Instala dependências, libera portas e inicia Frontend + Backend em paralelo |
-| `make front` | Inicia exclusivamente o servidor de desenvolvimento do Vite |
-| `make back` | Inicia exclusivamente a API Flask do Python no ambiente `.venv` |
-| `make kill` | Encerra processos que estejam prendendo as portas `5000` e `5173` |
-| `make clean` | Remove arquivos de compilação temporários (`dist`, `.vite`, `__pycache__`) |
-| `make clean-all`| Limpeza profunda (remove também `node_modules` e `.venv`) |
-| `make help` | Exibe a lista formatada de todos os atalhos disponíveis |
-
----
-
-## 🧰 Tecnologias Empregadas
-
-- **Frontend Core**: [React 18](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [Vite 5](https://vitejs.dev/)
-- **Estilização & Design**: [Tailwind CSS](https://tailwindcss.com/), Glassmorphism, Google Fonts (*Outfit*, *Shojumaru*)
-- **Gerenciamento de Estado**: [Zustand](https://zustand-demo.pmnd.rs/) com persistência e subscrições otimizadas
-- **Cálculo Numérico Arbitrário**: [break_infinity.js](https://github.com/Patashu/break_infinity.js) (escala além de `1e308`)
-- **Iconografia**: [Lucide React](https://lucide.dev/)
-- **Áudio**: [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API) nativa com síntese senoidal e harmônica procedural
-- **Backend & API**: [Python 3](https://www.python.org/), [Flask 3](https://flask.palletsprojects.com/), Flask-CORS, Gunicorn
-- **Banco de Dados**: [Neon.tech](https://neon.tech/) (PostgreSQL Serverless com tabelas JSONB e pooling otimizado)
-- **Deploy Serverless**: Compatível com [Vercel](https://vercel.com/) via `api/index.py` e [Render](https://render.com/)
+| Camada | Tecnologias |
+|---|---|
+| **Frontend** | React 18, TypeScript 5, Vite 5, Tailwind CSS 3 |
+| **Estado** | Zustand 4 (store reativo sem boilerplate) |
+| **Matemática** | `break_infinity.js` (números até ~10^308) |
+| **Ícones** | Lucide React (300+ ícones vetoriais) |
+| **Validação** | Zod 4 (schemas de auth e dados) |
+| **Áudio** | Web Audio API (sintetizador procedural nativo) |
+| **Backend** | Flask 3 + Flask-CORS + Psycopg2 |
+| **Database** | Neon PostgreSQL Serverless (JSONB, Free Tier) |
+| **Deploy** | Vercel (rewrites para API serverless Python) |
+| **Dev Tools** | Concurrently, PostCSS, Autoprefixer |
 
 ---
 
-## 📜 Licença & Isenção de Responsabilidade
+## 🎨 Créditos & Atribuição de Assets
 
-Este projeto foi desenvolvido com finalidade de estudo, portfólio de engenharia de software e entretenimento de fãs.
+| Recurso | Origem | Licença |
+|---|---|---|
+| **Ícones SVG** | [Lucide Icons](https://lucide.dev/) | ISC License |
+| **Efeitos Sonoros** | Gerados proceduralmente via Web Audio API (código original) | — |
+| **Sprites / Avatares** | Renderizados via CSS (gradientes, sombras e emoji Unicode) | — |
+| **Backgrounds** | CSS puro (animações keyframe, gradientes radiais e partículas) | — |
+| **Universo Naruto** | Referências temáticas a personagens e conceitos do universo criado por **Masashi Kishimoto** | Fan-made / Uso educacional |
+| **Tipografia** | System font stack do Tailwind (sem fontes externas) | — |
 
-> **Aviso Legal**: Os personagens, nomes, técnicas e elementos do universo de *Naruto* são marcas registradas e de propriedade intelectual de **Masashi Kishimoto**, **Shueisha**, **Studio Pierrot** e **TV Tokyo**. Este jogo não é comercial e não possui fins lucrativos.
+> **Nota:** Este projeto é uma obra **fan-made educacional** e não possui afiliação, endosso ou licenciamento oficial da Shueisha, Pierrot, ou quaisquer detentores dos direitos de Naruto/Boruto. Todos os nomes e referências são utilizados exclusivamente para fins de estudo e entretenimento sem fins lucrativos.
+
+---
+
+## 📊 Números do Projeto
+
+| Métrica | Valor |
+|---|---|
+| Tropas / Geradores | 42 |
+| Técnicas / Upgrades | 27+ |
+| Chefes do Gauntlet | 125+ |
+| Nós da Árvore de Clãs | 60 |
+| Missões | 35+ |
+| Slots de Equipamento | 11 |
+| Tiers de Raridade | 10 |
+| Patentes Shinobi | 9 |
+| Portões Internos | 8 |
+| Canais de Chat | 3 |
+| SFX Procedurais | 7 |
+
+---
+
+<p align="center">
+  <sub>Feito com ⚡ chakra e ☕ café por <a href="https://github.com/Melhad0">@Melhad0</a></sub>
+</p>
