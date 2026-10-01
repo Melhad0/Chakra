@@ -7,9 +7,16 @@ export interface ShinobiUser {
   email: string;             // E-mail válido e formatado
   birthDate: string;         // Data de nascimento (formato ISO: YYYY-MM-DD)
   createdAt: string;         // Timestamp ISO da criação
-  avatar?: string;           // ID do avatar selecionado (ex: 'naruto', 'kakashi')
+  avatar?: string;           // ID do avatar selecionado (ex: 'naruto', 'kakashi') ou 'custom'
   avatarFrame?: string;      // ID da borda selecionada (ex: 'frame_fire', 'frame_hokage')
   favoriteNinja?: string;    // ID do ninja favorito (ex: 'itachi', 'naruto')
+  customAvatar?: string;     // Imagem pessoal customizada (Base64 data:image/... ou URL)
+  customBanner?: string;     // Imagem de banner personalizada (Base64 ou URL ou preset ID)
+  ninjaTag?: string;         // Tag hashtag customizada (ex: '#0001', '#7777')
+  bio?: string;              // "About Me" / Sobre Mim
+  pronouns?: string;         // Pronomes / Subtítulo estético (ex: '☆They/them or she/her☆')
+  statusQuote?: string;      // Frase de status / Lema (ex: '🌪️ tornado wya')
+  equippedInsignias?: string[]; // IDs das insígnias selecionadas para exibição no perfil
 }
 
 export interface UpdateProfilePayload {
@@ -18,6 +25,13 @@ export interface UpdateProfilePayload {
   avatar?: string;
   avatarFrame?: string;
   favoriteNinja?: string;
+  customAvatar?: string;
+  customBanner?: string;
+  ninjaTag?: string;
+  bio?: string;
+  pronouns?: string;
+  statusQuote?: string;
+  equippedInsignias?: string[];
 }
 
 export interface ChangePasswordPayload {
@@ -156,9 +170,8 @@ export const updateProfileSchema = z.object({
   fullName: z
     .string()
     .trim()
-    .min(3, 'O nome deve ter ao menos 3 caracteres.')
-    .max(70, 'O nome não pode exceder 70 caracteres.')
-    .regex(FULL_NAME_REGEX, 'Informe nome e sobrenome válidos (apenas letras).'),
+    .min(2, 'O nome de exibição deve ter ao menos 2 caracteres.')
+    .max(70, 'O nome de exibição não pode exceder 70 caracteres.'),
   username: z
     .string()
     .trim()
@@ -168,6 +181,13 @@ export const updateProfileSchema = z.object({
   avatar: z.string().optional(),
   avatarFrame: z.string().optional(),
   favoriteNinja: z.string().optional(),
+  customAvatar: z.string().optional(),
+  customBanner: z.string().optional(),
+  ninjaTag: z.string().optional(),
+  bio: z.string().max(350, 'A biografia não pode exceder 350 caracteres.').optional(),
+  pronouns: z.string().max(50, 'Pronomes não podem exceder 50 caracteres.').optional(),
+  statusQuote: z.string().max(80, 'O status não pode exceder 80 caracteres.').optional(),
+  equippedInsignias: z.array(z.string()).optional(),
 });
 
 // Schema de validação Zod para Alteração de Senha

@@ -1008,7 +1008,14 @@ def auth_login():
             "createdAt": matched_user.get("createdAt", ""),
             "avatar": matched_user.get("avatar", "naruto"),
             "avatarFrame": matched_user.get("avatarFrame", "frame_default"),
-            "favoriteNinja": matched_user.get("favoriteNinja", "Naruto Uzumaki")
+            "favoriteNinja": matched_user.get("favoriteNinja", "Naruto Uzumaki"),
+            "customAvatar": matched_user.get("customAvatar"),
+            "customBanner": matched_user.get("customBanner"),
+            "ninjaTag": matched_user.get("ninjaTag"),
+            "bio": matched_user.get("bio"),
+            "pronouns": matched_user.get("pronouns"),
+            "statusQuote": matched_user.get("statusQuote"),
+            "equippedInsignias": matched_user.get("equippedInsignias")
         },
         "token": token
     }), 200
@@ -1036,13 +1043,13 @@ def update_profile():
     if not user_record or not isinstance(user_record, dict):
         return jsonify({"success": False, "message": "Registro shinobi não encontrado."}), 404
 
-    # 1. Atualizar Nome Completo (fullName)
+    # 1. Atualizar Nome de Exibição (fullName)
     new_full_name = data.get("fullName", "").strip()
     if new_full_name:
-        if len(new_full_name) < 3 or len(new_full_name) > 70 or not FULL_NAME_REGEX.match(new_full_name):
+        if len(new_full_name) < 2 or len(new_full_name) > 70:
             return jsonify({
                 "success": False,
-                "message": "Nome completo inválido. Informe prenome e sobrenome (3 a 70 caracteres, apenas letras)."
+                "message": "Nome de exibição deve ter entre 2 e 70 caracteres."
             }), 400
         user_record["fullName"] = new_full_name
 
@@ -1058,7 +1065,38 @@ def update_profile():
     if "favoriteNinja" in data and data["favoriteNinja"]:
         user_record["favoriteNinja"] = str(data["favoriteNinja"]).strip()
 
-    # 5. Atualizar Nome de Usuário (username) se alterado
+    # 5. Atualizar Foto Pessoal / Custom Avatar
+    if "customAvatar" in data:
+        user_record["customAvatar"] = str(data["customAvatar"]).strip() if data["customAvatar"] else None
+
+    # 6. Atualizar Banner Personalizado
+    if "customBanner" in data:
+        user_record["customBanner"] = str(data["customBanner"]).strip() if data["customBanner"] else None
+
+    # 7. Atualizar Tag # Customizada
+    if "ninjaTag" in data:
+        raw_tag = str(data["ninjaTag"]).strip()
+        if raw_tag and not raw_tag.startswith('#'):
+            raw_tag = f"#{raw_tag}"
+        user_record["ninjaTag"] = raw_tag if raw_tag else None
+
+    # 8. Atualizar Sobre Mim / Bio
+    if "bio" in data:
+        user_record["bio"] = str(data["bio"])[:350] if data["bio"] else None
+
+    # 9. Atualizar Pronomes / Estética
+    if "pronouns" in data:
+        user_record["pronouns"] = str(data["pronouns"])[:50] if data["pronouns"] else None
+
+    # 10. Atualizar Frase de Status
+    if "statusQuote" in data:
+        user_record["statusQuote"] = str(data["statusQuote"])[:80] if data["statusQuote"] else None
+
+    # 11. Atualizar Insígnias Equipadas
+    if "equippedInsignias" in data and isinstance(data["equippedInsignias"], list):
+        user_record["equippedInsignias"] = [str(x) for x in data["equippedInsignias"][:8]]
+
+    # 12. Atualizar Nome de Usuário (username) se alterado
     new_username = data.get("newUsername", "").strip() or data.get("username", "").strip()
     old_username = user_record.get("username", current_username)
     username_changed = False
@@ -1133,7 +1171,14 @@ def update_profile():
             "createdAt": user_record.get("createdAt"),
             "avatar": user_record.get("avatar", "naruto"),
             "avatarFrame": user_record.get("avatarFrame", "frame_default"),
-            "favoriteNinja": user_record.get("favoriteNinja", "Naruto Uzumaki")
+            "favoriteNinja": user_record.get("favoriteNinja", "Naruto Uzumaki"),
+            "customAvatar": user_record.get("customAvatar"),
+            "customBanner": user_record.get("customBanner"),
+            "ninjaTag": user_record.get("ninjaTag"),
+            "bio": user_record.get("bio"),
+            "pronouns": user_record.get("pronouns"),
+            "statusQuote": user_record.get("statusQuote"),
+            "equippedInsignias": user_record.get("equippedInsignias")
         }
     }), 200
 

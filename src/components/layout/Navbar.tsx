@@ -252,14 +252,24 @@ export const Navbar: React.FC = () => {
                   className="flex items-center gap-1.5 px-2 py-1 bg-zinc-900/80 hover:bg-zinc-850 border border-zinc-800 hover:border-cyan-500/60 rounded-xl text-xs font-mono transition shadow-sm group cursor-pointer"
                 >
                   <div
-                    className={`w-5 h-5 rounded-md bg-gradient-to-br ${navAvatar.bgGradient} border ${navFrame.borderClass} flex items-center justify-center text-[10px] relative flex-shrink-0 shadow-sm`}
+                    className={`w-5 h-5 rounded-md bg-gradient-to-br ${navAvatar.bgGradient} border ${navFrame.borderClass} flex items-center justify-center text-[10px] relative flex-shrink-0 shadow-sm overflow-hidden`}
                   >
-                    <span>{navAvatar.emojiIcon}</span>
+                    {currentUser.customAvatar ? (
+                      <img
+                        src={currentUser.customAvatar}
+                        alt={currentUser.fullName}
+                        className="w-full h-full object-cover rounded-sm"
+                      />
+                    ) : (
+                      <span>{navAvatar.emojiIcon}</span>
+                    )}
                   </div>
                   <span className="text-zinc-200 font-semibold max-w-[80px] truncate hidden md:inline group-hover:text-cyan-300 transition-colors">
                     {currentUser.fullName.split(' ')[0]}
                   </span>
-                  <span className="text-cyan-400 font-bold hidden sm:inline">#{currentUser.ninjaId}</span>
+                  <span className="text-cyan-400 font-bold hidden sm:inline">
+                    {currentUser.ninjaTag || `#${currentUser.ninjaId}`}
+                  </span>
                 </button>
               );
             })()}
