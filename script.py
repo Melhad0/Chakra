@@ -49,10 +49,13 @@ def get_db():
         return None
 
 DEFAULT_STATE = {
-    "chakra": 0.0,
-    "total_chakra_earned": 0.0,
+    "chakra": "0",
+    "chakraAncestral": "0",
+    "activeElement": "Fire",
+    "total_chakra_earned": "0",
     "clicks": 0,
     "last_saved_time": 0.0,
+    "lastSaveTimestamp": 0,
     "prestige_points": 0,
     "total_prestige_points": 0,
     "prestige_upgrades": {
@@ -82,110 +85,113 @@ DEFAULT_STATE = {
         "heaven_star": False
     },
     "generators": {
-        "academy_student": 0,
-        "shadow_clone": 0,
-        "genin": 0,
-        "chunin": 0,
-        "jonin": 0,
-        "anbu": 0,
-        "sannin": 0,
-        "kage": 0,
-        "jinchuriki": 0,
-        "rikudou": 0,
-        "toad_summon": 0,
-        "slug_summon": 0,
-        "snake_summon": 0,
-        "sound_five": 0,
-        "seven_swordsmen": 0,
-        "akatsuki_member": 0,
-        "taka_member": 0,
-        "edo_tensei_warrior": 0,
-        "hyuga_elite": 0,
-        "uchiha_elite": 0,
-        "senju_elite": 0,
-        "otsutsuki_spirit": 0,
-        "bijuu_manifestation": 0,
-        "six_paths_clone": 0,
-        "shinobi_alliance_division": 0,
-        "kaguya_creation": 0,
-        "hamura_guardian": 0,
-        "indras_reincarnation": 0,
-        "asuras_reincarnation": 0,
-        "otsutsuki_god": 0
+        "academy_student": {"level": 0, "unlocked": True},
+        "shadow_clone": {"level": 0, "unlocked": True},
+        "genin": {"level": 0, "unlocked": False},
+        "chunin": {"level": 0, "unlocked": False},
+        "jonin": {"level": 0, "unlocked": False},
+        "anbu": {"level": 0, "unlocked": False},
+        "sannin": {"level": 0, "unlocked": False},
+        "kage": {"level": 0, "unlocked": False},
+        "jinchuriki": {"level": 0, "unlocked": False},
+        "rikudou": {"level": 0, "unlocked": False},
+        "toad_summon": {"level": 0, "unlocked": False},
+        "slug_summon": {"level": 0, "unlocked": False},
+        "snake_summon": {"level": 0, "unlocked": False},
+        "sound_five": {"level": 0, "unlocked": False},
+        "seven_swordsmen": {"level": 0, "unlocked": False},
+        "akatsuki_member": {"level": 0, "unlocked": False},
+        "taka_member": {"level": 0, "unlocked": False},
+        "edo_tensei_warrior": {"level": 0, "unlocked": False},
+        "hyuga_elite": {"level": 0, "unlocked": False},
+        "uchiha_elite": {"level": 0, "unlocked": False},
+        "senju_elite": {"level": 0, "unlocked": False},
+        "otsutsuki_spirit": {"level": 0, "unlocked": False},
+        "bijuu_manifestation": {"level": 0, "unlocked": False},
+        "six_paths_clone": {"level": 0, "unlocked": False},
+        "shinobi_alliance_division": {"level": 0, "unlocked": False},
+        "kaguya_creation": {"level": 0, "unlocked": False},
+        "hamura_guardian": {"level": 0, "unlocked": False},
+        "indras_reincarnation": {"level": 0, "unlocked": False},
+        "asuras_reincarnation": {"level": 0, "unlocked": False},
+        "otsutsuki_god": {"level": 0, "unlocked": False}
     },
-    "upgrades": {
-        "bandana_genin": False,
-        "sealing_scroll": False,
-        "tactical_kunai": False,
-        "tree_climbing": False,
-        "ninja_sandals": False,
-        "chakra_concentration": False,
-        "shadow_clone_scroll": False,
-        "ninja_food_pill": False,
-        "sharingan": False,
-        "sage_mode": False,
-        "kyuubi_cloak": False,
-        "summoning_scroll": False,
-        "choku_tomoe": False,
-        "gravity_training": False,
-        "reaper_seal": False,
-        "kurama_mode": False,
-        "blade_storm": False,
-        "rasengan_mastery": False,
-        "perfect_susanoo": False,
-        "edo_tensei": False,
-        "truth_seeking_orbs": False,
-        "six_paths_sage": False,
-        "infinite_tsukuyomi": False,
-        "otsutsuki_power": False,
-        "divine_tree": False,
-        "creation_all_things": False
+    "upgrades": {},
+    "clanNodes": {},
+    "claimedRankRewards": {},
+    "passedExams": {},
+    "gatesUnlocked": 0,
+    "exhaustionTimer": 0,
+    "clickExhaustionTimer": 0,
+    "onlinePresenceRewardsClaimed": {},
+    "onlinePresenceBuffTimer": 0,
+    "stableRollingCPS": "0",
+    "gachaTickets": 0,
+    "forgeFragments": 0,
+    "missionPermanentCpsMult": 1,
+    "activeMission": {
+        "activeMissionId": None,
+        "selectedChoiceId": None,
+        "startedAt": None,
+        "resolvesAt": None,
+        "lastOutcome": None,
+        "cooldownExpiresAt": None
     },
-    "achievements": {
-        "first_click": False,
-        "reach_100": False,
-        "ten_clones": False,
-        "have_kakashi": False,
-        "reach_1m": False,
-        "sage_master": False,
-        "infinite_chakra": False,
-        "clicks_1000": False,
-        "first_summon": False,
-        "ultimate_master": False,
-        "tailed_chakra": False,
-        "hero_of_konoha": False
+    "combatStats": {
+        "level": 1,
+        "currentXp": "0",
+        "requiredXp": "650",
+        "unspentStatPoints": 0,
+        "strength": 10,
+        "vitality": 10,
+        "agility": 5
     },
-    "missions": {
-        "protect_village": {"status": "idle", "end_time": 0.0},
-        "infiltrate_akatsuki": {"status": "idle", "end_time": 0.0},
-        "kyuubi_battle": {"status": "idle", "end_time": 0.0},
-        "camp_zabuza": {"status": "idle", "end_time": 0.0, "completed": False},
-        "camp_forest_death": {"status": "idle", "end_time": 0.0, "completed": False},
-        "camp_orochimaru": {"status": "idle", "end_time": 0.0, "completed": False},
-        "camp_final_valley": {"status": "idle", "end_time": 0.0, "completed": False}
+    "gauntlet": {
+        "currentActiveBossId": 1,
+        "highestBossDefeated": 0,
+        "maxUnlockedBoss": 0,
+        "cooldownExpiresAt": None,
+        "isFighting": False,
+        "bossCurrentHp": "50000",
+        "bossTimeRemaining": 30,
+        "autoAdvance": False,
+        "autoLoop": False
     },
-    "swords": {
-        "kubikiribocho": False,
-        "samehada": False,
-        "kusanagi": False,
-        "totsuka": False,
-        "hiramekarei": False,
-        "kiba": False
+    "inventory": {
+        "equippedArmor": None,
+        "equippedWeapon": None,
+        "equippedGear": {
+            "HEADWEAR": None,
+            "CHESTPLATE": None,
+            "PANTS": None,
+            "BOOTS": None,
+            "WEAPON_MELEE": None,
+            "WEAPON_RANGED": None,
+            "ACCESSORY": None,
+            "RELIC": None
+        },
+        "unlockedElements": ["FIRE"],
+        "inventoryBag": [],
+        "elementalSacrificePenaltyMult": 1.0,
+        "isAvatarShinobi": False
     },
+    "stats": {
+        "manualClicksAllTime": 0,
+        "highestCPSRecord": "0",
+        "totalPrestiges": 0,
+        "playtimeSeconds": 0,
+        "totalChakraEarned": "0"
+    },
+    "achievements": {},
+    "missions": {},
+    "swords": {},
     "equipped_sword": "",
     "bijuu": {
         "chosen": "",
         "level": 1,
         "completed_goals": []
     },
-    "swords_levels": {
-        "kubikiribocho": 1,
-        "samehada": 1,
-        "kusanagi": 1,
-        "totsuka": 1,
-        "hiramekarei": 1,
-        "kiba": 1
-    },
+    "swords_levels": {},
     "gates_unlocked": 0
 }
 
@@ -533,6 +539,33 @@ def load_user_save(username):
                                     int(c_row.get("highest_boss_defeated", 0))
                                 )
                                 state["gauntlet"]["currentActiveBossId"] = c_row.get("current_active_boss_id", 1)
+                        elif not c_row and is_react_v2_state(state):
+                            combat = state.setdefault("combatStats", copy.deepcopy(DEFAULT_STATE["combatStats"]))
+                            gauntlet = state.setdefault("gauntlet", copy.deepcopy(DEFAULT_STATE["gauntlet"]))
+                            try:
+                                cur.execute("""
+                                    INSERT INTO user_combat_stats (
+                                        username_key, username, level, current_xp, required_xp,
+                                        unspent_stat_points, strength, vitality, agility,
+                                        highest_boss_defeated, current_active_boss_id, updated_at
+                                    )
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                                    ON CONFLICT (username_key) DO NOTHING;
+                                """, (
+                                    safe_name, username,
+                                    int(combat.get("level", 1)),
+                                    float(combat.get("currentXp", 0)),
+                                    float(combat.get("requiredXp", 650)),
+                                    int(combat.get("unspentStatPoints", 0)),
+                                    int(combat.get("strength", 10)),
+                                    int(combat.get("vitality", 10)),
+                                    int(combat.get("agility", 5)),
+                                    int(gauntlet.get("highestBossDefeated", 0)),
+                                    int(gauntlet.get("currentActiveBossId", 1))
+                                ))
+                                conn.commit()
+                            except Exception as e_init:
+                                print(f"[Neon Postgres] Falha ao auto-inserir user_combat_stats: {e_init}")
 
                         if is_react_v2_state(state):
                             return state
@@ -544,6 +577,11 @@ def load_user_save(username):
                                     if subkey not in state[key]:
                                         state[key][subkey] = copy.deepcopy(subval)
                         return state
+                    else:
+                        # Nenhum save no banco Neon: cria save v2 padrão completo
+                        new_state = copy.deepcopy(DEFAULT_STATE)
+                        write_user_save(username, new_state)
+                        return new_state
             except Exception as e:
                 print(f"[Neon Postgres] Erro em load_user_save: {e}")
             finally:
@@ -1318,25 +1356,36 @@ def upgrade_challenge_stat():
                         """, (safe_name, username))
                         c_row = cur.fetchone()
 
-                    unspent = int(c_row.get("unspent_stat_points", 0))
-                    if unspent < amount:
+                    client_combat = data.get("combatStats", {})
+                    client_unspent = int(client_combat.get("unspentStatPoints", 0)) if isinstance(client_combat, dict) else 0
+                    client_level = int(client_combat.get("level", 1)) if isinstance(client_combat, dict) else 1
+
+                    db_level = int(c_row.get("level", 1))
+                    db_unspent = int(c_row.get("unspent_stat_points", 0))
+
+                    # Harmoniza se o cliente avançou de nível recentemente
+                    effective_level = max(db_level, client_level)
+                    effective_unspent = max(db_unspent, client_unspent)
+
+                    if effective_unspent < amount:
                         return jsonify({
                             "success": False,
-                            "message": f"Pontos de atributo insuficientes. Disponíveis: {unspent}, Requeridos: {amount}",
-                            "unspentStatPoints": unspent
+                            "message": f"Pontos de atributo insuficientes. Disponíveis: {effective_unspent}, Requeridos: {amount}",
+                            "unspentStatPoints": effective_unspent
                         }), 400
 
-                    new_unspent = unspent - amount
+                    new_unspent = effective_unspent - amount
                     new_val = int(c_row.get(stat, 10)) + amount
 
                     cur.execute(f"""
                         UPDATE user_combat_stats
-                        SET unspent_stat_points = %s,
+                        SET level = %s,
+                            unspent_stat_points = %s,
                             {stat} = %s,
                             updated_at = NOW()
                         WHERE username_key = %s
                         RETURNING *;
-                    """, (new_unspent, new_val, safe_name))
+                    """, (effective_level, new_unspent, new_val, safe_name))
                     updated_row = cur.fetchone()
 
                     # Sincroniza também no state JSON em saves para manter retrocompatibilidade
@@ -1345,6 +1394,7 @@ def upgrade_challenge_stat():
                     if s_row and s_row.get("state") and is_react_v2_state(s_row["state"]):
                         s_state = s_row["state"]
                         combat = s_state.setdefault("combatStats", {})
+                        combat["level"] = effective_level
                         combat["unspentStatPoints"] = new_unspent
                         combat[stat] = new_val
                         cur.execute("""

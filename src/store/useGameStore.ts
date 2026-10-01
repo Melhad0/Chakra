@@ -906,6 +906,15 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           username: currentUser.username,
           stat,
           amount,
+          combatStats: {
+            level: s.combatStats.level,
+            currentXp: s.combatStats.currentXp.toString(),
+            requiredXp: s.combatStats.requiredXp.toString(),
+            unspentStatPoints: s.combatStats.unspentStatPoints,
+            strength: s.combatStats.strength,
+            vitality: s.combatStats.vitality,
+            agility: s.combatStats.agility,
+          },
         }),
       }).catch((err) => {
         console.warn('[Neon Sync] Falha ao sincronizar pontos de combate:', err);

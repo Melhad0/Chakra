@@ -3,7 +3,6 @@ import { useGameStore } from '../../store/useGameStore';
 import { formatBigNumber, D } from '../../engine/BigNumber';
 import {
   SHINOBI_RANKS,
-  RIVAL_SHINOBIS,
   getCurrentRank,
   getNextRank,
   calculateRankProgress,
@@ -189,30 +188,9 @@ export const RankingDashboard: React.FC = () => {
       prestiges,
     };
 
-    const combined = RIVAL_SHINOBIS.map((r, idx) => ({
-      isUser: false,
-      name: r.name,
-      title: r.title,
-      avatar: r.avatar,
-      sessionClicks: r.sessionClicks,
-      allTimeClicks: r.allTimeClicks,
-      highestCPS: r.peakCPS.toString(),
-      totalTroops: Math.max(10, (10 - idx) * 35),
-      gauntletBoss: Math.max(1, 15 - idx),
-      prestiges: r.prestiges,
-    }));
-
-    combined.push(userEntry);
-
-    // Ordenação dinâmica pelo placar selecionado
-    if (activeLeaderboard === 'totalTroops') {
-      combined.sort((a, b) => b.totalTroops - a.totalTroops);
-    } else if (activeLeaderboard === 'gauntletBoss') {
-      combined.sort((a, b) => b.gauntletBoss - a.gauntletBoss);
-    } else if (activeLeaderboard === 'allTimeClicks') {
-      combined.sort((a, b) => b.allTimeClicks - a.allTimeClicks);
-    } else {
-      combined.sort((a, b) => (D(b.highestCPS).gt(D(a.highestCPS)) ? 1 : -1));
+    const combined: any[] = [];
+    if (currentUser) {
+      combined.push(userEntry);
     }
 
     return combined.map((entry, idx) => ({ ...entry, position: idx + 1 }));
@@ -380,15 +358,22 @@ export const RankingDashboard: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-900">
-            {rivalryList.map((ninja) => (
-              <tr
-                key={`${ninja.name}-${ninja.position}`}
-                className={`transition ${
-                  ninja.isUser
-                    ? 'bg-amber-950/30 text-amber-300 font-bold border-l-2 border-amber-400'
-                    : 'hover:bg-zinc-900/50 text-zinc-300'
-                }`}
-              >
+            {rivalryList.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="py-8 text-center text-zinc-500 font-mono text-xs">
+                  Nenhum competidor registrado no banco Neon ainda.
+                </td>
+              </tr>
+            ) : (
+              rivalryList.map((ninja) => (
+                <tr
+                  key={`${ninja.name}-${ninja.position}`}
+                  className={`transition ${
+                    ninja.isUser
+                      ? 'bg-amber-950/30 text-amber-300 font-bold border-l-2 border-amber-400'
+                      : 'hover:bg-zinc-900/50 text-zinc-300'
+                  }`}
+                >
                 <td className="py-2.5 px-3 text-center">
                   {ninja.position === 1 ? (
                     <Medal className="w-4 h-4 text-amber-400 mx-auto" />
@@ -415,7 +400,8 @@ export const RankingDashboard: React.FC = () => {
                   {formatLeaderboardScore(ninja)}
                 </td>
               </tr>
-            ))}
+            ))
+          )}
           </tbody>
         </table>
       </div>

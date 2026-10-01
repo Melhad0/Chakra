@@ -62,65 +62,6 @@ export const ShinobiChatWidget: React.FC = () => {
     }
   }, [messages, isOpen]);
 
-  // Simulação ocasional de mensagem ambiental da comunidade
-  useEffect(() => {
-    const ambientInterval = setInterval(() => {
-      // 30% de chance de chegar uma dica ou mensagem de outro ninja a cada 45 segundos
-      if (Math.random() < 0.4) {
-        const ambientQuotes = [
-          {
-            name: 'Kiba_Akamaru',
-            rank: 'Chūnin',
-            rankColor: 'text-emerald-400 border-emerald-500/40 bg-emerald-950/40',
-            avatar: 'naruto',
-            clan: 'Inuzuka',
-            content: 'O faro do Akamaru detectou chefes raros no Gauntlet! Preparem as técnicas!',
-            channel: 'general' as ChatChannelId,
-            emoji: '🐾',
-          },
-          {
-            name: 'Neji_Tenketsu',
-            rank: 'Jōnin',
-            rankColor: 'text-cyan-400 border-cyan-500/40 bg-cyan-950/40',
-            avatar: 'kakashi',
-            clan: 'Hyūga',
-            content: 'Nenhum destino é imutável quando seu CPS ultrapassa 10 bilhões por segundo.',
-            channel: 'clans' as ChatChannelId,
-            emoji: '👁️',
-          },
-          {
-            name: 'Tenten_Weapons',
-            rank: 'Chūnin',
-            rankColor: 'text-amber-400 border-amber-500/40 bg-amber-950/40',
-            avatar: 'naruto',
-            clan: 'Folha',
-            content: 'O ferreiro da folha renovou o estoque de armas com novas pedras de aprimoramento!',
-            channel: 'general' as ChatChannelId,
-            emoji: '⚔️',
-          },
-        ];
-
-        const pick = ambientQuotes[Math.floor(Math.random() * ambientQuotes.length)];
-        const newMsg: ChatMessage = {
-          id: `msg-ambient-${Date.now()}`,
-          channelId: pick.channel,
-          senderId: `ambient-${pick.name}`,
-          senderName: pick.name,
-          senderAvatar: pick.avatar,
-          senderRankTitle: pick.rank,
-          senderRankColor: pick.rankColor,
-          senderClan: pick.clan,
-          content: pick.content,
-          timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          reactions: [{ emoji: pick.emoji, count: 1, userReacted: false }],
-        };
-
-        setMessages((prev) => [...prev, newMsg]);
-      }
-    }, 40000);
-
-    return () => clearInterval(ambientInterval);
-  }, []);
 
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -287,7 +228,14 @@ export const ShinobiChatWidget: React.FC = () => {
 
           {/* Lista de Mensagens com Rolagem Suave */}
           <div className="flex-1 p-3 overflow-y-auto custom-scrollbar space-y-3">
-            {filteredMessages.map((msg) => {
+            {filteredMessages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-48 text-center text-zinc-500 font-mono text-xs">
+                <Radio className="w-8 h-8 text-zinc-600 mb-2 stroke-[1.5]" />
+                <p>Nenhuma mensagem shinobi neste canal ainda.</p>
+                <p className="text-[10px] text-zinc-600 mt-1">Envie uma mensagem abaixo para iniciar a transmissão.</p>
+              </div>
+            ) : (
+              filteredMessages.map((msg) => {
               const isMe = msg.isCurrentUser;
               const isSys = msg.isSystem;
 
@@ -403,8 +351,9 @@ export const ShinobiChatWidget: React.FC = () => {
                   </div>
                 </div>
               );
-            })}
-            <div ref={messagesEndRef} />
+            })
+          )}
+          <div ref={messagesEndRef} />
           </div>
 
           {/* Seletor Rápido de Emojis / Selos de Mão Ninjas */}

@@ -3,7 +3,6 @@ import { useGameStore } from '../../store/useGameStore';
 import { formatBigNumber, D } from '../../engine/BigNumber';
 import {
   SHINOBI_RANKS,
-  RIVAL_SHINOBIS,
   getCurrentRank,
   getNextRank,
   calculateRankProgress,
@@ -160,9 +159,27 @@ export const RankingsView: React.FC = () => {
     return () => clearInterval(timer);
   }, [currentUser, sessionClicks, allTimeClicks, highestCPS, prestiges, totalTroops, gauntletBossMax]);
 
-  // Lista dinâmica do leaderboard (Usa Neon Postgres se disponível, ou mescla rivais locais)
+  // Lista dinâmica do leaderboard (Alimentado 100% pelo Neon Postgres)
   const displayLeaderboard = useMemo(() => {
-    if (isCloudLoaded && cloudRankings.length > 0) {
+    if (isCloudLoaded) {
+      if (cloudRankings.length === 0) {
+        if (!currentUser) return [];
+        return [
+          {
+            position: 1,
+            isPlayer: true,
+            name: currentUser.fullName || currentUser.username,
+            title: currentRank.title,
+            avatar: currentUser.avatar || 'naruto',
+            highestCPS: highestCPS.toString(),
+            totalTroops,
+            gauntletBoss: gauntletBossMax,
+            allTimeClicks,
+            prestiges,
+          },
+        ];
+      }
+
       return cloudRankings.map((entry, index) => {
         const isCurrentPlayer =
           currentUser?.username &&
@@ -183,61 +200,31 @@ export const RankingsView: React.FC = () => {
       });
     }
 
-    // Fallback: Rivais locais emulação
-    const playerEntry = {
-      isPlayer: true,
-      name: currentUser ? currentUser.fullName : 'Você (Shinobi)',
-      title: currentRank.title,
-      avatar: currentUser?.avatar || 'naruto',
-      sessionClicks,
-      allTimeClicks,
-      highestCPS: highestCPS.toString(),
-      totalTroops,
-      gauntletBoss: gauntletBossMax,
-      prestiges,
-    };
+    if (!currentUser) return [];
 
-    const rivalsList = RIVAL_SHINOBIS.map((r, idx) => ({
-      isPlayer: false,
-      name: r.name,
-      title: r.title,
-      avatar: r.avatar,
-      sessionClicks: r.sessionClicks,
-      allTimeClicks: r.allTimeClicks,
-      highestCPS: r.peakCPS.toString(),
-      totalTroops: Math.max(10, (10 - idx) * 35),
-      gauntletBoss: Math.max(1, 15 - idx),
-      prestiges: r.prestiges,
-    }));
-
-    const combined = [...rivalsList, playerEntry];
-
-    combined.sort((a, b) => {
-      if (activeLeaderboard === 'totalTroops') {
-        return b.totalTroops - a.totalTroops;
-      }
-      if (activeLeaderboard === 'gauntletBoss') {
-        return b.gauntletBoss - a.gauntletBoss;
-      }
-      if (activeLeaderboard === 'allTimeClicks') {
-        return b.allTimeClicks - a.allTimeClicks;
-      }
-      // peakCps
-      return D(b.highestCPS).gt(D(a.highestCPS)) ? 1 : -1;
-    });
-
-    return combined.map((item, idx) => ({ ...item, position: idx + 1 }));
+    return [
+      {
+        position: 1,
+        isPlayer: true,
+        name: currentUser.fullName || currentUser.username,
+        title: currentRank.title,
+        avatar: currentUser.avatar || 'naruto',
+        highestCPS: highestCPS.toString(),
+        totalTroops,
+        gauntletBoss: gauntletBossMax,
+        allTimeClicks,
+        prestiges,
+      },
+    ];
   }, [
     isCloudLoaded,
     cloudRankings,
     currentUser,
     currentRank,
-    activeLeaderboard,
-    sessionClicks,
-    allTimeClicks,
     highestCPS,
     totalTroops,
     gauntletBossMax,
+    allTimeClicks,
     prestiges,
   ]);
 
@@ -397,46 +384,54 @@ export const RankingsView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-850/60">
-                {displayLeaderboard.map((ninja, index) => {
-                  const isCurrentPlayer = ninja.isPlayer;
+                {displayLeaderboard.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-12 text-center text-zinc-500 font-mono text-xs">
+                      Nenhum shinobi ranqueado ainda no Neon PostgreSQL. Cadastre-se ou sincronize para inaugurar o Hall da Fama!
+                    </td>
+                  </tr>
+                ) : (
+                  displayLeaderboard.map((ninja, index) => {
+                    const isCurrentPlayer = ninja.isPlayer;
 
-                  return (
-                    <tr
-                      key={`${ninja.name}-${index}`}
-                      className={`transition ${
-                        isCurrentPlayer
-                          ? 'bg-amber-950/40 font-bold text-amber-300 border-l-2 border-amber-400'
-                          : 'hover:bg-zinc-850/40 text-zinc-300'
-                      }`}
-                    >
-                      <td className="py-3 px-4 text-center">
-                        {ninja.position === 1 ? (
-                          <Medal className="w-4 h-4 text-amber-400 mx-auto" />
-                        ) : ninja.position === 2 ? (
-                          <Medal className="w-4 h-4 text-zinc-300 mx-auto" />
-                        ) : ninja.position === 3 ? (
-                          <Medal className="w-4 h-4 text-amber-700 mx-auto" />
-                        ) : (
-                          <span className="text-zinc-500 font-bold">#{ninja.position}</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center flex-shrink-0 text-zinc-300">
-                            <IconRenderer name={ninja.avatar} className="w-4 h-4 stroke-[1.8]" />
+                    return (
+                      <tr
+                        key={`${ninja.name}-${index}`}
+                        className={`transition ${
+                          isCurrentPlayer
+                            ? 'bg-amber-950/40 font-bold text-amber-300 border-l-2 border-amber-400'
+                            : 'hover:bg-zinc-850/40 text-zinc-300'
+                        }`}
+                      >
+                        <td className="py-3 px-4 text-center">
+                          {ninja.position === 1 ? (
+                            <Medal className="w-4 h-4 text-amber-400 mx-auto" />
+                          ) : ninja.position === 2 ? (
+                            <Medal className="w-4 h-4 text-zinc-300 mx-auto" />
+                          ) : ninja.position === 3 ? (
+                            <Medal className="w-4 h-4 text-amber-700 mx-auto" />
+                          ) : (
+                            <span className="text-zinc-500 font-bold">#{ninja.position}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center flex-shrink-0 text-zinc-300">
+                              <IconRenderer name={ninja.avatar} className="w-4 h-4 stroke-[1.8]" />
+                            </div>
+                            <div>
+                              <span className="font-semibold block truncate max-w-[200px]">{ninja.name}</span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="font-semibold block truncate max-w-[200px]">{ninja.name}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-zinc-400">{ninja.title}</td>
-                      <td className="py-3 px-4 text-right font-semibold text-emerald-400">
-                        {formatMetricDisplay(ninja)}
-                      </td>
-                    </tr>
-                  );
-                })}
+                        </td>
+                        <td className="py-3 px-4 text-zinc-400">{ninja.title}</td>
+                        <td className="py-3 px-4 text-right font-semibold text-emerald-400">
+                          {formatMetricDisplay(ninja)}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
