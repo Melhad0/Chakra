@@ -514,6 +514,26 @@ def load_user_save(username):
                     row = cur.fetchone()
                     if row and row.get("state"):
                         state = row["state"]
+                        # Busca os dados relacionais de combate shinobi no Neon para garantir consistência
+                        cur.execute("SELECT * FROM user_combat_stats WHERE username_key = %s", (safe_name,))
+                        c_row = cur.fetchone()
+                        if c_row and is_react_v2_state(state):
+                            state["combatStats"] = {
+                                "level": c_row["level"],
+                                "currentXp": str(c_row["current_xp"]),
+                                "requiredXp": str(c_row["required_xp"]),
+                                "unspentStatPoints": c_row["unspent_stat_points"],
+                                "strength": c_row["strength"],
+                                "vitality": c_row["vitality"],
+                                "agility": c_row["agility"]
+                            }
+                            if "gauntlet" in state and isinstance(state["gauntlet"], dict):
+                                state["gauntlet"]["highestBossDefeated"] = max(
+                                    int(state["gauntlet"].get("highestBossDefeated", 0)),
+                                    int(c_row.get("highest_boss_defeated", 0))
+                                )
+                                state["gauntlet"]["currentActiveBossId"] = c_row.get("current_active_boss_id", 1)
+
                         if is_react_v2_state(state):
                             return state
                         for key, val in DEFAULT_STATE.items():
@@ -563,6 +583,47 @@ def write_user_save(username, state):
                             state = EXCLUDED.state,
                             updated_at = NOW();
                     """, (safe_name, username, Json(state)))
+
+                    # Sincroniza a tabela relacional user_combat_stats no Neon (chave estrangeira com users)
+                    if is_react_v2_state(state):
+                        combat = state.get("combatStats", {})
+                        gauntlet = state.get("gauntlet", {})
+                        try:
+                            cur.execute("""
+                                INSERT INTO user_combat_stats (
+                                    username_key, username, level, current_xp, required_xp,
+                                    unspent_stat_points, strength, vitality, agility,
+                                    highest_boss_defeated, current_active_boss_id, updated_at
+                                )
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                                ON CONFLICT (username_key) DO UPDATE SET
+                                    username = EXCLUDED.username,
+                                    level = EXCLUDED.level,
+                                    current_xp = EXCLUDED.current_xp,
+                                    required_xp = EXCLUDED.required_xp,
+                                    unspent_stat_points = EXCLUDED.unspent_stat_points,
+                                    strength = EXCLUDED.strength,
+                                    vitality = EXCLUDED.vitality,
+                                    agility = EXCLUDED.agility,
+                                    highest_boss_defeated = GREATEST(user_combat_stats.highest_boss_defeated, EXCLUDED.highest_boss_defeated),
+                                    current_active_boss_id = EXCLUDED.current_active_boss_id,
+                                    updated_at = NOW();
+                            """, (
+                                safe_name,
+                                username,
+                                int(combat.get("level", 1)),
+                                float(combat.get("currentXp", 0)),
+                                float(combat.get("requiredXp", 650)),
+                                int(combat.get("unspentStatPoints", 0)),
+                                int(combat.get("strength", 10)),
+                                int(combat.get("vitality", 10)),
+                                int(combat.get("agility", 5)),
+                                int(gauntlet.get("highestBossDefeated", 0)),
+                                int(gauntlet.get("currentActiveBossId", 1))
+                            ))
+                        except Exception as e_c:
+                            print(f"[Neon Postgres] Falha ao sincronizar user_combat_stats em write_user_save: {e_c}")
+
                     conn.commit()
             except Exception as e:
                 print(f"[Neon Postgres] Erro em write_user_save: {e}")
@@ -1210,6 +1271,277 @@ def save_game():
         "version": "v1"
     })
 
+# -------------------------------------------------------------
+# Endpoints Relacionais para Desafios & Atributos Shinobi (Neon)
+# -------------------------------------------------------------
+
+@app.route("/api/challenges/upgrade-stat", methods=["POST"])
+def upgrade_challenge_stat():
+    data = request.json or {}
+    username = data.get("username", "").strip()
+    stat = data.get("stat", "").strip().lower()
+    amount = int(data.get("amount", 1))
+
+    if not username:
+        return jsonify({"success": False, "message": "Identificador de usuário ausente."}), 400
+
+    if stat not in ("strength", "vitality", "agility"):
+        return jsonify({"success": False, "message": f"Atributo inválido: {stat}. Use 'strength', 'vitality' ou 'agility'."}), 400
+
+    if amount <= 0:
+        return jsonify({"success": False, "message": "A quantidade de pontos deve ser maior que zero."}), 400
+
+    safe_name = sanitize_username(username).lower()
+
+    if DATABASE_URL:
+        conn = get_db()
+        if conn:
+            try:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    # Trava a linha para atualização atômica de pontos
+                    cur.execute("""
+                        SELECT * FROM user_combat_stats
+                        WHERE username_key = %s
+                        FOR UPDATE;
+                    """, (safe_name,))
+                    c_row = cur.fetchone()
+
+                    if not c_row:
+                        cur.execute("""
+                            INSERT INTO user_combat_stats (
+                                username_key, username, level, current_xp, required_xp,
+                                unspent_stat_points, strength, vitality, agility,
+                                highest_boss_defeated, current_active_boss_id, updated_at
+                            )
+                            VALUES (%s, %s, 1, 0, 650, 0, 10, 10, 5, 0, 1, NOW())
+                            RETURNING *;
+                        """, (safe_name, username))
+                        c_row = cur.fetchone()
+
+                    unspent = int(c_row.get("unspent_stat_points", 0))
+                    if unspent < amount:
+                        return jsonify({
+                            "success": False,
+                            "message": f"Pontos de atributo insuficientes. Disponíveis: {unspent}, Requeridos: {amount}",
+                            "unspentStatPoints": unspent
+                        }), 400
+
+                    new_unspent = unspent - amount
+                    new_val = int(c_row.get(stat, 10)) + amount
+
+                    cur.execute(f"""
+                        UPDATE user_combat_stats
+                        SET unspent_stat_points = %s,
+                            {stat} = %s,
+                            updated_at = NOW()
+                        WHERE username_key = %s
+                        RETURNING *;
+                    """, (new_unspent, new_val, safe_name))
+                    updated_row = cur.fetchone()
+
+                    # Sincroniza também no state JSON em saves para manter retrocompatibilidade
+                    cur.execute("SELECT state FROM saves WHERE username_key = %s", (safe_name,))
+                    s_row = cur.fetchone()
+                    if s_row and s_row.get("state") and is_react_v2_state(s_row["state"]):
+                        s_state = s_row["state"]
+                        combat = s_state.setdefault("combatStats", {})
+                        combat["unspentStatPoints"] = new_unspent
+                        combat[stat] = new_val
+                        cur.execute("""
+                            UPDATE saves
+                            SET state = %s, updated_at = NOW()
+                            WHERE username_key = %s;
+                        """, (Json(s_state), safe_name))
+
+                    conn.commit()
+
+                    return jsonify({
+                        "success": True,
+                        "message": f"Atributo {stat} aprimorado com sucesso no Neon PostgreSQL!",
+                        "combatStats": {
+                            "level": updated_row["level"],
+                            "currentXp": str(updated_row["current_xp"]),
+                            "requiredXp": str(updated_row["required_xp"]),
+                            "unspentStatPoints": updated_row["unspent_stat_points"],
+                            "strength": updated_row["strength"],
+                            "vitality": updated_row["vitality"],
+                            "agility": updated_row["agility"]
+                        }
+                    }), 200
+            except Exception as e:
+                print(f"[Neon Postgres] Erro em upgrade_challenge_stat: {e}")
+            finally:
+                conn.close()
+
+    # Fallback local
+    state = load_user_save(username)
+    combat = state.setdefault("combatStats", {
+        "level": 1,
+        "currentXp": "0",
+        "requiredXp": "650",
+        "unspentStatPoints": 0,
+        "strength": 10,
+        "vitality": 10,
+        "agility": 5
+    })
+    unspent = int(combat.get("unspentStatPoints", 0))
+    if unspent < amount:
+        return jsonify({
+            "success": False,
+            "message": f"Pontos insuficientes: {unspent} < {amount}"
+        }), 400
+
+    combat["unspentStatPoints"] = unspent - amount
+    combat[stat] = int(combat.get(stat, 10)) + amount
+    write_user_save(username, state)
+
+    return jsonify({
+        "success": True,
+        "message": f"Atributo {stat} atualizado localmente.",
+        "combatStats": combat
+    }), 200
+
+@app.route("/api/challenges/record-victory", methods=["POST"])
+def record_challenge_victory():
+    data = request.json or {}
+    username = data.get("username", "").strip()
+    boss_id = int(data.get("bossId", 0))
+    boss_name = data.get("bossName", f"Chefe #{boss_id}").strip()
+    clear_time_ms = int(data.get("clearTimeMs", 0))
+    damage_dealt = str(data.get("damageDealt", "0"))
+    drops = data.get("drops", [])
+
+    if not username or boss_id <= 0:
+        return jsonify({"success": False, "message": "Parâmetros de vitória inválidos."}), 400
+
+    safe_name = sanitize_username(username).lower()
+
+    if DATABASE_URL:
+        conn = get_db()
+        if conn:
+            try:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    # 1. Registra a vitória na tabela relacional challenge_records
+                    cur.execute("""
+                        INSERT INTO challenge_records (
+                            username_key, boss_id, boss_name, clear_time_ms, damage_dealt, drops_received, defeated_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, NOW());
+                    """, (safe_name, boss_id, boss_name, clear_time_ms, damage_dealt, Json(drops)))
+
+                    # 2. Atualiza recorde histórico em user_combat_stats
+                    cur.execute("""
+                        INSERT INTO user_combat_stats (
+                            username_key, username, highest_boss_defeated, current_active_boss_id, updated_at
+                        )
+                        VALUES (%s, %s, %s, %s, NOW())
+                        ON CONFLICT (username_key) DO UPDATE SET
+                            highest_boss_defeated = GREATEST(user_combat_stats.highest_boss_defeated, EXCLUDED.highest_boss_defeated),
+                            current_active_boss_id = EXCLUDED.current_active_boss_id,
+                            updated_at = NOW()
+                        RETURNING highest_boss_defeated;
+                    """, (safe_name, username, boss_id, boss_id))
+                    c_row = cur.fetchone()
+                    highest = c_row["highest_boss_defeated"] if c_row else boss_id
+
+                    conn.commit()
+                    return jsonify({
+                        "success": True,
+                        "message": f"Vitória contra {boss_name} registrada com sucesso no Neon PostgreSQL!",
+                        "highestBossDefeated": highest
+                    }), 200
+            except Exception as e:
+                print(f"[Neon Postgres] Erro em record_challenge_victory: {e}")
+            finally:
+                conn.close()
+
+    # Fallback local
+    state = load_user_save(username)
+    if "gauntlet" in state and isinstance(state["gauntlet"], dict):
+        state["gauntlet"]["highestBossDefeated"] = max(
+            int(state["gauntlet"].get("highestBossDefeated", 0)),
+            boss_id
+        )
+        write_user_save(username, state)
+
+    return jsonify({
+        "success": True,
+        "message": f"Vitória contra {boss_name} registrada localmente.",
+        "highestBossDefeated": boss_id
+    }), 200
+
+@app.route("/api/challenges/stats", methods=["GET"])
+def get_challenge_stats():
+    username = request.args.get("username", "").strip()
+    if not username:
+        return jsonify({"success": False, "message": "Identificador de usuário ausente."}), 400
+
+    safe_name = sanitize_username(username).lower()
+
+    if DATABASE_URL:
+        conn = get_db()
+        if conn:
+            try:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute("SELECT * FROM user_combat_stats WHERE username_key = %s", (safe_name,))
+                    c_row = cur.fetchone()
+
+                    cur.execute("""
+                        SELECT boss_id AS "bossId", boss_name AS "bossName", clear_time_ms AS "clearTimeMs",
+                               damage_dealt AS "damageDealt", drops_received AS "dropsReceived",
+                               defeated_at AS "defeatedAt"
+                        FROM challenge_records
+                        WHERE username_key = %s
+                        ORDER BY defeated_at DESC
+                        LIMIT 20;
+                    """, (safe_name,))
+                    history = cur.fetchall() or []
+                    for h in history:
+                        if h.get("defeatedAt"):
+                            h["defeatedAt"] = h["defeatedAt"].isoformat()
+
+                    if c_row:
+                        return jsonify({
+                            "success": True,
+                            "combatStats": {
+                                "level": c_row["level"],
+                                "currentXp": str(c_row["current_xp"]),
+                                "requiredXp": str(c_row["required_xp"]),
+                                "unspentStatPoints": c_row["unspent_stat_points"],
+                                "strength": c_row["strength"],
+                                "vitality": c_row["vitality"],
+                                "agility": c_row["agility"],
+                                "highestBossDefeated": c_row["highest_boss_defeated"],
+                                "currentActiveBossId": c_row["current_active_boss_id"],
+                                "updatedAt": c_row["updated_at"].isoformat() if c_row.get("updated_at") else None
+                            },
+                            "challengeHistory": history
+                        }), 200
+            except Exception as e:
+                print(f"[Neon Postgres] Erro em get_challenge_stats: {e}")
+            finally:
+                conn.close()
+
+    # Fallback local
+    state = load_user_save(username)
+    combat = state.get("combatStats", {})
+    gauntlet = state.get("gauntlet", {})
+    return jsonify({
+        "success": True,
+        "combatStats": {
+            "level": combat.get("level", 1),
+            "currentXp": str(combat.get("currentXp", 0)),
+            "requiredXp": str(combat.get("requiredXp", 650)),
+            "unspentStatPoints": combat.get("unspentStatPoints", 0),
+            "strength": combat.get("strength", 10),
+            "vitality": combat.get("vitality", 10),
+            "agility": combat.get("agility", 5),
+            "highestBossDefeated": gauntlet.get("highestBossDefeated", 0),
+            "currentActiveBossId": gauntlet.get("currentActiveBossId", 1)
+        },
+        "challengeHistory": []
+    }), 200
+
 @app.route("/api/rankings/sync", methods=["POST"])
 def sync_ranking():
     data = request.json or {}
@@ -1451,14 +1783,43 @@ def init_neon_tables():
             );
 
             CREATE TABLE IF NOT EXISTS saves (
-                username_key VARCHAR(100) PRIMARY KEY,
+                username_key VARCHAR(100) PRIMARY KEY REFERENCES users(username_key) ON DELETE CASCADE,
                 username VARCHAR(100) NOT NULL,
                 state JSONB NOT NULL,
                 updated_at TIMESTAMPTZ DEFAULT NOW()
             );
 
+            CREATE TABLE IF NOT EXISTS user_combat_stats (
+                username_key VARCHAR(100) PRIMARY KEY REFERENCES users(username_key) ON DELETE CASCADE,
+                username VARCHAR(100) NOT NULL,
+                level INT NOT NULL DEFAULT 1,
+                current_xp NUMERIC NOT NULL DEFAULT 0,
+                required_xp NUMERIC NOT NULL DEFAULT 650,
+                unspent_stat_points INT NOT NULL DEFAULT 0,
+                strength INT NOT NULL DEFAULT 10,
+                vitality INT NOT NULL DEFAULT 10,
+                agility INT NOT NULL DEFAULT 5,
+                highest_boss_defeated INT NOT NULL DEFAULT 0,
+                current_active_boss_id INT NOT NULL DEFAULT 1,
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            );
+
+            CREATE TABLE IF NOT EXISTS challenge_records (
+                id SERIAL PRIMARY KEY,
+                username_key VARCHAR(100) NOT NULL REFERENCES users(username_key) ON DELETE CASCADE,
+                boss_id INT NOT NULL,
+                boss_name VARCHAR(100) NOT NULL,
+                clear_time_ms INT DEFAULT 0,
+                damage_dealt TEXT,
+                drops_received JSONB DEFAULT '[]'::jsonb,
+                defeated_at TIMESTAMPTZ DEFAULT NOW()
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_challenges_user ON challenge_records(username_key);
+            CREATE INDEX IF NOT EXISTS idx_user_combat_stats_boss ON user_combat_stats(highest_boss_defeated);
+
             CREATE TABLE IF NOT EXISTS rankings (
-                username_key VARCHAR(100) PRIMARY KEY,
+                username_key VARCHAR(100) PRIMARY KEY REFERENCES users(username_key) ON DELETE CASCADE,
                 username VARCHAR(100) NOT NULL,
                 ninja_id BIGINT DEFAULT 0,
                 manual_clicks_session BIGINT DEFAULT 0,

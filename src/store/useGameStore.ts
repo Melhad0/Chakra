@@ -895,6 +895,25 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         [stat]: state.combatStats[stat] + amount,
       },
     }));
+
+    // Sincronização direta no Neon PostgreSQL via endpoint relacional
+    const currentUser = get().currentUser;
+    if (currentUser?.username && currentUser.username !== 'convidado') {
+      fetch(apiUrl('/api/challenges/upgrade-stat'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: currentUser.username,
+          stat,
+          amount,
+        }),
+      }).catch((err) => {
+        console.warn('[Neon Sync] Falha ao sincronizar pontos de combate:', err);
+      });
+    }
+
+    // Salva o snapshot local e na nuvem imediatamente
+    get().saveGame();
     return true;
   },
 
@@ -943,6 +962,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     if (leveledUp) {
       audio.playLevelUp();
+      // Salva imediatamente para que novos pontos de upgrade fiquem salvos no Neon
+      get().saveGame();
     }
 
     return { leveledUp, newLevel, pointsGained };
@@ -1159,6 +1180,39 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         },
       };
     });
+
+    // Sincroniza vitória com a tabela relacional challenge_records e user_combat_stats no Neon
+    const currentUser = get().currentUser;
+    if (currentUser?.username && currentUser.username !== 'convidado') {
+      fetch(apiUrl('/api/challenges/record-victory'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: currentUser.username,
+          bossId,
+          bossName: currentBoss.name,
+          damageDealt: currentBoss.hp.toString(),
+          drops: [
+            ...droppedGears.map((g) => ({
+              id: g.id,
+              name: g.name,
+              rarity: g.rarity,
+              type: g.type,
+            })),
+            ...(lootRoll.farmMaterial ? [{
+              id: lootRoll.farmMaterial.id,
+              name: lootRoll.farmMaterial.name,
+              rarity: lootRoll.farmMaterial.rarity,
+              quantity: lootRoll.farmMaterial.stackCount,
+            }] : []),
+          ],
+        }),
+      }).catch((err) => {
+        console.warn('[Neon Sync] Falha ao registrar vitória no Neon:', err);
+      });
+    }
+
+    get().saveGame();
   },
 
   onBossDefeat: () => {

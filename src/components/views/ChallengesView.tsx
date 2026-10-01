@@ -1170,8 +1170,14 @@ export const ChallengesView: React.FC = () => {
                       (Máx: {MAX_COMBAT_LEVEL})
                     </span>
                   </div>
-                  <div className="px-2 py-0.5 rounded bg-amber-950/80 border border-amber-700/60 text-amber-300 font-mono text-[11px] font-bold">
-                    {combatStats.unspentStatPoints} pts Livres
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-1.5 py-0.5 rounded bg-emerald-950/70 border border-emerald-700/50 text-emerald-400 font-mono text-[9px] font-semibold flex items-center gap-1" title="Pontos salvos relacionalmente no banco de dados Neon">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Neon DB
+                    </span>
+                    <div className="px-2 py-0.5 rounded bg-amber-950/80 border border-amber-700/60 text-amber-300 font-mono text-[11px] font-bold">
+                      {combatStats.unspentStatPoints} pts Livres
+                    </div>
                   </div>
                 </div>
 
