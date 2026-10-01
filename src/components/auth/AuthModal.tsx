@@ -921,7 +921,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   />
 
                   {/* SEÇÃO 1: FOTO PESSOAL & AVATAR */}
-                  <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-3.5">
+                  <div className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-800/80 space-y-3.5">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
                         <Upload className="w-4 h-4 text-cyan-400" />
@@ -933,18 +933,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
-                      {/* Preview do Avatar Selecionado */}
+                      {/* Preview do Avatar Selecionado (Quadrado / Squircle) */}
                       <div className="relative group flex-shrink-0">
-                        <div className="w-20 h-20 rounded-full p-1 bg-zinc-950 border-2 border-cyan-500/50 shadow-xl overflow-hidden flex items-center justify-center">
+                        <div className="w-20 h-20 rounded-xl p-1 bg-zinc-950 border-2 border-cyan-500/70 shadow-xl overflow-hidden flex items-center justify-center">
                           {editCustomAvatar ? (
                             <img
                               src={editCustomAvatar}
                               alt="Foto Pessoal"
-                              className="w-full h-full rounded-full object-cover"
+                              className="w-full h-full rounded-lg object-cover"
                             />
                           ) : (
                             <div
-                              className={`w-full h-full rounded-full bg-gradient-to-br ${
+                              className={`w-full h-full rounded-lg bg-gradient-to-br ${
                                 getAvatarById(editAvatar).bgGradient
                               } flex items-center justify-center text-3xl shadow-inner`}
                             >
@@ -954,7 +954,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         </div>
 
                         {editCustomAvatar && (
-                          <div className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-cyan-500 text-[9px] font-mono font-bold text-zinc-950 shadow">
+                          <div className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-md bg-cyan-500 text-[9px] font-mono font-bold text-zinc-950 shadow">
                             Pessoal
                           </div>
                         )}
@@ -966,7 +966,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                           <button
                             type="button"
                             onClick={() => avatarFileInputRef.current?.click()}
-                            className="px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm"
+                            className="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm"
                           >
                             <Upload className="w-3.5 h-3.5" />
                             <span>Enviar Foto do Computador</span>
@@ -976,7 +976,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                             <button
                               type="button"
                               onClick={() => setEditCustomAvatar('')}
-                              className="px-3 py-2 rounded-xl bg-rose-950/40 hover:bg-rose-950/70 border border-rose-900/60 text-rose-300 text-xs font-medium flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                              className="px-3 py-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-950/70 border border-rose-900/60 text-rose-300 text-xs font-medium flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                               <span>Remover Foto Pessoal</span>
@@ -1003,7 +1003,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                             value={editCustomAvatar.startsWith('data:') ? '' : editCustomAvatar}
                             onChange={(e) => setEditCustomAvatar(e.target.value)}
                             placeholder="Ou cole a URL direta de uma imagem na web..."
-                            className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-zinc-100 placeholder-zinc-600 rounded-xl px-3 py-1.5 text-xs font-mono transition"
+                            className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-zinc-100 placeholder-zinc-600 rounded-lg px-3 py-1.5 text-xs font-mono transition"
                           />
                         </div>
                       </div>

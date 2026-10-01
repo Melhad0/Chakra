@@ -74,18 +74,18 @@ export const InsigniaBadge: React.FC<InsigniaBadgeProps> = ({
         onClick={onToggle}
         disabled={!interactive}
         title={insignia.name}
-        className={`${sizeClasses} rounded-lg flex items-center justify-center transition-all duration-200 border ${
+        className={`${sizeClasses} rounded-md flex items-center justify-center transition-all duration-200 border ${
           isEquipped
             ? `${insignia.bgGlow} ${insignia.borderClass} scale-100`
             : 'bg-zinc-900/60 border-zinc-800 text-zinc-500 opacity-50 grayscale'
-        } ${interactive ? 'cursor-pointer hover:scale-110 active:scale-95' : 'cursor-default'}`}
+        } ${interactive ? 'cursor-pointer hover:scale-105 active:scale-95' : 'cursor-default'}`}
       >
         {renderIcon()}
       </button>
 
-      {/* Tooltip Estilizado Estilo Discord */}
+      {/* Tooltip Tático Quadrado */}
       {showTooltip && (
-        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none w-48 p-2 rounded-xl bg-zinc-950/95 border border-zinc-700/80 shadow-[0_10px_25px_rgba(0,0,0,0.8)] backdrop-blur-md text-center animate-in fade-in-0 zoom-in-95 duration-150">
+        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none w-48 p-2 rounded-lg bg-zinc-950/95 border border-zinc-700/80 shadow-[0_10px_25px_rgba(0,0,0,0.85)] backdrop-blur-md text-center animate-in fade-in-0 zoom-in-95 duration-150">
           <div className="flex items-center justify-center gap-1.5 mb-0.5">
             <span className={insignia.color}>{renderIcon()}</span>
             <span className="text-[11px] font-bold text-zinc-100 truncate">{insignia.name}</span>
