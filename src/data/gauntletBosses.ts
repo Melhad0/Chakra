@@ -3,34 +3,34 @@ import { D } from '../engine/BigNumber';
 import { BossData } from '../types/combat';
 
 export const HP_BASE = 500;
-export const HP_GROWTH = 1.42;
+export const HP_GROWTH = 1.48; // Aumentado de 1.42 para 1.48 (Hardcore DPS Check)
 
 /**
  * Fórmula de Escala Unificada Exponencial (Hardcore Boss DPS Check):
- * HP_n = HP_base * (1.42)^(n - 1)
+ * HP_n = HP_base * (1.48)^(n - 1)
  */
 export function calculateBossHP(n: number, base: number = HP_BASE): Decimal {
   return D(base).mul(D(HP_GROWTH).pow(n - 1)).round();
 }
 
-export const BASE_BOSS_REWARD = 250; // Corte imediato de 75% no valor base
+export const BASE_BOSS_REWARD = 200; // Reduzido para 200
 
 /**
- * Recompensa de Chakra proporcional à escala da fase (Nerf 75%):
- * Equação: BaseBossReward * 1.18^(n - 1)
+ * Recompensa de Chakra proporcional à escala da fase (Nerf Hardcore):
+ * Equação: BaseBossReward * 1.15^(n - 1)
  */
 export function calculateBossBounty(n: number, _hp?: Decimal): Decimal {
-  return D(BASE_BOSS_REWARD).mul(D(1.18).pow(n - 1)).round();
+  return D(BASE_BOSS_REWARD).mul(D(1.15).pow(n - 1)).round();
 }
 
 /**
  * Recompensa de Chakra com Hard-Cap atrelado ao CPS estável:
- * min(BaseBossReward * 1.18^(n - 1), CPS_estavel * 40)
+ * min(BaseBossReward * 1.15^(n - 1), CPS_estavel * 25)
  */
 export function calculateEffectiveBossReward(n: number, stableRollingCPS: Decimal): Decimal {
   const baseReward = calculateBossBounty(n);
   if (stableRollingCPS && stableRollingCPS.gt(0)) {
-    const cpsCap = stableRollingCPS.mul(40).round();
+    const cpsCap = stableRollingCPS.mul(25).round();
     return Decimal.min(baseReward, cpsCap);
   }
   return baseReward;

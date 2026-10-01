@@ -76,6 +76,20 @@ export const ChallengesView: React.FC = () => {
 
   // Chefe selecionado na navegação (inicia no chefe ativo ou no 1)
   const [selectedBossId, setSelectedBossId] = useState<number>(gauntlet.currentActiveBossId || 1);
+  const [hospitalCooldownRemaining, setHospitalCooldownRemaining] = useState<number>(0);
+
+  useEffect(() => {
+    const updateCd = () => {
+      if (gauntlet.cooldownExpiresAt && gauntlet.cooldownExpiresAt > Date.now()) {
+        setHospitalCooldownRemaining(Math.max(0, Math.ceil((gauntlet.cooldownExpiresAt - Date.now()) / 1000)));
+      } else {
+        setHospitalCooldownRemaining(0);
+      }
+    };
+    updateCd();
+    const interval = setInterval(updateCd, 1000);
+    return () => clearInterval(interval);
+  }, [gauntlet.cooldownExpiresAt]);
 
   // Sincroniza quando o chefe ativo avança
   useEffect(() => {
@@ -236,7 +250,7 @@ export const ChallengesView: React.FC = () => {
     (reason: string) => {
       audio.playCrit();
       setDefeatMessage(
-        `DERROTA EM COMBATE!\n${reason}\nVocê pode se recuperar e tentar novamente de imediato sem nenhum tempo de espera!`
+        `DERROTA EM COMBATE!\n${reason}\nSeu shinobi foi hospitalizado e necessita de 45s de descanso para recuperar as forças.`
       );
       setTimeout(() => setDefeatMessage(null), 8000);
 
@@ -482,9 +496,9 @@ export const ChallengesView: React.FC = () => {
     }
   };
 
-  // Início Manual de Batalha (Sem Cooldown!)
+  // Início Manual de Batalha (Com Cooldown Hospitalar se Derrotado)
   const handleStartFight = () => {
-    if (isLocked) return;
+    if (isLocked || hospitalCooldownRemaining > 0) return;
     setPlayerHp(playerMaxHp);
     setPlayerGhostHp(playerMaxHp);
     setBossHp(currentBoss.hp);
@@ -717,12 +731,14 @@ export const ChallengesView: React.FC = () => {
                   <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
                   <span className="whitespace-pre-line">{defeatMessage}</span>
                 </div>
-                <button
-                  onClick={handleStartFight}
-                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-1.5 shadow transition cursor-pointer"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" /> Repetir
-                </button>
+                {hospitalCooldownRemaining <= 0 && (
+                  <button
+                    onClick={handleStartFight}
+                    className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-1.5 shadow transition cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" /> Repetir
+                  </button>
+                )}
               </div>
             )}
 
@@ -918,10 +934,24 @@ export const ChallengesView: React.FC = () => {
                 </div>
 
                 <button
+                  disabled={hospitalCooldownRemaining > 0}
                   onClick={handleStartFight}
-                  className="w-full py-3.5 px-4 rounded-xl text-xs font-mono font-bold uppercase tracking-wider bg-gradient-to-r from-rose-600 via-orange-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white border border-rose-500 shadow-xl shadow-rose-950/60 active:scale-95 transition cursor-pointer flex items-center justify-center gap-2"
+                  className={`w-full py-3.5 px-4 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition flex items-center justify-center gap-2 ${
+                    hospitalCooldownRemaining > 0
+                      ? 'bg-zinc-900 border border-zinc-800 text-zinc-500 cursor-not-allowed opacity-75'
+                      : 'bg-gradient-to-r from-rose-600 via-orange-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white border border-rose-500 shadow-xl shadow-rose-950/60 active:scale-95 cursor-pointer'
+                  }`}
                 >
-                  <Swords className="w-4 h-4" /> Iniciar Batalha
+                  {hospitalCooldownRemaining > 0 ? (
+                    <>
+                      <AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse" />
+                      Recuperação Médica ({hospitalCooldownRemaining}s)
+                    </>
+                  ) : (
+                    <>
+                      <Swords className="w-4 h-4" /> Iniciar Batalha
+                    </>
+                  )}
                 </button>
               </div>
             ) : (

@@ -1023,6 +1023,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   startBossFight: () => {
     const s = get();
+    if (s.gauntlet.cooldownExpiresAt && s.gauntlet.cooldownExpiresAt > Date.now()) {
+      return false;
+    }
     const currentBoss =
       GAUNTLET_BOSSES.find((b) => b.id === s.gauntlet.currentActiveBossId) || GAUNTLET_BOSSES[0];
     set((state) => ({
@@ -1171,7 +1174,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           isFighting: false,
           bossCurrentHp: currentBoss.hp,
           bossTimeRemaining: currentBoss.timer || 30,
-          cooldownExpiresAt: null,
+          cooldownExpiresAt: Date.now() + 45000, // Cooldown de 45s de descanso médico após derrota
         },
       };
     });
@@ -2068,6 +2071,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       critMult *= 1.15;
     }
 
+    // Teto de Chance Crítica Hardcore: máximo de 40%
+    critChance = Math.min(0.40, critChance);
+
     const isCrit = Math.random() < critChance;
     const finalAmount = isCrit ? baseClickPower.mul(critMult) : baseClickPower;
 
@@ -2258,10 +2264,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       if (activeGates > 0) {
         activeGates = Math.max(0, activeGates - dt);
         if (activeGates === 0) {
-          // Mecânica de Colapso e Exaustão Shinobi:
-          // Ao expirar a duração dos Portões, CPS cai 85% durante 20s e clique desativa por 5s
-          exhaust = 20.0;
-          clickExhaust = 5.0;
+          // Mecânica de Colapso e Exaustão Shinobi Hardcore:
+          // Ao expirar a duração dos Portões, CPS cai 92% durante 30s e clique desativa por 8s
+          exhaust = 30.0;
+          clickExhaust = 8.0;
         }
       }
 

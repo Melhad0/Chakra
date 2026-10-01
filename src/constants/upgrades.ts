@@ -15,39 +15,39 @@ export function getGeneratorMilestoneEffects(level: number): GeneratorMilestoneE
   let nextMilestoneLevel: number | null = 25;
 
   if (level >= 25) {
-    mult = mult.mul(2);
+    mult = mult.mul(1.5);
     tierName = 'Bronze';
     badgeColor = 'text-amber-500 border-amber-700/60 bg-amber-950/40';
     nextMilestoneLevel = 50;
   }
   if (level >= 50) {
-    mult = mult.mul(2);
-    discount += 0.05;
+    mult = mult.mul(1.5);
+    discount += 0.03;
     tierName = 'Prata';
     badgeColor = 'text-zinc-300 border-zinc-400/60 bg-zinc-800/50';
     nextMilestoneLevel = 100;
   }
   if (level >= 100) {
-    mult = mult.mul(4);
-    clickRatio += 0.002;
+    mult = mult.mul(2.0);
+    clickRatio += 0.0008;
     tierName = 'Ouro';
     badgeColor = 'text-amber-300 border-amber-500/60 bg-amber-900/40';
     nextMilestoneLevel = 200;
   }
   if (level >= 200) {
-    mult = mult.mul(8);
+    mult = mult.mul(2.5);
     tierName = 'Platina';
     badgeColor = 'text-cyan-300 border-cyan-500/60 bg-cyan-950/40';
     nextMilestoneLevel = 300;
   }
   if (level >= 300) {
-    mult = mult.mul(16);
+    mult = mult.mul(3.0);
     tierName = 'Diamante';
     badgeColor = 'text-indigo-300 border-indigo-500/60 bg-indigo-950/40';
     nextMilestoneLevel = 500;
   }
   if (level >= 500) {
-    mult = mult.mul(32);
+    mult = mult.mul(5.0);
     tierName = 'Rikudou';
     badgeColor = 'text-fuchsia-300 border-fuchsia-500/60 bg-fuchsia-950/40';
     nextMilestoneLevel = null;

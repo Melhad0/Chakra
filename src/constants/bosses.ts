@@ -13,19 +13,19 @@ import Decimal from 'break_infinity.js';
 import { D } from '../engine/BigNumber';
 
 /**
- * Dano de Ataque Desferido pelo Chefe contra o Shinobi
- * Escala progressiva: 20 * (1.12)^(bossId - 1) + bossId * 5
+ * Dano de Ataque Desferido pelo Chefe contra o Shinobi (Hardcore)
+ * Escala progressiva severa: 28 * (1.15)^(bossId - 1) + bossId * 8
  */
 export function calculateBossAttackDamage(bossId: number): number {
-  return Math.max(15, Math.round(20 * Math.pow(1.12, Math.max(0, bossId - 1)) + bossId * 5));
+  return Math.max(25, Math.round(28 * Math.pow(1.15, Math.max(0, bossId - 1)) + bossId * 8));
 }
 
 /**
  * Cadência / Intervalo de Ataque do Chefe (em segundos)
- * O chefe ataca mais lentamente que o jogador (3.0s de tempo de preparação/cast)
+ * O chefe ataca com velocidade aumentada (2.2s de tempo de preparação/cast)
  */
 export function calculateBossAttackInterval(_bossId: number): number {
-  return 3.0;
+  return 2.2;
 }
 
 /**
@@ -69,10 +69,10 @@ export function calculatePlayerDamage(strength: number, weaponMultiplier: Decima
 
 /**
  * Chance de Esquiva do Jogador contra Ataques de Chefes (Agilidade)
- * Curva de retornos decrescentes com teto em 75%
+ * Curva severa com teto hardcore rebaixado de 75% para 35%
  */
 export function calculateDodgeChance(agility: number): number {
-  const pct = (agility / (agility + 450)) * 100;
-  return Math.min(75, Math.max(0, Math.round(pct * 10) / 10));
+  const pct = (agility / (agility + 750)) * 60;
+  return Math.min(35, Math.max(0, Math.round(pct * 10) / 10));
 }
 
