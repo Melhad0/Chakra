@@ -14,10 +14,25 @@ import {
   INITIAL_CHAT_MESSAGES,
   QUICK_EMOJIS,
 } from '../../constants/initialChatMessages';
-import { ChatMessage, ChatChannelId } from '../../types/chat';
+import { ChatMessage, ChatChannelId, ChatReaction } from '../../types/chat';
 import { getCurrentRank } from '../../constants/rankings';
 import { getAvatarById } from '../../constants/profileCustomization';
 import { audio } from '../../engine/audio';
+import { rtdb } from '../../services/firebase';
+import { ref, push, set, onValue, query, limitToLast, runTransaction } from 'firebase/database';
+
+const getLocalGuestId = (): string => {
+  try {
+    let id = localStorage.getItem('shinobi_guest_chat_id');
+    if (!id) {
+      id = `guest_${Math.random().toString(36).substring(2, 9)}`;
+      localStorage.setItem('shinobi_guest_chat_id', id);
+    }
+    return id;
+  } catch {
+    return 'guest_local';
+  }
+};
 
 export const ShinobiChatWidget: React.FC = () => {
   const isChatOpen = useGameStore((s) => s.isChatOpen);
@@ -43,7 +58,73 @@ export const ShinobiChatWidget: React.FC = () => {
   );
   const userAvatarObj = getAvatarById(currentUser?.avatar || 'naruto');
 
+  const mySenderId = currentUser?.ninjaId ? String(currentUser.ninjaId) : getLocalGuestId();
+
   const isOpen = isChatOpen;
+
+  // Ouvinte em tempo real do Firebase Realtime Database por canal
+  useEffect(() => {
+    const channelMessagesRef = query(
+      ref(rtdb, `chat_channels/${activeChannel}`),
+      limitToLast(50)
+    );
+
+    const unsubscribe = onValue(
+      channelMessagesRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const val = snapshot.val();
+          const parsedList: ChatMessage[] = Object.keys(val).map((key) => {
+            const item = val[key];
+            const isMe = item.senderId === mySenderId;
+
+            let rawReactions: any[] = [];
+            if (Array.isArray(item.reactions)) {
+              rawReactions = item.reactions;
+            } else if (item.reactions && typeof item.reactions === 'object') {
+              rawReactions = Object.values(item.reactions);
+            }
+
+            const reactions: ChatReaction[] = rawReactions.map((r: any) => ({
+              emoji: r.emoji,
+              count: Number(r.count) || 1,
+              userReacted: Array.isArray(r.users) ? r.users.includes(mySenderId) : Boolean(r.userReacted),
+            }));
+
+            return {
+              id: key,
+              channelId: item.channelId || activeChannel,
+              senderId: item.senderId || 'unknown',
+              senderName: item.senderName || 'Ninja de Konoha',
+              senderAvatar: item.senderAvatar || 'naruto',
+              senderRankTitle: item.senderRankTitle || 'Genin',
+              senderRankColor: item.senderRankColor || 'text-zinc-300 border-zinc-700 bg-zinc-900',
+              senderClan: item.senderClan,
+              isSystem: Boolean(item.isSystem),
+              isCurrentUser: isMe,
+              content: item.content || '',
+              timestamp: item.timestamp || '',
+              reactions,
+              badgeTitle: isMe ? 'Você' : item.badgeTitle,
+              createdAt: item.createdAt || 0,
+            };
+          });
+
+          parsedList.sort((a: any, b: any) => (a.createdAt || 0) - (b.createdAt || 0));
+          setMessages(parsedList);
+        } else {
+          setMessages([]);
+        }
+      },
+      (error) => {
+        console.warn('Erro ao sincronizar mensagens do chat no Firebase:', error);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [activeChannel, mySenderId]);
 
   // Auto-scroll para o final quando mensagens mudam ou o canal é alterado
   const scrollToBottom = (smooth = true) => {
@@ -62,8 +143,7 @@ export const ShinobiChatWidget: React.FC = () => {
     }
   }, [messages, isOpen]);
 
-
-  const handleSendMessage = (e?: React.FormEvent) => {
+  const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const trimmed = inputText.trim();
     if (!trimmed) return;
@@ -76,70 +156,100 @@ export const ShinobiChatWidget: React.FC = () => {
       minute: '2-digit',
     });
 
-    const newChatMessage: ChatMessage = {
-      id: `msg-user-${Date.now()}`,
+    const newChatMessage = {
       channelId: activeChannel,
-      senderId: currentUser ? String(currentUser.ninjaId) : 'player-local',
+      senderId: mySenderId,
       senderName: currentUser?.fullName?.split(' ')[0] || currentUser?.username || 'Ninja de Konoha',
       senderAvatar: currentUser?.avatar || 'naruto',
       senderRankTitle: currentRank.title,
       senderRankColor: 'text-amber-300 border-amber-500/50 bg-amber-950/50',
       senderClan: currentUser?.favoriteNinja ? 'Linhagem Heróica' : 'Aldeia da Folha',
-      isCurrentUser: true,
       content: trimmed,
       timestamp: timeString,
+      createdAt: Date.now(),
       reactions: [],
       badgeTitle: 'Você',
     };
 
-    setMessages((prev) => [...prev, newChatMessage]);
     setInputText('');
     setShowEmojiPicker(false);
+
+    try {
+      const channelRef = ref(rtdb, `chat_channels/${activeChannel}`);
+      const newMsgRef = push(channelRef);
+      await set(newMsgRef, {
+        ...newChatMessage,
+        id: newMsgRef.key,
+      });
+    } catch (err) {
+      console.error('Falha ao enviar mensagem no Firebase:', err);
+      // Fallback local se estiver offline
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `msg-local-${Date.now()}`,
+          isCurrentUser: true,
+          ...newChatMessage,
+        },
+      ]);
+    }
   };
 
-  const handleToggleReaction = (messageId: string, emojiToToggle: string) => {
+  const handleToggleReaction = async (messageId: string, emojiToToggle: string) => {
     audio.playClick();
-    setMessages((prev) =>
-      prev.map((msg) => {
-        if (msg.id !== messageId) return msg;
 
-        const existingReaction = msg.reactions.find((r) => r.emoji === emojiToToggle);
-        if (existingReaction) {
-          if (existingReaction.userReacted) {
-            // Remove reação
-            return {
-              ...msg,
-              reactions: msg.reactions
-                .map((r) =>
-                  r.emoji === emojiToToggle
-                    ? { ...r, count: r.count - 1, userReacted: false }
-                    : r
-                )
-                .filter((r) => r.count > 0),
-            };
+    try {
+      const msgRef = ref(rtdb, `chat_channels/${activeChannel}/${messageId}`);
+      await runTransaction(msgRef, (currentMsg) => {
+        if (!currentMsg) return currentMsg;
+
+        let reactions: any[] = [];
+        if (Array.isArray(currentMsg.reactions)) {
+          reactions = [...currentMsg.reactions];
+        } else if (currentMsg.reactions && typeof currentMsg.reactions === 'object') {
+          reactions = Object.values(currentMsg.reactions);
+        }
+
+        const existingIdx = reactions.findIndex((r: any) => r.emoji === emojiToToggle);
+
+        if (existingIdx >= 0) {
+          const target = reactions[existingIdx];
+          const users: string[] = Array.isArray(target.users) ? [...target.users] : [];
+          const userHasReacted = users.includes(mySenderId);
+
+          if (userHasReacted) {
+            const updatedUsers = users.filter((u) => u !== mySenderId);
+            if (updatedUsers.length === 0) {
+              reactions.splice(existingIdx, 1);
+            } else {
+              reactions[existingIdx] = {
+                emoji: emojiToToggle,
+                count: updatedUsers.length,
+                users: updatedUsers,
+              };
+            }
           } else {
-            // Adiciona reação
-            return {
-              ...msg,
-              reactions: msg.reactions.map((r) =>
-                r.emoji === emojiToToggle
-                  ? { ...r, count: r.count + 1, userReacted: true }
-                  : r
-              ),
+            users.push(mySenderId);
+            reactions[existingIdx] = {
+              emoji: emojiToToggle,
+              count: users.length,
+              users,
             };
           }
         } else {
-          // Cria nova reação
-          return {
-            ...msg,
-            reactions: [
-              ...msg.reactions,
-              { emoji: emojiToToggle, count: 1, userReacted: true },
-            ],
-          };
+          reactions.push({
+            emoji: emojiToToggle,
+            count: 1,
+            users: [mySenderId],
+          });
         }
-      })
-    );
+
+        currentMsg.reactions = reactions;
+        return currentMsg;
+      });
+    } catch (err) {
+      console.error('Falha ao alternar reação no Firebase:', err);
+    }
   };
 
   const handleAddEmoji = (emoji: string) => {

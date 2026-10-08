@@ -24,7 +24,6 @@ import {
   Swords,
   Zap,
   Upload,
-  Image as ImageIcon,
   Hash as HashIcon,
   Trash2,
   FileText,
@@ -55,7 +54,6 @@ import { DiscordProfileCard } from '../profile/DiscordProfileCard';
 import { InsigniaBadge } from '../profile/InsigniaBadge';
 import {
   SHINOBI_INSIGNIAS,
-  DEFAULT_BANNER_PRESETS,
   getDefaultEquippedInsignias,
   getInsigniaById,
 } from '../../constants/insignias';
@@ -110,7 +108,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     currentUser?.favoriteNinja || 'Naruto Uzumaki'
   );
   const [editCustomAvatar, setEditCustomAvatar] = useState<string>(currentUser?.customAvatar || '');
-  const [editCustomBanner, setEditCustomBanner] = useState<string>(currentUser?.customBanner || 'manga_noir');
   const [editNinjaTag, setEditNinjaTag] = useState<string>(
     currentUser?.ninjaTag || `#${currentUser?.ninjaId || '0001'}`
   );
@@ -128,7 +125,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   );
 
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
-  const bannerFileInputRef = useRef<HTMLInputElement>(null);
 
   // Manipulador de Upload de Foto Pessoal (Avatar) com compressão inteligente em canvas
   const handleAvatarFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,43 +166,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // Manipulador de Upload de Banner com compressão inteligente em canvas
-  const handleBannerFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 8 * 1024 * 1024) {
-      setErrorMessage('A imagem de banner deve ter no máximo 8MB.');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const maxWidth = 800;
-        const maxHeight = 320;
-        let width = img.width;
-        let height = img.height;
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-        if (height > maxHeight) {
-          width = Math.round((width * maxHeight) / height);
-          height = maxHeight;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        setEditCustomBanner(dataUrl);
-        setErrorMessage(null);
-      };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  };
 
   // Alternar Insígnia equipada (máximo 6)
   const handleToggleInsignia = (insigniaId: string) => {
@@ -288,7 +247,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setEditAvatarFrame(currentUser.avatarFrame || 'frame_default');
         setEditFavoriteNinja(currentUser.favoriteNinja || 'Naruto Uzumaki');
         setEditCustomAvatar(currentUser.customAvatar || '');
-        setEditCustomBanner(currentUser.customBanner || 'manga_noir');
         setEditNinjaTag(currentUser.ninjaTag || `#${currentUser.ninjaId || '0001'}`);
         setEditBio(currentUser.bio || '');
         setEditPronouns(currentUser.pronouns || '☆They/them or she/her☆');
@@ -586,7 +544,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           avatarFrame: editAvatarFrame,
           favoriteNinja: editFavoriteNinja,
           customAvatar: editCustomAvatar.trim() || null,
-          customBanner: editCustomBanner.trim() || null,
+          customBanner: currentUser.customBanner || null,
           ninjaTag: sanitizedTag || null,
           bio: editBio.trim() || null,
           pronouns: editPronouns.trim() || null,
@@ -904,19 +862,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {/* ------------------------------------------------------------- */}
               {profileTab === 'CUSTOMIZE' && (
                 <form onSubmit={handleUpdateProfile} className="space-y-6 animate-in fade-in-50 duration-200">
-                  {/* Inputs de Arquivo Ocultos */}
+                  {/* Input de Arquivo Oculto */}
                   <input
                     type="file"
                     ref={avatarFileInputRef}
                     accept="image/*"
                     onChange={handleAvatarFileUpload}
-                    className="hidden"
-                  />
-                  <input
-                    type="file"
-                    ref={bannerFileInputRef}
-                    accept="image/*"
-                    onChange={handleBannerFileUpload}
                     className="hidden"
                   />
 
@@ -1051,89 +1002,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </div>
                   </div>
 
-                  {/* SEÇÃO 2: BANNER DE PERFIL */}
-                  <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-3.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
-                        <ImageIcon className="w-4 h-4 text-purple-400" />
-                        <span>Banner Superior do Perfil (Estilo Discord)</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => bannerFileInputRef.current?.click()}
-                        className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer"
-                      >
-                        <Upload className="w-3 h-3" />
-                        <span>Upload Banner</span>
-                      </button>
-                    </div>
-
-                    {/* Preview do Banner Ativo */}
-                    <div className="relative w-full h-24 rounded-xl overflow-hidden border border-zinc-700/60 shadow-md">
-                      <img
-                        src={(() => {
-                          if (editCustomBanner) {
-                            if (editCustomBanner.startsWith('data:') || editCustomBanner.startsWith('http')) {
-                              return editCustomBanner;
-                            }
-                            const p = DEFAULT_BANNER_PRESETS.find((b) => b.id === editCustomBanner);
-                            if (p) return p.imageUrl;
-                          }
-                          return DEFAULT_BANNER_PRESETS[0].imageUrl;
-                        })()}
-                        alt="Banner Preview"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 flex items-end p-2.5">
-                        <span className="text-[11px] font-mono font-medium text-white/90 drop-shadow">
-                          {DEFAULT_BANNER_PRESETS.find((b) => b.id === editCustomBanner)?.name || 'Banner Personalizado'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Presets de Banner (Incluindo Mangá Noir da Referência) */}
-                    <div>
-                      <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block mb-2">
-                        Temas e Presets Disponíveis:
-                      </span>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {DEFAULT_BANNER_PRESETS.map((preset) => {
-                          const isSelected = editCustomBanner === preset.id;
-                          return (
-                            <button
-                              key={preset.id}
-                              type="button"
-                              onClick={() => setEditCustomBanner(preset.id)}
-                              className={`p-2 rounded-xl border text-left transition-all relative overflow-hidden cursor-pointer ${
-                                isSelected
-                                  ? 'bg-purple-950/40 border-purple-400 ring-2 ring-purple-400/40 text-purple-200 shadow-[0_0_12px_rgba(168,85,247,0.3)]'
-                                  : 'bg-zinc-950/60 hover:bg-zinc-900 border-zinc-800 text-zinc-300'
-                              }`}
-                            >
-                              <div className="w-full h-12 rounded-lg overflow-hidden mb-1.5 relative">
-                                <img
-                                  src={preset.imageUrl}
-                                  alt={preset.name}
-                                  className="w-full h-full object-cover"
-                                />
-                                {isSelected && (
-                                  <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-purple-400 text-zinc-950 flex items-center justify-center shadow">
-                                    <Check className="w-2.5 h-2.5 stroke-[3]" />
-                                  </div>
-                                )}
-                              </div>
-                              <span className="text-[10px] font-bold block truncate">{preset.name}</span>
-                              <span className="text-[9px] font-mono text-zinc-500 block truncate">
-                                {preset.theme}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* SEÇÃO 3: SISTEMA DE INSÍGNIAS (BADGES DISCORD) */}
+                  {/* SEÇÃO 2: SISTEMA DE INSÍGNIAS (BADGES DISCORD) */}
                   <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-3.5">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
@@ -1201,7 +1070,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </div>
                   </div>
 
-                  {/* SEÇÃO 4: IDENTIDADE VISUAL (# NOME E # TAG) */}
+                  {/* SEÇÃO 3: IDENTIDADE VISUAL (# NOME E # TAG) */}
                   <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-3.5">
                     <label className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
                       <HashIcon className="w-4 h-4 text-emerald-400" />
@@ -1341,7 +1210,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </div>
                   </div>
 
-                  {/* SEÇÃO 5: ABOUT ME (CAIXA TRACEJADA ESTILO DISCORD) */}
+                  {/* SEÇÃO 4: ABOUT ME (CAIXA TRACEJADA ESTILO DISCORD) */}
                   <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
@@ -1368,7 +1237,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </span>
                   </div>
 
-                  {/* SEÇÃO 6: MOLDURA ELEMENTAL & NINJA FAVORITO */}
+                  {/* SEÇÃO 5: MOLDURA ELEMENTAL & NINJA FAVORITO */}
                   <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-4">
                     {/* Moldura Elemental */}
                     <div>
