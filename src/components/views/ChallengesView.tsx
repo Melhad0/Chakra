@@ -638,7 +638,11 @@ export const ChallengesView: React.FC = () => {
   }, [combatStats]);
 
   return (
-    <div className="w-full h-full bg-[#05070d] text-zinc-100 flex flex-col overflow-hidden select-none relative">
+    <div className="w-full h-full bg-[#07080c] text-zinc-100 flex flex-col overflow-hidden select-none relative">
+      {/* Luzes de Fundo Ambientais */}
+      <div className="absolute top-10 left-10 w-96 h-96 bg-rose-600/5 rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
+      <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-600/5 rounded-full blur-3xl pointer-events-none" />
+
       {/* CABEÇALHO DA ARENA */}
       <div className="relative z-10">
         <ViewHeader
@@ -658,43 +662,43 @@ export const ChallengesView: React.FC = () => {
         {/* ================================================================= */}
         {/* 1. PALCO CENTRAL DE DUELO COM CENÁRIO DE GUERRA (ESTILO PRINT 2)   */}
         {/* ================================================================= */}
-        <section className="flex-1 relative rounded-2xl overflow-hidden border border-zinc-800/80 bg-zinc-950/95 shadow-2xl p-5 flex flex-col justify-between overflow-y-auto custom-scrollbar select-none group/arena min-h-[520px]">
+        <section className="flex-1 relative rounded-2xl overflow-hidden border border-zinc-800/90 bg-gradient-to-b from-zinc-950/90 via-[#07080c]/95 to-zinc-950/95 backdrop-blur-2xl shadow-2xl p-5 flex flex-col justify-between overflow-y-auto custom-scrollbar select-none group/arena min-h-[520px]">
           {/* Cenário de Guerra com God Rays, Radar e Orbes Encapsulado na Box */}
           <BattlefieldBackground bossId={currentBoss.id} isFighting={gauntlet.isFighting} />
 
           {/* TOPO: Informações do Chefe */}
           <div className="relative z-10">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 flex-wrap gap-2 bg-zinc-950/40 backdrop-blur-md p-3.5 rounded-xl border border-white/5 shadow-md">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 flex-wrap gap-2 bg-zinc-950/60 backdrop-blur-xl p-4 rounded-2xl border border-white/10 shadow-xl">
+              <div className="flex items-center gap-3.5">
                 <div
-                  className={`w-12 h-12 rounded-xl bg-zinc-900/80 backdrop-blur-sm border flex items-center justify-center transition-all ${
+                  className={`w-14 h-14 rounded-2xl bg-zinc-900/90 backdrop-blur-md border flex items-center justify-center transition-all duration-300 shadow-md ${
                     isHit
-                      ? 'border-rose-500 scale-95 text-rose-400'
+                      ? 'border-rose-500 scale-95 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.4)]'
                       : isCleared
-                      ? 'border-emerald-600/70 text-emerald-400'
+                      ? 'border-emerald-500/70 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
                       : isActiveTarget
-                      ? 'border-rose-700/80 text-rose-300'
+                      ? 'border-rose-500/80 text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
                       : 'border-zinc-800 text-zinc-500'
                   }`}
                 >
-                  <IconRenderer name={currentBoss.avatar} className="w-6 h-6 stroke-[1.5]" />
+                  <IconRenderer name={currentBoss.avatar} className="w-7 h-7 stroke-[1.8]" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono text-zinc-400 font-bold">
                       Fase #{currentBoss.id}
                     </span>
-                    <h2 className="text-base font-bold text-zinc-100">{currentBoss.name}</h2>
+                    <h2 className="text-base font-black text-white font-sans">{currentBoss.name}</h2>
                     {isCleared ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-950/70 border border-emerald-800/70 text-emerald-400">
-                        <CheckCircle2 className="w-3 h-3" /> CONCLUÍDO
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950/80 border border-emerald-500/70 text-emerald-400 shadow-sm">
+                        <CheckCircle2 className="w-3 h-3" /> VENCIDO
                       </span>
                     ) : isActiveTarget ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-950/70 border border-rose-800/70 text-rose-300 animate-pulse">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-950/80 border border-rose-500/70 text-rose-300 animate-pulse shadow-sm">
                         <Swords className="w-3 h-3" /> ALVO ATIVO
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-zinc-900/80 border border-zinc-800 text-zinc-500">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-zinc-900/80 border border-zinc-800 text-zinc-500">
                         <Lock className="w-3 h-3" /> BLOQUEADO
                       </span>
                     )}
@@ -979,24 +983,30 @@ export const ChallengesView: React.FC = () => {
                   )}
                 </div>
 
-                {/* BOTÃO DE ATAQUE MANUAL DO JOGADOR */}
-                <button
-                  onClick={() => handleAttackBoss(true)}
-                  className={`relative z-10 w-36 h-36 rounded-full bg-gradient-to-b from-rose-950/90 via-zinc-950/90 to-black/95 backdrop-blur-md border-2 flex flex-col items-center justify-center shadow-2xl transition-all duration-100 cursor-pointer active:scale-90 ${
-                    isHit ? 'border-rose-400 scale-95 shadow-rose-900/90' : 'border-rose-700/80 hover:border-rose-500 hover:scale-105'
-                  }`}
-                >
-                  <Swords className="w-10 h-10 text-rose-400 stroke-[1.75]" />
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-200 font-bold mt-2">
-                    Golpear
-                  </span>
-                  <span className="text-[9px] font-mono text-amber-400 font-semibold">
-                    ~{formatBigNumber(playerBaseDamage)} Dano
-                  </span>
-                </button>
+                {/* BOTÃO DE ATAQUE MANUAL DO JOGADOR COM MOVIMENTO & GLOW */}
+                <div className="relative group/strike">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-rose-500/30 to-amber-500/30 blur-xl opacity-75 group-hover/strike:opacity-100 transition-opacity pointer-events-none animate-pulse-slow" />
+                  
+                  <button
+                    onClick={() => handleAttackBoss(true)}
+                    className={`relative z-10 w-36 h-36 rounded-full bg-gradient-to-b from-rose-950/95 via-zinc-950/95 to-black/95 backdrop-blur-xl border-2 flex flex-col items-center justify-center shadow-2xl transition-all duration-200 cursor-pointer active:scale-90 select-none ${
+                      isHit
+                        ? 'border-rose-400 scale-95 shadow-[0_0_35px_rgba(244,63,94,0.7)]'
+                        : 'border-rose-600/80 hover:border-rose-400 hover:scale-105 shadow-[0_0_25px_rgba(244,63,94,0.35)]'
+                    }`}
+                  >
+                    <Swords className="w-10 h-10 text-rose-400 stroke-[2] group-hover/strike:scale-110 transition-transform duration-200" />
+                    <span className="text-xs font-mono uppercase tracking-widest text-white font-black mt-2 drop-shadow-sm">
+                      Golpear
+                    </span>
+                    <span className="text-[10px] font-mono text-amber-300 font-bold">
+                      ~{formatBigNumber(playerBaseDamage)} Dano
+                    </span>
+                  </button>
+                </div>
 
-                <span className="text-[10px] font-mono text-zinc-400 mt-2 bg-zinc-950/60 px-2 py-0.5 rounded-full border border-white/5">
-                  (Auto-ataque a cada 0.8s + cliques manuais livres)
+                <span className="text-[10px] font-mono text-zinc-400 mt-2.5 bg-zinc-950/70 px-3 py-1 rounded-full border border-white/10 shadow-sm">
+                  ⚡ Auto-ataque a cada 0.8s + cliques manuais livres
                 </span>
 
                 {/* Botão de Borda para Mecânica do Baki */}
@@ -1111,19 +1121,21 @@ export const ChallengesView: React.FC = () => {
         {/* ================================================================= */}
         {/* 2. PAINEL LATERAL MULTIFUNCIONAL (ATRIBUTOS, DROPS & CATÁLOGO)    */}
         {/* ================================================================= */}
-        <aside className="w-full lg:w-[420px] bg-zinc-950/75 backdrop-blur-md border border-zinc-800/90 rounded-2xl shadow-2xl p-4 flex flex-col overflow-hidden">
+        <aside className="w-full lg:w-[420px] bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-[#090a0f]/95 backdrop-blur-2xl border border-zinc-800/90 rounded-2xl shadow-2xl p-4 flex flex-col overflow-hidden relative">
+          <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-rose-500/50 to-transparent pointer-events-none" />
+
           {/* NAVEGAÇÃO DE ABAS DO PAINEL LATERAL */}
-          <div className="flex items-center gap-1 p-1 bg-zinc-900/80 rounded-xl border border-zinc-800/80 mb-3">
+          <div className="flex items-center gap-1.5 p-1.5 bg-zinc-950/80 rounded-xl border border-zinc-800/80 mb-3 shadow-inner">
             <button
               onClick={() => setActiveSideTab('STATS')}
-              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-mono font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 py-2 px-2.5 rounded-lg text-xs font-mono font-bold transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeSideTab === 'STATS'
-                  ? 'bg-amber-600/90 text-white shadow'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-amber-950/80 text-amber-200 border border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 border border-transparent'
               }`}
             >
               <Zap className="w-3.5 h-3.5" />
-              Atributos RPG
+              <span>Atributos RPG</span>
               {combatStats.unspentStatPoints > 0 && (
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
               )}
@@ -1131,26 +1143,26 @@ export const ChallengesView: React.FC = () => {
 
             <button
               onClick={() => setActiveSideTab('DROPS')}
-              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-mono font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 py-2 px-2.5 rounded-lg text-xs font-mono font-bold transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeSideTab === 'DROPS'
-                  ? 'bg-rose-600/90 text-white shadow'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-rose-950/80 text-rose-200 border border-rose-500/60 shadow-[0_0_12px_rgba(244,63,94,0.25)]'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 border border-transparent'
               }`}
             >
               <Package className="w-3.5 h-3.5" />
-              Drops & Saques
+              <span>Drops & Saques</span>
             </button>
 
             <button
               onClick={() => setActiveSideTab('LIST')}
-              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-mono font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 py-2 px-2.5 rounded-lg text-xs font-mono font-bold transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeSideTab === 'LIST'
-                  ? 'bg-zinc-800 text-white shadow'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-zinc-800 text-white border border-zinc-700 shadow-md'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 border border-transparent'
               }`}
             >
               <Activity className="w-3.5 h-3.5" />
-              Oponentes ({filteredBosses.length})
+              <span>Oponentes ({filteredBosses.length})</span>
             </button>
           </div>
 

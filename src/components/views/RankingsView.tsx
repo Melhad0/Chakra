@@ -23,6 +23,7 @@ import {
   Users,
   Swords,
   Globe2,
+  Crown,
 } from 'lucide-react';
 
 export const RankingsView: React.FC = () => {
@@ -159,7 +160,7 @@ export const RankingsView: React.FC = () => {
     return () => clearInterval(timer);
   }, [currentUser, sessionClicks, allTimeClicks, highestCPS, prestiges, totalTroops, gauntletBossMax]);
 
-  // Lista dinâmica do leaderboard (Alimentado 100% pelo Neon Postgres)
+  // Lista dinâmica do leaderboard
   const displayLeaderboard = useMemo(() => {
     if (isCloudLoaded) {
       if (cloudRankings.length === 0) {
@@ -254,43 +255,49 @@ export const RankingsView: React.FC = () => {
   };
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-[#08090d] text-zinc-100 overflow-hidden select-none">
+    <div className="w-screen h-screen flex flex-col bg-[#07080c] text-zinc-100 overflow-hidden select-none relative">
+      {/* Luzes de Fundo Ambientais */}
+      <div className="absolute top-10 left-1/4 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+
       {/* Cabeçalho Fixo Universal */}
       <ViewHeader
-        title="Hall da Fama e Rankings Globais Shinobi"
-        subtitle="Quadro de Honra Oficial da Aldeia da Folha sincronizado no Neon Postgres"
+        title="Hall da Fama & Rankings Globais"
+        subtitle="Quadro de Honra Oficial da Aldeia Shinobi sincronizado na nuvem"
         badgeText={`Graduação: ${currentRank.title}`}
         badgeVariant="chakra"
-        icon={<Trophy className="w-4 h-4 text-amber-400 stroke-[1.75]" />}
+        icon={<Trophy className="w-4 h-4 text-amber-400 stroke-[2]" />}
       />
 
       {/* Conteúdo Principal em 2 Colunas */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden p-4 lg:p-6 gap-4 lg:gap-6">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden p-4 lg:p-6 gap-4 lg:gap-6 relative z-10">
         {/* ================================================================= */}
         {/* COLUNA ESQUERDA: QUADRO DE LÍDERES GLOBAIS                        */}
         {/* ================================================================= */}
-        <section className="flex-1 bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl shadow-2xl p-5 lg:p-6 flex flex-col overflow-hidden">
-          {/* Topo do Placares: Seletor de 4 Abas Segmentadas */}
-          <div className="flex items-center justify-between pb-3.5 border-b border-zinc-800/80 gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 bg-zinc-950 p-1.5 rounded-xl border border-zinc-800/80 flex-wrap">
+        <section className="flex-1 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-[#090a0f]/95 backdrop-blur-2xl border border-zinc-800/90 rounded-2xl shadow-2xl p-4 lg:p-6 flex flex-col overflow-hidden relative group/board">
+          <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500/50 to-transparent pointer-events-none" />
+
+          {/* Topo dos Placares: Seletor de 4 Abas Segmentadas */}
+          <div className="flex items-center justify-between pb-3.5 border-b border-zinc-800/80 gap-3 flex-wrap flex-shrink-0">
+            <div className="flex items-center gap-1.5 bg-zinc-950/80 p-1.5 rounded-xl border border-zinc-800/80 flex-wrap shadow-inner">
               <button
                 onClick={() => setActiveLeaderboard('peakCps')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all duration-200 cursor-pointer ${
                   activeLeaderboard === 'peakCps'
-                    ? 'bg-zinc-800 text-emerald-300 border border-zinc-700 shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
+                    ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/60 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 border border-transparent'
                 }`}
               >
                 <Zap className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Pico de Poder (CPS)</span>
+                <span>Pico de CPS</span>
               </button>
 
               <button
                 onClick={() => setActiveLeaderboard('totalTroops')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all duration-200 cursor-pointer ${
                   activeLeaderboard === 'totalTroops'
-                    ? 'bg-zinc-800 text-cyan-300 border border-zinc-700 shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
+                    ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-500/60 shadow-[0_0_12px_rgba(6,182,212,0.25)]'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 border border-transparent'
                 }`}
               >
                 <Users className="w-3.5 h-3.5 text-cyan-400" />
@@ -299,22 +306,22 @@ export const RankingsView: React.FC = () => {
 
               <button
                 onClick={() => setActiveLeaderboard('gauntletBoss')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all duration-200 cursor-pointer ${
                   activeLeaderboard === 'gauntletBoss'
-                    ? 'bg-zinc-800 text-rose-300 border border-zinc-700 shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
+                    ? 'bg-rose-950/80 text-rose-300 border border-rose-500/60 shadow-[0_0_12px_rgba(244,63,94,0.25)]'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 border border-transparent'
                 }`}
               >
                 <Swords className="w-3.5 h-3.5 text-rose-400" />
-                <span>Mestres do Gauntlet</span>
+                <span>Gauntlet Chefes</span>
               </button>
 
               <button
                 onClick={() => setActiveLeaderboard('allTimeClicks')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all duration-200 cursor-pointer ${
                   activeLeaderboard === 'allTimeClicks'
-                    ? 'bg-zinc-800 text-amber-300 border border-zinc-700 shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
+                    ? 'bg-amber-950/80 text-amber-300 border border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 border border-transparent'
                 }`}
               >
                 <Target className="w-3.5 h-3.5 text-amber-400" />
@@ -324,46 +331,53 @@ export const RankingsView: React.FC = () => {
 
             {/* Status e Botão de Sincronização */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 text-[11px] font-mono text-zinc-400 bg-zinc-950/60 px-2 py-1 rounded-lg border border-zinc-850">
-                <Globe2 className="w-3 h-3 text-cyan-400" />
-                <span>{isCloudLoaded ? 'Neon Nuvem' : 'Local'}</span>
+              <div className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-300 bg-zinc-950/80 px-2.5 py-1.5 rounded-xl border border-zinc-800 shadow-inner">
+                <Globe2 className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                <span>{isCloudLoaded ? 'Nuvem Conectada' : 'Modo Offline'}</span>
               </div>
 
               {syncStatus && (
-                <span className="text-[11px] font-mono text-emerald-400 font-medium">{syncStatus}</span>
+                <span className="text-[11px] font-mono text-emerald-400 font-bold animate-pulse">
+                  {syncStatus}
+                </span>
               )}
 
               <button
                 onClick={handleSyncRankings}
                 disabled={isSyncing}
                 title="Sincronizar dados com o banco Neon Postgres"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950/80 hover:bg-zinc-800 border border-zinc-800 rounded-lg text-xs font-mono text-zinc-300 transition active:scale-95 cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-750 hover:border-amber-500/50 rounded-xl text-xs font-mono text-zinc-200 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-cyan-400' : ''}`} />
-                <span>Atualizar</span>
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-amber-400' : 'text-zinc-400'}`} />
+                <span className="font-semibold">Sincronizar</span>
               </button>
             </div>
           </div>
 
-          {/* Destaque da Posição do Jogador */}
-          <div className="my-3.5 p-3.5 rounded-xl bg-gradient-to-r from-amber-950/30 via-zinc-950/80 to-zinc-950/80 border border-amber-800/40 flex items-center justify-between font-mono text-xs shadow-inner">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-amber-300 font-bold text-sm shadow-md">
+          {/* Destaque da Posição do Jogador com Efeito Holográfico */}
+          <div className="my-3.5 p-3.5 rounded-xl bg-gradient-to-r from-amber-950/30 via-zinc-900/90 to-zinc-950/90 border border-amber-500/40 flex items-center justify-between font-mono text-xs shadow-lg shadow-amber-950/10 flex-shrink-0 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-full bg-amber-500/5 rounded-bl-full pointer-events-none" />
+
+            <div className="flex items-center gap-3 relative z-10">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/30 border border-amber-400/60 flex items-center justify-center text-amber-300 font-black text-sm shadow-[0_0_15px_rgba(245,158,11,0.3)]">
                 #{playerPosition}
               </div>
               <div>
-                <span className="text-zinc-400 block text-[10px] uppercase tracking-wider">
-                  Sua Colocação Global no Placar:
+                <span className="text-zinc-400 block text-[10px] uppercase tracking-wider font-semibold">
+                  Sua Colocação no Ranking:
                 </span>
-                <strong className="text-zinc-100 text-sm">{currentUser ? currentUser.fullName : 'Você'}</strong>
+                <strong className="text-white text-sm font-sans flex items-center gap-1.5">
+                  {currentUser ? currentUser.fullName : 'Você'}
+                  <Crown className="w-3.5 h-3.5 text-amber-400" />
+                </strong>
               </div>
             </div>
 
-            <div className="text-right">
-              <span className="text-zinc-400 block text-[10px] uppercase tracking-wider">
-                Sua Métrica Atual:
+            <div className="text-right relative z-10">
+              <span className="text-zinc-400 block text-[10px] uppercase tracking-wider font-semibold">
+                Registro Atual:
               </span>
-              <strong className="text-amber-300 text-sm">
+              <strong className="text-amber-300 text-sm font-mono drop-shadow-[0_0_8px_rgba(245,158,11,0.3)]">
                 {activeLeaderboard === 'peakCps' && `${formatBigNumber(highestCPS)} CPS`}
                 {activeLeaderboard === 'totalTroops' && `${totalTroops.toLocaleString('pt-BR')} Tropas`}
                 {activeLeaderboard === 'gauntletBoss' && `Chefe #${gauntletBossMax}`}
@@ -373,21 +387,21 @@ export const RankingsView: React.FC = () => {
           </div>
 
           {/* Tabela Comparativa do Ranking Shinobi */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar border border-zinc-800/80 rounded-xl bg-zinc-950/40">
+          <div className="flex-1 overflow-y-auto custom-scrollbar border border-zinc-800/80 rounded-xl bg-zinc-950/50 shadow-inner">
             <table className="w-full text-left font-mono text-xs">
-              <thead className="bg-zinc-950/90 text-zinc-400 text-[10px] uppercase tracking-wider sticky top-0 border-b border-zinc-800 z-10 backdrop-blur-md">
+              <thead className="bg-zinc-950/95 text-zinc-400 text-[10px] uppercase tracking-wider sticky top-0 border-b border-zinc-800 z-10 backdrop-blur-md">
                 <tr>
-                  <th className="py-2.5 px-4 w-12 text-center">Pos</th>
-                  <th className="py-2.5 px-4">Shinobi</th>
-                  <th className="py-2.5 px-4">Patente</th>
-                  <th className="py-2.5 px-4 text-right">Registro Recorde</th>
+                  <th className="py-3 px-4 w-14 text-center">Pos</th>
+                  <th className="py-3 px-4">Shinobi</th>
+                  <th className="py-3 px-4">Patente</th>
+                  <th className="py-3 px-4 text-right">Registro Recorde</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-850/60">
                 {displayLeaderboard.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-12 text-center text-zinc-500 font-mono text-xs">
-                      Nenhum shinobi ranqueado ainda no Neon PostgreSQL. Cadastre-se ou sincronize para inaugurar o Hall da Fama!
+                    <td colSpan={4} className="py-16 text-center text-zinc-500 font-mono text-xs">
+                      Nenhum shinobi ranqueado ainda. Sincronize sua conta para inaugurar o Hall da Fama!
                     </td>
                   </tr>
                 ) : (
@@ -397,35 +411,43 @@ export const RankingsView: React.FC = () => {
                     return (
                       <tr
                         key={`${ninja.name}-${index}`}
-                        className={`transition ${
+                        className={`transition-all duration-200 group/row ${
                           isCurrentPlayer
-                            ? 'bg-amber-950/40 font-bold text-amber-300 border-l-2 border-amber-400'
-                            : 'hover:bg-zinc-850/40 text-zinc-300'
+                            ? 'bg-amber-950/30 font-bold text-amber-200 border-l-4 border-amber-400 shadow-[inset_0_0_20px_rgba(245,158,11,0.1)]'
+                            : 'hover:bg-zinc-850/50 text-zinc-300'
                         }`}
                       >
                         <td className="py-3 px-4 text-center">
                           {ninja.position === 1 ? (
-                            <Medal className="w-4 h-4 text-amber-400 mx-auto" />
+                            <div className="w-6 h-6 rounded-md bg-amber-500/20 border border-amber-400/60 flex items-center justify-center mx-auto shadow-[0_0_10px_rgba(245,158,11,0.3)]">
+                              <Medal className="w-3.5 h-3.5 text-amber-400" />
+                            </div>
                           ) : ninja.position === 2 ? (
-                            <Medal className="w-4 h-4 text-zinc-300 mx-auto" />
+                            <div className="w-6 h-6 rounded-md bg-slate-300/20 border border-slate-300/60 flex items-center justify-center mx-auto shadow-[0_0_10px_rgba(203,213,225,0.3)]">
+                              <Medal className="w-3.5 h-3.5 text-slate-300" />
+                            </div>
                           ) : ninja.position === 3 ? (
-                            <Medal className="w-4 h-4 text-amber-700 mx-auto" />
+                            <div className="w-6 h-6 rounded-md bg-amber-800/20 border border-amber-700/60 flex items-center justify-center mx-auto shadow-[0_0_10px_rgba(180,83,9,0.3)]">
+                              <Medal className="w-3.5 h-3.5 text-amber-600" />
+                            </div>
                           ) : (
-                            <span className="text-zinc-500 font-bold">#{ninja.position}</span>
+                            <span className="text-zinc-500 font-bold text-xs">#{ninja.position}</span>
                           )}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center flex-shrink-0 text-zinc-300">
+                            <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center flex-shrink-0 text-zinc-300 group-hover/row:scale-105 group-hover/row:border-zinc-700 transition-all">
                               <IconRenderer name={ninja.avatar} className="w-4 h-4 stroke-[1.8]" />
                             </div>
-                            <div>
-                              <span className="font-semibold block truncate max-w-[200px]">{ninja.name}</span>
+                            <div className="min-w-0">
+                              <span className="font-semibold block truncate max-w-[200px] text-zinc-100 group-hover/row:text-amber-300 transition-colors">
+                                {ninja.name}
+                              </span>
                             </div>
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-zinc-400">{ninja.title}</td>
-                        <td className="py-3 px-4 text-right font-semibold text-emerald-400">
+                        <td className="py-3 px-4 text-zinc-400 font-sans text-xs">{ninja.title}</td>
+                        <td className="py-3 px-4 text-right font-bold text-emerald-400">
                           {formatMetricDisplay(ninja)}
                         </td>
                       </tr>
@@ -440,34 +462,34 @@ export const RankingsView: React.FC = () => {
         {/* ================================================================= */}
         {/* COLUNA DIREITA: PATENTE ATUAL & RECOMPENSAS DE GRADUAÇÃO          */}
         {/* ================================================================= */}
-        <aside className="w-full lg:w-96 bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl shadow-2xl p-6 flex flex-col justify-between overflow-y-auto custom-scrollbar">
+        <aside className="w-full lg:w-96 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-[#090a0f]/95 backdrop-blur-2xl border border-zinc-800/90 rounded-2xl shadow-2xl p-5 lg:p-6 flex flex-col justify-between overflow-y-auto custom-scrollbar relative">
           <div className="space-y-6">
-            {/* Cartão de Patente Atual */}
-            <div className="p-4 rounded-xl bg-zinc-950/80 border border-zinc-800 shadow-md">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 font-semibold block mb-2">
+            {/* Cartão de Patente Atual com Glow */}
+            <div className="p-4 rounded-xl bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 border border-zinc-800/90 shadow-md relative overflow-hidden">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 font-bold block mb-2">
                 Graduação Ninja Oficial
               </span>
               <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-700/60 flex items-center justify-center text-amber-400">
-                  <Award className="w-6 h-6 stroke-[1.5]" />
+                <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.25)] flex-shrink-0">
+                  <Award className="w-6 h-6 stroke-[1.8]" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-zinc-100">{currentRank.title}</h3>
+                  <h3 className="text-base font-black text-white">{currentRank.title}</h3>
                   <p className="text-xs text-zinc-400 font-mono mt-0.5">{currentRank.subtitle}</p>
                 </div>
               </div>
 
               {/* Barra de Progresso até a próxima patente */}
               {nextRank && (
-                <div className="mt-4 pt-3 border-t border-zinc-850">
-                  <div className="flex justify-between text-xs font-mono text-zinc-400 mb-1">
-                    <span>Próxima: {nextRank.title}</span>
+                <div className="mt-4 pt-3 border-t border-zinc-800/80">
+                  <div className="flex justify-between text-xs font-mono text-zinc-400 mb-1.5">
+                    <span>Próxima: <strong className="text-zinc-200">{nextRank.title}</strong></span>
                     <strong className="text-amber-400">{progress.overallProgress}%</strong>
                   </div>
-                  <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-zinc-950 rounded-full overflow-hidden p-0.5 border border-zinc-850">
                     <div
                       style={{ width: `${progress.overallProgress}%` }}
-                      className="h-full bg-gradient-to-r from-amber-500 to-emerald-500 rounded-full transition-all duration-300"
+                      className="h-full bg-gradient-to-r from-amber-500 to-emerald-400 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
                     />
                   </div>
                 </div>
@@ -476,8 +498,9 @@ export const RankingsView: React.FC = () => {
 
             {/* Lista de Patentes & Resgate de Recompensas de Promoção */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300 mb-3 flex items-center gap-1.5">
-                <Gift className="w-4 h-4 text-emerald-400" /> Recompensas de Graduação
+              <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300 mb-3 flex items-center gap-2">
+                <Gift className="w-4 h-4 text-emerald-400" />
+                <span>Recompensas de Graduação</span>
               </h4>
 
               <div className="space-y-2.5">
@@ -493,29 +516,31 @@ export const RankingsView: React.FC = () => {
                   return (
                     <div
                       key={rank.id}
-                      className={`p-3 rounded-xl border text-xs font-mono transition ${
+                      className={`p-3 rounded-xl border text-xs font-mono transition-all duration-200 ${
                         isClaimed
                           ? 'bg-zinc-950/40 border-zinc-850 opacity-60'
                           : qualifies
-                          ? 'bg-emerald-950/20 border-emerald-700/50 shadow-sm'
+                          ? 'bg-emerald-950/25 border-emerald-500/60 shadow-md shadow-emerald-950/20 hover:border-emerald-400'
                           : 'bg-zinc-950/60 border-zinc-850/80 text-zinc-500'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="font-semibold text-zinc-200">{rank.title}</span>
+                        <span className="font-bold text-zinc-200">{rank.title}</span>
                         {isClaimed ? (
-                          <span className="text-[10px] text-emerald-400 font-bold">Resgatado</span>
+                          <span className="text-[10px] text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/60">
+                            Resgatado ✔
+                          </span>
                         ) : (
                           <button
                             disabled={!qualifies}
                             onClick={() => claimRankReward(rank.id)}
-                            className={`px-2.5 py-0.5 rounded text-[10px] font-bold transition border ${
+                            className={`px-3 py-1 rounded-lg text-[10px] font-bold font-mono transition-all duration-200 border ${
                               qualifies
-                                ? 'bg-emerald-600 text-zinc-950 border-emerald-500 hover:bg-emerald-500 cursor-pointer shadow-sm active:scale-95'
-                                : 'bg-zinc-900 border-zinc-800 text-zinc-600 cursor-not-allowed'
+                                ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-black border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.35)] cursor-pointer hover:scale-105 active:scale-95'
+                                : 'bg-zinc-900/60 border-zinc-800 text-zinc-600 cursor-not-allowed'
                             }`}
                           >
-                            Resgatar
+                            Resgatar Recompensa
                           </button>
                         )}
                       </div>

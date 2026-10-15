@@ -11,6 +11,7 @@ import {
 } from '../../constants/rankings';
 import { ShinobiPromotionId } from '../../types/rankings';
 import {
+  Trophy,
   Award,
   CheckCircle2,
   Lock,
@@ -25,6 +26,7 @@ import {
   ChevronRight,
   Gift,
   AlertCircle,
+  Crown,
 } from 'lucide-react';
 
 export const RankPromotionView: React.FC = () => {
@@ -36,7 +38,7 @@ export const RankPromotionView: React.FC = () => {
   const currentUser = useGameStore((s) => s.currentUser);
   const setView = useGameStore((s) => s.setView);
 
-  // Patente atual oficial (calculada estritamente pelas graduações aprovadas)
+  // Patente atual oficial
   const currentRank = useMemo(
     () =>
       getCurrentRank(
@@ -48,18 +50,17 @@ export const RankPromotionView: React.FC = () => {
     [stats.manualClicksAllTime, stats.highestCPSRecord, stats.totalPrestiges, passedExams]
   );
 
-  // Encontra a primeira missão ainda não realizada (a missão ativa que o jogador deve perseguir)
+  // Primeira missão ainda não realizada
   const firstUnpassedMissionId = useMemo(() => {
     const unpassed = SHINOBI_PROMOTION_MISSIONS.find((m) => !passedExams[m.id]);
     return unpassed ? unpassed.id : 'rikudou';
   }, [passedExams]);
 
-  // Missão atualmente selecionada para inspeção (por padrão foca na próxima missão não concluída)
   const [selectedMissionId, setSelectedMissionId] = useState<ShinobiPromotionId>(
     firstUnpassedMissionId as ShinobiPromotionId
   );
 
-  // Modal comemorativo de outorga de patente
+  // Modal comemorativo
   const [celebrationData, setCelebrationData] = useState<{
     rankTitle: string;
     chakraBonus: string;
@@ -75,16 +76,13 @@ export const RankPromotionView: React.FC = () => {
 
   const isMissionPassed = !!passedExams[activeMission.id];
 
-  // Verifica se o jogador tem o rank anterior necessário para tentar esta missão
   const isPrerequisiteMet = useMemo(() => {
     if (activeMission.requiredRankId === 'estudante') return true;
     return !!passedExams[activeMission.requiredRankId];
   }, [activeMission.requiredRankId, passedExams]);
 
-  // Contagem de chefes derrotados no Gauntlet (considera o recorde máximo alcançado)
   const defeatedBossesCount = Math.max(0, gauntlet.highestBossDefeated, gauntlet.currentActiveBossId - 1);
 
-  // Validação em tempo real dos requisitos da missão selecionada
   const reqStatus = useMemo(() => {
     const req = activeMission.requirements;
 
@@ -110,7 +108,7 @@ export const RankPromotionView: React.FC = () => {
       ? Math.min(100, Math.floor(chakraCurrent.div(chakraTarget).mul(100).toNumber()))
       : 100;
 
-    // 4. Requisitos Extras Opcionais
+    // 4. Requisitos Extras
     let extraMet = true;
     let extraLabel = '';
     let extraCurrent = '';
@@ -150,15 +148,11 @@ export const RankPromotionView: React.FC = () => {
     };
   }, [activeMission, stats, gatesUnlocked, defeatedBossesCount]);
 
-  // Ação de Conclusão da Graduação
   const handleExecutePromotion = () => {
-    if (isMissionPassed) return;
-    if (!isPrerequisiteMet) return;
-    if (!reqStatus.allMet) return;
+    if (isMissionPassed || !isPrerequisiteMet || !reqStatus.allMet) return;
 
     const res = completePromotion(activeMission.targetRankId);
     if (res && res.success) {
-      // Determina próxima missão sequencial para avançar automaticamente
       const currentIdx = SHINOBI_PROMOTION_MISSIONS.findIndex((m) => m.id === activeMission.id);
       const nextMission = SHINOBI_PROMOTION_MISSIONS[currentIdx + 1];
 
@@ -183,30 +177,34 @@ export const RankPromotionView: React.FC = () => {
   ).length;
 
   return (
-    <div className="w-full h-full flex flex-col bg-zinc-950 text-zinc-100 overflow-hidden select-none">
+    <div className="w-full h-full flex flex-col bg-[#07080c] text-zinc-100 overflow-hidden select-none relative">
+      {/* Luzes de Fundo Ambientais */}
+      <div className="absolute top-10 left-1/3 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
+      <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+
       {/* 1. CABEÇALHO UNIFICADO DO SISTEMA */}
       <ViewHeader
         title="Quartel de Graduação Shinobi"
         subtitle="Missões Oficiais de Avaliação, Desempenho e Promoção de Patente Ninja"
-        icon={<Award className="w-5 h-5 text-amber-400 stroke-[2]" />}
+        icon={<Award className="w-4 h-4 text-amber-400 stroke-[2]" />}
         badgeText={`Patente: ${currentRank.title}`}
       />
 
       {/* 2. BARRA DE STATUS DO SHINOBI & PROGRESSÃO */}
-      <div className="px-6 py-2.5 bg-zinc-900/60 border-b border-zinc-800/80 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-950/70 border border-zinc-800">
+      <div className="px-6 py-2.5 bg-zinc-950/70 backdrop-blur-md border-b border-zinc-800/80 flex flex-wrap items-center justify-between gap-3 text-xs font-mono relative z-10 shadow-sm">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800">
             <Shield className="w-3.5 h-3.5 text-cyan-400" />
             <span className="text-zinc-400">Shinobi:</span>
-            <span className="text-zinc-200 font-bold">{currentUser?.fullName || 'Ninja Operativo'}</span>
+            <span className="text-white font-bold">{currentUser?.fullName || 'Ninja Operativo'}</span>
             <span className="text-cyan-400 font-bold">#{currentUser?.ninjaId || 1049}</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-950/70 border border-zinc-800">
-            <Flame className="w-3.5 h-3.5 text-orange-400" />
-            <span className="text-zinc-400">Patente Oficial:</span>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800">
+            <Flame className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-zinc-400">Patente Atual:</span>
             <span
-              className={`font-bold px-1.5 py-0.5 rounded text-[11px] border ${currentRank.badgeClass}`}
+              className={`font-bold px-2 py-0.5 rounded text-[11px] border ${currentRank.badgeClass}`}
             >
               {currentRank.title}
             </span>
@@ -214,14 +212,14 @@ export const RankPromotionView: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5 bg-zinc-900/80 px-3 py-1.5 rounded-xl border border-zinc-800">
             <span className="text-zinc-400">Graduações Concluídas:</span>
             <span className="text-emerald-400 font-bold text-sm">
               {totalPassedCount} / {SHINOBI_PROMOTION_MISSIONS.length}
             </span>
-            <div className="w-24 h-2 bg-zinc-800 rounded-full overflow-hidden">
+            <div className="w-24 h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-850 p-0.5">
               <div
-                className="h-full bg-emerald-500 transition-all duration-300 rounded-full"
+                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"
                 style={{
                   width: `${(totalPassedCount / SHINOBI_PROMOTION_MISSIONS.length) * 100}%`,
                 }}
@@ -231,16 +229,17 @@ export const RankPromotionView: React.FC = () => {
 
           <button
             onClick={() => setView('RANKINGS')}
-            className="flex items-center gap-1 px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition border border-zinc-700 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-all duration-200 border border-zinc-750 hover:border-amber-500/50 cursor-pointer shadow-sm hover:-translate-y-0.5"
           >
-            <span>Hall da Fama</span>
-            <ChevronRight className="w-3.5 h-3.5" />
+            <Trophy className="w-3.5 h-3.5 text-amber-400" />
+            <span className="font-semibold">Hall da Fama</span>
+            <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
           </button>
         </div>
       </div>
 
       {/* 3. TRILHA SEQUENCIAL DE MISSÕES DE PROMOÇÃO (STEPPER HORIZONTAL) */}
-      <div className="px-6 py-3 bg-zinc-900/30 border-b border-zinc-800/60 overflow-x-auto custom-scrollbar flex-shrink-0">
+      <div className="px-6 py-3 bg-zinc-950/50 border-b border-zinc-800/80 overflow-x-auto custom-scrollbar flex-shrink-0 relative z-10">
         <div className="flex items-center gap-2 min-w-max">
           {SHINOBI_PROMOTION_MISSIONS.map((mission, index) => {
             const isPassed = !!passedExams[mission.id];
@@ -253,20 +252,20 @@ export const RankPromotionView: React.FC = () => {
               <React.Fragment key={mission.id}>
                 {index > 0 && (
                   <div
-                    className={`w-6 h-0.5 ${
-                      isPassed ? 'bg-emerald-500/60' : 'bg-zinc-800'
+                    className={`w-6 h-0.5 transition-colors ${
+                      isPassed ? 'bg-emerald-500/70 shadow-[0_0_6px_rgba(16,185,129,0.4)]' : 'bg-zinc-800'
                     }`}
                   />
                 )}
                 <button
                   onClick={() => setSelectedMissionId(mission.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition cursor-pointer ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-mono transition-all duration-200 cursor-pointer ${
                     isSelected
-                      ? 'bg-zinc-800 border-amber-500/80 text-white shadow-md ring-1 ring-amber-500/40'
+                      ? 'bg-zinc-850 border-amber-500 text-white shadow-lg shadow-amber-950/30 ring-1 ring-amber-400/50 scale-105'
                       : isPassed
-                      ? 'bg-emerald-950/30 hover:bg-emerald-950/50 border-emerald-800/60 text-emerald-300'
+                      ? 'bg-emerald-950/30 hover:bg-emerald-950/50 border-emerald-700/60 text-emerald-300'
                       : isCurrentActive
-                      ? 'bg-amber-950/30 hover:bg-amber-950/50 border-amber-800/60 text-amber-300 animate-pulse'
+                      ? 'bg-amber-950/30 hover:bg-amber-950/50 border-amber-500/60 text-amber-300 animate-pulse'
                       : 'bg-zinc-900/50 hover:bg-zinc-900 border-zinc-800 text-zinc-500'
                   }`}
                 >
@@ -292,28 +291,28 @@ export const RankPromotionView: React.FC = () => {
       </div>
 
       {/* 4. PALCO PRINCIPAL DA MISSÃO DE PROMOÇÃO SELECIONADA */}
-      <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 lg:p-6 custom-scrollbar relative z-10">
         <div className="max-w-5xl mx-auto space-y-6">
           {/* BANNER / CARTÃO HERO DA MISSÃO */}
           <div
-            className={`p-6 rounded-2xl border backdrop-blur-md relative overflow-hidden shadow-lg transition-colors ${
+            className={`p-6 rounded-2xl border backdrop-blur-2xl relative overflow-hidden shadow-2xl transition-all duration-300 ${
               isMissionPassed
-                ? 'bg-emerald-950/20 border-emerald-800/50'
+                ? 'bg-gradient-to-br from-emerald-950/20 via-zinc-900/90 to-zinc-950/90 border-emerald-500/40 shadow-emerald-950/10'
                 : !isPrerequisiteMet
-                ? 'bg-zinc-900/40 border-zinc-800/80 opacity-75'
+                ? 'bg-zinc-900/50 border-zinc-800/80 opacity-80'
                 : reqStatus.allMet
-                ? 'bg-amber-950/20 border-amber-500/50 ring-1 ring-amber-500/30'
-                : 'bg-zinc-900/40 border-zinc-800/80'
+                ? 'bg-gradient-to-br from-amber-950/30 via-zinc-900/90 to-zinc-950/90 border-amber-500/60 shadow-amber-950/20 ring-1 ring-amber-500/30'
+                : 'bg-gradient-to-br from-zinc-900/80 via-zinc-950/85 to-[#090a0f]/95 border-zinc-800/90'
             }`}
           >
             {/* Halo de fundo */}
             <div
-              className={`absolute -right-16 -top-16 w-64 h-64 rounded-full blur-3xl pointer-events-none ${
+              className={`absolute -right-16 -top-16 w-64 h-64 rounded-full blur-3xl pointer-events-none transition-transform duration-700 ${
                 isMissionPassed
-                  ? 'bg-emerald-500/10'
+                  ? 'bg-emerald-500/15'
                   : reqStatus.allMet
-                  ? 'bg-amber-500/10'
-                  : 'bg-orange-500/5'
+                  ? 'bg-amber-500/20 animate-pulse-slow'
+                  : 'bg-orange-500/10'
               }`}
             />
 
@@ -343,9 +342,9 @@ export const RankPromotionView: React.FC = () => {
                   )}
                 </div>
 
-                <h2 className="text-2xl font-ninja tracking-wide text-zinc-100 flex items-center gap-2">
+                <h2 className="text-2xl font-black tracking-wide text-white flex items-center gap-2 font-sans">
                   <span>{activeMission.title}</span>
-                  <span className="text-amber-400 font-sans text-lg font-bold">
+                  <span className="text-amber-400 text-lg font-bold">
                     ➔ {targetRankDef.title}
                   </span>
                 </h2>
@@ -356,12 +355,12 @@ export const RankPromotionView: React.FC = () => {
               </div>
 
               {/* DIÁLOGO DO EXAMINADOR OFICIAL */}
-              <div className="p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800 md:max-w-xs flex-shrink-0">
+              <div className="p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800 md:max-w-xs flex-shrink-0 shadow-inner">
                 <div className="flex items-center gap-2 mb-1.5 pb-1.5 border-b border-zinc-850">
                   <span className="text-xl">{activeMission.proctor.avatarEmoji}</span>
                   <div>
-                    <h4 className="text-xs font-bold text-zinc-200">{activeMission.proctor.name}</h4>
-                    <span className="text-[10px] text-zinc-400 block">
+                    <h4 className="text-xs font-bold text-zinc-100">{activeMission.proctor.name}</h4>
+                    <span className="text-[10px] text-zinc-400 block font-mono">
                       {activeMission.proctor.title}
                     </span>
                   </div>
@@ -376,7 +375,7 @@ export const RankPromotionView: React.FC = () => {
             <div className="mt-5 pt-4 border-t border-zinc-800/80 flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-2 text-xs font-mono">
                 {isMissionPassed ? (
-                  <span className="text-emerald-400 flex items-center gap-1.5">
+                  <span className="text-emerald-400 flex items-center gap-1.5 font-bold">
                     <CheckCircle2 className="w-4 h-4" />
                     Patente outorgada definitivamente. O shinobi avançou para o próximo nível hierárquico.
                   </span>
@@ -384,7 +383,7 @@ export const RankPromotionView: React.FC = () => {
                   <span className="text-zinc-500 flex items-center gap-1.5">
                     <Lock className="w-4 h-4" />
                     Você deve ser promovido para{' '}
-                    <strong className="text-zinc-400">
+                    <strong className="text-zinc-300">
                       {SHINOBI_RANKS_MAP[activeMission.requiredRankId]?.title}
                     </strong>{' '}
                     antes de assumir esta graduação.
@@ -397,7 +396,7 @@ export const RankPromotionView: React.FC = () => {
                 ) : (
                   <span className="text-amber-300 flex items-center gap-1.5">
                     <AlertCircle className="w-4 h-4 text-amber-400" />
-                    Atenda aos requisitos de combate e canalização abaixo para solicitar a graduação.
+                    Atenda aos critérios de avaliação abaixo para solicitar a promoção oficial.
                   </span>
                 )}
               </div>
@@ -406,14 +405,14 @@ export const RankPromotionView: React.FC = () => {
               <button
                 disabled={isMissionPassed || !isPrerequisiteMet || !reqStatus.allMet}
                 onClick={handleExecutePromotion}
-                className={`px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-2 shadow-md ${
+                className={`px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition-all duration-300 flex items-center gap-2 shadow-lg cursor-pointer ${
                   isMissionPassed
-                    ? 'bg-zinc-800/80 text-zinc-400 border border-zinc-700 cursor-not-allowed opacity-80'
+                    ? 'bg-zinc-850 text-zinc-400 border border-zinc-750 cursor-not-allowed opacity-80'
                     : !isPrerequisiteMet
                     ? 'bg-zinc-900 border border-zinc-800 text-zinc-600 cursor-not-allowed'
                     : reqStatus.allMet
-                    ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 border border-amber-300 shadow-amber-500/20 cursor-pointer animate-bounce'
-                    : 'bg-zinc-800/60 border border-zinc-700/60 text-zinc-500 cursor-not-allowed'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black border border-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.4)] animate-pulse-slow hover:scale-105 active:scale-95'
+                    : 'bg-zinc-900/60 border border-zinc-800 text-zinc-500 cursor-not-allowed'
                 }`}
               >
                 {isMissionPassed ? (
@@ -424,7 +423,7 @@ export const RankPromotionView: React.FC = () => {
                 ) : !isPrerequisiteMet ? (
                   <>
                     <Lock className="w-4 h-4" />
-                    <span>Bloqueado (Requer Rank Anterior)</span>
+                    <span>Requer Rank Anterior</span>
                   </>
                 ) : reqStatus.allMet ? (
                   <>
@@ -434,7 +433,7 @@ export const RankPromotionView: React.FC = () => {
                 ) : (
                   <>
                     <Target className="w-4 h-4" />
-                    <span>Requisitos Pendentes</span>
+                    <span>Critérios Pendentes</span>
                   </>
                 )}
               </button>
@@ -456,10 +455,10 @@ export const RankPromotionView: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 font-mono">
               {/* Card 1: Cliques Manuais */}
               <div
-                className={`p-3.5 rounded-xl border transition ${
+                className={`p-3.5 rounded-xl border transition-all duration-200 ${
                   reqStatus.clicks.met
-                    ? 'bg-emerald-950/20 border-emerald-700/60'
-                    : 'bg-zinc-900/50 border-zinc-800'
+                    ? 'bg-emerald-950/20 border-emerald-500/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                    : 'bg-zinc-900/60 border-zinc-800'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1.5 text-xs">
@@ -469,7 +468,7 @@ export const RankPromotionView: React.FC = () => {
                       <Check className="w-3.5 h-3.5" /> Concluído
                     </span>
                   ) : (
-                    <span className="text-amber-400 text-[11px]">{reqStatus.clicks.pct}%</span>
+                    <span className="text-amber-400 text-[11px] font-bold">{reqStatus.clicks.pct}%</span>
                   )}
                 </div>
                 <div className="flex items-baseline justify-between mb-2">
@@ -480,10 +479,10 @@ export const RankPromotionView: React.FC = () => {
                     / {reqStatus.clicks.target.toLocaleString()}
                   </span>
                 </div>
-                <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-850 p-0.5">
                   <div
-                    className={`h-full rounded-full transition-all duration-300 ${
-                      reqStatus.clicks.met ? 'bg-emerald-500' : 'bg-amber-500'
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      reqStatus.clicks.met ? 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-400'
                     }`}
                     style={{ width: `${reqStatus.clicks.pct}%` }}
                   />
@@ -492,10 +491,10 @@ export const RankPromotionView: React.FC = () => {
 
               {/* Card 2: Produção CPS Recorde */}
               <div
-                className={`p-3.5 rounded-xl border transition ${
+                className={`p-3.5 rounded-xl border transition-all duration-200 ${
                   reqStatus.cps.met
-                    ? 'bg-emerald-950/20 border-emerald-700/60'
-                    : 'bg-zinc-900/50 border-zinc-800'
+                    ? 'bg-emerald-950/20 border-emerald-500/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                    : 'bg-zinc-900/60 border-zinc-800'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1.5 text-xs">
@@ -505,7 +504,7 @@ export const RankPromotionView: React.FC = () => {
                       <Check className="w-3.5 h-3.5" /> Concluído
                     </span>
                   ) : (
-                    <span className="text-amber-400 text-[11px]">{reqStatus.cps.pct}%</span>
+                    <span className="text-amber-400 text-[11px] font-bold">{reqStatus.cps.pct}%</span>
                   )}
                 </div>
                 <div className="flex items-baseline justify-between mb-2">
@@ -516,10 +515,10 @@ export const RankPromotionView: React.FC = () => {
                     / +{formatBigNumber(reqStatus.cps.target)} CPS
                   </span>
                 </div>
-                <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-850 p-0.5">
                   <div
-                    className={`h-full rounded-full transition-all duration-300 ${
-                      reqStatus.cps.met ? 'bg-emerald-500' : 'bg-amber-500'
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      reqStatus.cps.met ? 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-400'
                     }`}
                     style={{ width: `${reqStatus.cps.pct}%` }}
                   />
@@ -528,10 +527,10 @@ export const RankPromotionView: React.FC = () => {
 
               {/* Card 3: Chakra Total Acumulado */}
               <div
-                className={`p-3.5 rounded-xl border transition ${
+                className={`p-3.5 rounded-xl border transition-all duration-200 ${
                   reqStatus.chakra.met
-                    ? 'bg-emerald-950/20 border-emerald-700/60'
-                    : 'bg-zinc-900/50 border-zinc-800'
+                    ? 'bg-emerald-950/20 border-emerald-500/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                    : 'bg-zinc-900/60 border-zinc-800'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1.5 text-xs">
@@ -541,7 +540,7 @@ export const RankPromotionView: React.FC = () => {
                       <Check className="w-3.5 h-3.5" /> Concluído
                     </span>
                   ) : (
-                    <span className="text-amber-400 text-[11px]">{reqStatus.chakra.pct}%</span>
+                    <span className="text-amber-400 text-[11px] font-bold">{reqStatus.chakra.pct}%</span>
                   )}
                 </div>
                 <div className="flex items-baseline justify-between mb-2">
@@ -552,10 +551,10 @@ export const RankPromotionView: React.FC = () => {
                     / {formatBigNumber(reqStatus.chakra.target)}
                   </span>
                 </div>
-                <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-850 p-0.5">
                   <div
-                    className={`h-full rounded-full transition-all duration-300 ${
-                      reqStatus.chakra.met ? 'bg-emerald-500' : 'bg-amber-500'
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      reqStatus.chakra.met ? 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-400'
                     }`}
                     style={{ width: `${reqStatus.chakra.pct}%` }}
                   />
@@ -565,10 +564,10 @@ export const RankPromotionView: React.FC = () => {
               {/* Card 4: Requisito Tático Especial */}
               {reqStatus.extra ? (
                 <div
-                  className={`p-3.5 rounded-xl border transition ${
+                  className={`p-3.5 rounded-xl border transition-all duration-200 ${
                     reqStatus.extra.met
-                      ? 'bg-emerald-950/20 border-emerald-700/60'
-                      : 'bg-zinc-900/50 border-zinc-800'
+                      ? 'bg-emerald-950/20 border-emerald-500/60 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                      : 'bg-zinc-900/60 border-zinc-800'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1.5 text-xs">
@@ -578,7 +577,7 @@ export const RankPromotionView: React.FC = () => {
                         <Check className="w-3.5 h-3.5" /> Concluído
                       </span>
                     ) : (
-                      <span className="text-amber-400 text-[11px]">{reqStatus.extra.pct}%</span>
+                      <span className="text-amber-400 text-[11px] font-bold">{reqStatus.extra.pct}%</span>
                     )}
                   </div>
                   <div className="flex items-baseline justify-between mb-2">
@@ -589,61 +588,61 @@ export const RankPromotionView: React.FC = () => {
                       / {reqStatus.extra.targetStr}
                     </span>
                   </div>
-                  <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-850 p-0.5">
                     <div
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        reqStatus.extra.met ? 'bg-emerald-500' : 'bg-amber-500'
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        reqStatus.extra.met ? 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-400'
                       }`}
                       style={{ width: `${reqStatus.extra.pct}%` }}
                     />
                   </div>
                 </div>
               ) : (
-                <div className="p-3.5 rounded-xl border bg-zinc-900/30 border-zinc-800/60 flex items-center justify-center text-center text-zinc-500 text-xs">
-                  <span>Sem requisitos adicionais para esta etapa básica.</span>
+                <div className="p-3.5 rounded-xl border bg-zinc-950/40 border-zinc-850/80 flex items-center justify-center text-center text-zinc-500 text-xs">
+                  <span>Sem requisitos adicionais para esta graduação.</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* 6. PACOTE DE RECOMPENSAS & BÔNUS PERMANENTES DA PATENTE */}
-          <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800/80">
+          <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 backdrop-blur-xl">
             <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300 mb-3 flex items-center gap-2">
               <Gift className="w-4 h-4 text-emerald-400" />
               <span>Outorgas & Benefícios Oficiais do Cargo {targetRankDef.title}</span>
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono text-xs">
-              <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-850 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 flex items-center justify-center">
+              <div className="p-3 rounded-xl bg-zinc-950/70 border border-zinc-800 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-orange-500/15 border border-orange-500/30 text-orange-400 flex items-center justify-center shadow-[0_0_10px_rgba(255,107,0,0.2)]">
                   <Zap className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-zinc-400 text-[10px] block">Bônus Imediato de Chakra</span>
+                  <span className="text-zinc-400 text-[10px] block font-sans font-semibold">Bônus de Chakra</span>
                   <span className="text-sm font-bold text-orange-300">
                     +{formatBigNumber(activeMission.bonusRewards.chakra)}
                   </span>
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-850 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+              <div className="p-3 rounded-xl bg-zinc-950/70 border border-zinc-800 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shadow-[0_0_10px_rgba(245,158,11,0.2)]">
                   <Flame className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-zinc-400 text-[10px] block">Chakra Ancestral</span>
+                  <span className="text-zinc-400 text-[10px] block font-sans font-semibold">Chakra Ancestral</span>
                   <span className="text-sm font-bold text-amber-300">
                     +{activeMission.bonusRewards.ancestral.toString()} Ancestrais
                   </span>
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-850 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center">
+              <div className="p-3 rounded-xl bg-zinc-950/70 border border-zinc-800 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shadow-[0_0_10px_rgba(6,182,212,0.2)]">
                   <Scroll className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-zinc-400 text-[10px] block">Espólios da Forja</span>
+                  <span className="text-zinc-400 text-[10px] block font-sans font-semibold">Espólios da Forja</span>
                   <span className="text-sm font-bold text-cyan-300">
                     +{activeMission.bonusRewards.gachaTickets} Bilhetes / +{activeMission.bonusRewards.forgeFragments} Frag.
                   </span>
@@ -652,11 +651,11 @@ export const RankPromotionView: React.FC = () => {
             </div>
 
             {/* Bônus Permanente de Patente */}
-            <div className="mt-3 p-3 rounded-xl bg-emerald-950/20 border border-emerald-800/40 flex items-center justify-between text-xs font-mono">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <div className="mt-3.5 p-3.5 rounded-xl bg-emerald-950/25 border border-emerald-500/40 flex items-center justify-between text-xs font-mono shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0 animate-pulse" />
                 <span className="text-emerald-200">
-                  <strong>Efeito Permanente da Patente:</strong>{' '}
+                  <strong className="text-emerald-100">Efeito Permanente da Patente:</strong>{' '}
                   {activeMission.bonusRewards.permanentEffectDescription}
                 </span>
               </div>
@@ -668,17 +667,19 @@ export const RankPromotionView: React.FC = () => {
 
       {/* 7. MODAL COMEMORATIVO DE CONCLUSÃO DE GRADUAÇÃO */}
       {celebrationData && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="w-full max-w-md bg-zinc-900 border border-amber-500/60 rounded-2xl p-6 text-center space-y-4 shadow-2xl relative">
-            <div className="w-16 h-16 rounded-full bg-amber-500/20 border-2 border-amber-400 text-amber-300 flex items-center justify-center mx-auto text-2xl animate-bounce">
-              👑
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-300">
+          <div className="w-full max-w-md bg-gradient-to-b from-zinc-900 to-zinc-950 border border-amber-500/60 rounded-2xl p-6 text-center space-y-4 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent" />
+
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/30 border-2 border-amber-400 text-amber-300 flex items-center justify-center mx-auto text-2xl shadow-[0_0_25px_rgba(245,158,11,0.4)] animate-bounce">
+              <Crown className="w-8 h-8 text-amber-400" />
             </div>
 
             <div>
               <span className="text-xs font-mono font-bold uppercase tracking-widest text-amber-400">
                 PROMOÇÃO OFICIAL CONCLUÍDA
               </span>
-              <h2 className="text-2xl font-ninja text-zinc-100 mt-1">
+              <h2 className="text-2xl font-black text-white mt-1">
                 {celebrationData.rankTitle}
               </h2>
               <p className="text-xs text-zinc-300 font-sans mt-2">
@@ -686,23 +687,24 @@ export const RankPromotionView: React.FC = () => {
               </p>
             </div>
 
-            <div className="p-3.5 bg-zinc-950/80 rounded-xl border border-zinc-800 font-mono text-xs text-left space-y-1.5">
+            <div className="p-4 bg-zinc-950/80 rounded-xl border border-zinc-800 font-mono text-xs text-left space-y-2 shadow-inner">
               <div className="flex justify-between text-zinc-300">
-                <span>Chakra Concedido:</span>
+                <span className="text-zinc-400">Chakra Concedido:</span>
                 <span className="text-orange-400 font-bold">+{celebrationData.chakraBonus}</span>
               </div>
               <div className="flex justify-between text-zinc-300">
-                <span>Ancestral Recebido:</span>
+                <span className="text-zinc-400">Ancestral Recebido:</span>
                 <span className="text-amber-400 font-bold">+{celebrationData.ancestralBonus}</span>
               </div>
               <div className="flex justify-between text-zinc-300">
-                <span>Bilhetes / Fragmentos:</span>
+                <span className="text-zinc-400">Bilhetes / Fragmentos:</span>
                 <span className="text-cyan-400 font-bold">
                   +{celebrationData.gachaTickets} / +{celebrationData.forgeFragments}
                 </span>
               </div>
-              <div className="pt-1.5 border-t border-zinc-800 text-[11px] text-emerald-300">
-                ✔ {celebrationData.permanentBonus}
+              <div className="pt-2 border-t border-zinc-800 text-[11px] text-emerald-300 flex items-center gap-1.5 font-bold">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                {celebrationData.permanentBonus}
               </div>
             </div>
 
@@ -713,7 +715,7 @@ export const RankPromotionView: React.FC = () => {
                   setSelectedMissionId(celebrationData.nextMissionId);
                 }
               }}
-              className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-mono font-bold text-xs shadow-lg transition cursor-pointer flex items-center justify-center gap-1.5"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-mono font-bold text-xs shadow-[0_0_20px_rgba(245,158,11,0.35)] transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
             >
               <span>Avançar para a Próxima Graduação</span>
               <ArrowRight className="w-4 h-4" />
@@ -725,5 +727,4 @@ export const RankPromotionView: React.FC = () => {
   );
 };
 
-// Export retrocompatível para evitar quebras em qualquer módulo que importe ChuninExamView
 export { RankPromotionView as ChuninExamView };

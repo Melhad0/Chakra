@@ -649,7 +649,11 @@ export const InventoryView: React.FC = () => {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-zinc-950 text-zinc-100 select-none overflow-hidden">
+    <div className="w-full h-full flex flex-col bg-[#07080c] text-zinc-100 select-none overflow-hidden relative">
+      {/* Luzes de Fundo Ambientais */}
+      <div className="absolute top-10 left-10 w-96 h-96 bg-cyan-600/5 rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
+      <div className="absolute bottom-10 right-10 w-96 h-96 bg-purple-600/5 rounded-full blur-3xl pointer-events-none" />
+
       {/* 1. CABEÇALHO OFICIAL */}
       <ViewHeader
         title="Arsenal Shinobi & Afinidades"
@@ -660,37 +664,37 @@ export const InventoryView: React.FC = () => {
       />
 
       {/* 2. SUB-ABAS DE NAVEGAÇÃO INTERNA */}
-      <div className="flex items-center gap-2 px-6 pt-2.5 pb-2 border-b border-zinc-800/80 bg-zinc-900/50 flex-shrink-0">
+      <div className="flex items-center gap-2 px-6 pt-2.5 pb-2 border-b border-zinc-800/80 bg-zinc-950/70 backdrop-blur-md flex-shrink-0 relative z-10">
         <button
           onClick={() => setActiveTab('EQUIPMENT')}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all duration-200 cursor-pointer ${
             activeTab === 'EQUIPMENT'
-              ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 shadow-[0_0_12px_rgba(6,182,212,0.25)]'
-              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 border border-transparent'
+              ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-500/60 shadow-[0_0_12px_rgba(6,182,212,0.25)]'
+              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 border border-transparent'
           }`}
         >
           <Shield className="w-4 h-4 text-cyan-400" />
           <span>Equipamentos & Mochila</span>
-          <span className="px-1.5 py-0.2 rounded-full bg-zinc-800 text-[10px] text-zinc-300">
+          <span className="px-2 py-0.5 rounded-full bg-zinc-850 text-[10px] text-zinc-300 border border-zinc-750">
             {equippedCount}/11
           </span>
         </button>
 
         <button
           onClick={() => setActiveTab('ELEMENTS')}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all duration-200 cursor-pointer ${
             activeTab === 'ELEMENTS'
-              ? 'bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
-              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 border border-transparent'
+              ? 'bg-amber-950/80 text-amber-300 border border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 border border-transparent'
           }`}
         >
           <Sparkles className="w-4 h-4 text-amber-400" />
           <span>Roda dos Cinco Elementos</span>
           <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
               inventory.isAvatarShinobi
-                ? 'bg-amber-500/30 text-amber-300 border border-amber-400/50'
-                : 'bg-zinc-800 text-zinc-300'
+                ? 'bg-amber-500/30 text-amber-300 border-amber-400/50'
+                : 'bg-zinc-850 text-zinc-300 border-zinc-750'
             }`}
           >
             {inventory.unlockedElements.length}/5
@@ -702,16 +706,16 @@ export const InventoryView: React.FC = () => {
           ABA 1: EQUIPAMENTOS & MOCHILA (PAPER DOLL 11 SLOTS + GRADE 32 ITENS)
          ========================================================================= */}
       {activeTab === 'EQUIPMENT' && (
-        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 lg:p-6 bg-zinc-950">
+        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 lg:p-6 bg-transparent relative z-10">
           {/* =======================================================================
               COLUNA ESQUERDA: PAPER DOLL SHINOBI (11 SLOTS COM FUNDO RÚNICO)
              ======================================================================= */}
           <div className="col-span-12 lg:col-span-6 flex flex-col gap-3 overflow-y-auto pr-1 custom-scrollbar">
-            <div className="bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-4 sm:p-5 relative overflow-hidden flex flex-col shadow-xl flex-1 min-h-[460px]">
+            <div className="bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-[#090a0f]/95 backdrop-blur-2xl border border-zinc-800/90 rounded-2xl p-4 sm:p-5 relative overflow-hidden flex flex-col shadow-2xl flex-1 min-h-[460px]">
               {/* Header do Paper Doll */}
               <div className="flex items-center justify-between mb-2 z-10">
                 <div>
-                  <h3 className="text-xs font-bold tracking-wider text-zinc-200 uppercase font-sans flex items-center gap-2">
+                  <h3 className="text-xs font-bold tracking-wider text-zinc-100 uppercase font-sans flex items-center gap-2">
                     <Shield className="w-3.5 h-3.5 text-cyan-400 stroke-[2]" />
                     Paper Doll Shinobi
                   </h3>
@@ -795,50 +799,52 @@ export const InventoryView: React.FC = () => {
               COLUNA DIREITA: MOCHILA SHINOBI ADAPTATIVA (FILTROS DE CLASSE/RARIDADE)
              ======================================================================= */}
           <div className="col-span-12 lg:col-span-6 flex flex-col gap-4 overflow-hidden">
-            <div className="bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-5 shadow-lg flex flex-col flex-1 overflow-hidden">
+            <div className="bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-[#090a0f]/95 backdrop-blur-2xl border border-zinc-800/90 rounded-2xl p-5 shadow-2xl flex flex-col flex-1 overflow-hidden relative">
+              <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent pointer-events-none" />
+
               {/* Header da Mochila */}
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3 relative z-10">
                 <div>
-                  <h3 className="text-xs font-bold tracking-wider text-zinc-200 uppercase font-sans flex items-center gap-2">
+                  <h3 className="text-xs font-bold tracking-wider text-zinc-100 uppercase font-sans flex items-center gap-2">
                     <Briefcase className="w-3.5 h-3.5 text-cyan-400 stroke-[2]" />
                     Mochila Shinobi Adaptativa
                   </h3>
-                  <span className="text-[10px] text-zinc-500 font-mono">
-                    {occupiedSlotsCount} {occupiedSlotsCount === 1 ? 'item carregado' : 'itens carregados'} • Capacidade dinâmica auto-expansível
+                  <span className="text-[10px] text-zinc-400 font-mono">
+                    {occupiedSlotsCount} {occupiedSlotsCount === 1 ? 'item carregado' : 'itens carregados'} • Auto-expansível
                   </span>
                 </div>
 
                 {/* Filtro por Categorias/Classes */}
-                <div className="flex items-center gap-1 bg-zinc-950/60 p-1 rounded-lg border border-zinc-800/80 text-[11px] font-mono">
+                <div className="flex items-center gap-1 bg-zinc-950/80 p-1 rounded-xl border border-zinc-800 text-[11px] font-mono shadow-inner">
                   <button
                     onClick={() => {
                       setFilterCategory('ALL');
                       setSelectedGearSlotFilter(null);
                     }}
-                    className={`px-2.5 py-0.5 rounded transition ${
+                    className={`px-2.5 py-1 rounded-lg transition-all duration-200 cursor-pointer font-bold ${
                       filterCategory === 'ALL' && !selectedGearSlotFilter
-                        ? 'bg-zinc-800 text-zinc-100 font-semibold'
-                        : 'text-zinc-500 hover:text-zinc-300'
+                        ? 'bg-zinc-800 text-white shadow-sm'
+                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'
                     }`}
                   >
                     Todos
                   </button>
                   <button
                     onClick={() => setFilterCategory('WEAPON')}
-                    className={`px-2.5 py-0.5 rounded transition ${
+                    className={`px-2.5 py-1 rounded-lg transition-all duration-200 cursor-pointer font-bold ${
                       filterCategory === 'WEAPON'
-                        ? 'bg-red-950/70 text-red-300 border border-red-800/60 font-semibold'
-                        : 'text-zinc-500 hover:text-zinc-300'
+                        ? 'bg-red-950/80 text-red-300 border border-red-500/60 shadow-[0_0_10px_rgba(239,68,68,0.25)]'
+                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'
                     }`}
                   >
                     Armas
                   </button>
                   <button
                     onClick={() => setFilterCategory('ARMOR')}
-                    className={`px-2.5 py-0.5 rounded transition ${
+                    className={`px-2.5 py-1 rounded-lg transition-all duration-200 cursor-pointer font-bold ${
                       filterCategory === 'ARMOR'
-                        ? 'bg-cyan-950/70 text-cyan-300 border border-cyan-800/60 font-semibold'
-                        : 'text-zinc-500 hover:text-zinc-300'
+                        ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-500/60 shadow-[0_0_10px_rgba(6,182,212,0.25)]'
+                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'
                     }`}
                   >
                     Armaduras
@@ -1165,33 +1171,37 @@ export const InventoryView: React.FC = () => {
           ABA 2: RODA DOS CINCO ELEMENTOS CANÔNICOS (ABERTA APENAS QUANDO CLICADA)
          ========================================================================= */}
       {activeTab === 'ELEMENTS' && (
-        <div className="flex-1 overflow-y-auto p-4 lg:p-6 bg-zinc-950 custom-scrollbar">
-          <div className="max-w-4xl mx-auto flex flex-col gap-6">
+        <div className="relative flex-1 overflow-y-auto p-4 lg:p-6 bg-[#06080d] custom-scrollbar">
+          {/* Ambient Lighting Glows */}
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/5 rounded-full blur-[140px] pointer-events-none" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-[140px] pointer-events-none" />
+
+          <div className="relative z-10 max-w-5xl mx-auto flex flex-col gap-6">
             {/* Header da Roda */}
-            <div className="bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-6 shadow-xl flex flex-col gap-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800/80 pb-4">
+            <div className="bg-gradient-to-b from-zinc-900/60 to-zinc-950/80 backdrop-blur-md border border-zinc-800/80 rounded-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] flex flex-col gap-5">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800/60 pb-5">
                 <div>
                   <h3 className="text-base font-bold tracking-wider text-zinc-100 uppercase font-sans flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-400 stroke-[2]" />
+                    <Sparkles className="w-5 h-5 text-amber-400 stroke-[2] animate-pulse" />
                     Roda dos Cinco Elementos Canônicos de Chakra
                   </h3>
-                  <p className="text-xs text-zinc-400 font-mono mt-0.5">
+                  <p className="text-xs text-zinc-400 font-mono mt-1">
                     A afinidade elemental define o fluxo de poder do shinobi. Desperte os 5 elementos
                     para transcender como Avatar Shinobi.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-full bg-zinc-800 text-xs font-mono font-bold text-zinc-200 border border-zinc-700">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="px-3.5 py-1.5 rounded-full bg-zinc-900/90 text-xs font-mono font-bold text-zinc-200 border border-zinc-700/80 shadow-sm">
                     {inventory.unlockedElements.length}/5 Despertos
                   </span>
                   {inventory.isAvatarShinobi && (
-                    <span className="px-3 py-1 rounded-full bg-amber-500/20 text-xs font-mono font-bold text-amber-300 border border-amber-500/50 shadow-[0_0_12px_rgba(251,191,36,0.3)] flex items-center gap-1.5">
-                      <Crown className="w-3.5 h-3.5" /> Avatar Shinobi (x3.0 CPS)
+                    <span className="px-3.5 py-1.5 rounded-full bg-amber-500/15 text-xs font-mono font-bold text-amber-300 border border-amber-500/40 shadow-[0_0_15px_rgba(251,191,36,0.25)] flex items-center gap-1.5 animate-pulse">
+                      <Crown className="w-4 h-4" /> Avatar Shinobi (x3.0 CPS)
                     </span>
                   )}
                   {inventory.elementalSacrificePenaltyMult < 1 && (
-                    <span className="px-2.5 py-1 rounded-full bg-rose-950/40 text-[11px] font-mono text-rose-300 border border-rose-800/60">
+                    <span className="px-3 py-1.5 rounded-full bg-rose-950/40 text-[11px] font-mono text-rose-300 border border-rose-800/60">
                       Tributo Ativo: -{((1 - inventory.elementalSacrificePenaltyMult) * 100).toFixed(0)}% CPS
                     </span>
                   )}
@@ -1199,7 +1209,7 @@ export const InventoryView: React.FC = () => {
               </div>
 
               {/* Grid dos 5 Elementos Canônicos */}
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3.5">
                 {ALL_ELEMENTS_LIST.map((element) => {
                   const conf = ELEMENT_CONFIG[element];
                   const isUnlocked = inventory.unlockedElements.includes(element);
@@ -1209,43 +1219,43 @@ export const InventoryView: React.FC = () => {
                   return (
                     <div
                       key={`element-card-${element}`}
-                      className={`p-4 rounded-xl border flex flex-col justify-between transition-all ${
+                      className={`p-4 rounded-xl border flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 ${
                         isUnlocked
-                          ? `${conf.borderClass} ${conf.glowClass} bg-zinc-900/80`
-                          : 'border-zinc-800/80 bg-zinc-950/40 opacity-70'
+                          ? `${conf.borderClass} ${conf.glowClass} bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 shadow-lg`
+                          : 'border-zinc-800/60 bg-zinc-950/40 opacity-70 hover:opacity-90 hover:border-zinc-700'
                       }`}
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg ${
+                          className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-lg transition-transform duration-300 hover:scale-105 ${
                             isUnlocked
-                              ? 'bg-zinc-950/80 border border-current shadow-sm'
+                              ? 'bg-zinc-950/90 border border-current shadow-md'
                               : 'bg-zinc-900/50 border border-zinc-800 text-zinc-600'
                           } ${conf.textClass}`}
                         >
                           <IconComponent className="w-5 h-5 stroke-[2]" />
                         </div>
-                        <span className="text-xl font-bold font-mono text-zinc-500">{conf.kanji}</span>
+                        <span className="text-2xl font-black font-mono text-zinc-600/80 group-hover:text-zinc-400 transition-colors">{conf.kanji}</span>
                       </div>
 
-                      <div>
+                      <div className="my-2">
                         <div className="flex items-center gap-1.5 mb-1">
-                          <h4 className={`text-xs font-bold ${isUnlocked ? 'text-zinc-100' : 'text-zinc-500'}`}>
+                          <h4 className={`text-xs font-bold uppercase tracking-wider ${isUnlocked ? 'text-zinc-100' : 'text-zinc-500'}`}>
                             {conf.name}
                           </h4>
                         </div>
-                        <span className="text-[10px] font-mono text-amber-300 font-semibold block mb-0.5">
+                        <span className="text-[10px] font-mono text-amber-300 font-semibold block mb-1">
                           {conf.passiveName}
                         </span>
-                        <p className="text-[10px] font-mono text-zinc-400 leading-relaxed mb-3">
+                        <p className="text-[10px] font-mono text-zinc-400 leading-relaxed">
                           {conf.passiveDesc}
                         </p>
                       </div>
 
-                      <div>
+                      <div className="mt-3 pt-3 border-t border-zinc-800/50">
                         {isUnlocked ? (
-                          <div className="flex items-center gap-1 text-[11px] font-mono text-emerald-400 font-semibold">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 font-bold">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                             <span>{isNatal ? 'Elemento Natal' : 'Desperto'}</span>
                           </div>
                         ) : (
@@ -1255,7 +1265,7 @@ export const InventoryView: React.FC = () => {
                               setSelectedSacrificeWeaponSlot(null);
                               setSacrificeFeedback(null);
                             }}
-                            className="w-full py-1.5 px-2 rounded-lg bg-rose-950/50 hover:bg-rose-900/70 border border-rose-800/70 hover:border-rose-500 text-[11px] font-mono text-rose-300 transition shadow-sm cursor-pointer flex items-center justify-center gap-1.5 font-semibold"
+                            className="w-full py-2 px-2.5 rounded-lg bg-gradient-to-r from-rose-950/60 to-rose-900/60 hover:from-rose-900/80 hover:to-rose-800/80 border border-rose-800/70 hover:border-rose-500 text-[11px] font-mono text-rose-300 transition-all shadow-sm hover:shadow-rose-950/50 cursor-pointer flex items-center justify-center gap-1.5 font-bold hover:scale-[1.02] active:scale-[0.98]"
                           >
                             <Lock className="w-3 h-3 text-rose-400" />
                             Despertar
@@ -1268,10 +1278,10 @@ export const InventoryView: React.FC = () => {
               </div>
 
               {/* Explicação do Ritual */}
-              <div className="p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800/80 flex items-start gap-2.5 text-xs font-mono text-zinc-400 leading-relaxed">
+              <div className="p-4 rounded-xl bg-gradient-to-r from-cyan-950/20 via-zinc-950/80 to-purple-950/20 border border-zinc-800/80 flex items-start gap-3 text-xs font-mono text-zinc-400 leading-relaxed">
                 <Info className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
                 <span>
-                  O despertar de afinidades além do elemento natal exige o <strong>Ritual do Sacrifício</strong>:
+                  O despertar de afinidades além do elemento natal exige o <strong className="text-zinc-200">Ritual do Sacrifício</strong>:
                   consumo de Chakra Ancestral, sacrifício permanente de CPS e entrega de armas de alta raridade
                   (Épicas e Lendárias) para romper as correntes de selamento dos clãs.
                 </span>
@@ -1285,13 +1295,13 @@ export const InventoryView: React.FC = () => {
           MODAL DE CONFIRMAÇÃO DO RITUAL DE SACRIFÍCIO ELEMENTAL
          ========================================================================= */}
       {sacrificeModalTarget && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-rose-900/60 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-gradient-to-b from-zinc-900/95 via-zinc-950/95 to-black/95 border border-rose-600/40 rounded-2xl w-full max-w-lg p-6 shadow-[0_0_50px_rgba(244,63,94,0.2)] relative flex flex-col gap-4 animate-in zoom-in-95 duration-200">
             {/* Header do Modal */}
             <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-rose-950/60 border border-rose-700/60 flex items-center justify-center text-rose-400">
-                  <AlertTriangle className="w-5 h-5 stroke-[2]" />
+                <div className="w-10 h-10 rounded-xl bg-rose-950/60 border border-rose-700/60 flex items-center justify-center text-rose-400 shadow-sm">
+                  <AlertTriangle className="w-5 h-5 stroke-[2] animate-bounce" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold tracking-wider text-rose-300 uppercase font-sans">
@@ -1304,15 +1314,15 @@ export const InventoryView: React.FC = () => {
               </div>
               <button
                 onClick={() => setSacrificeModalTarget(null)}
-                className="text-zinc-500 hover:text-zinc-300 p-1"
+                className="text-zinc-500 hover:text-zinc-200 p-1.5 rounded-lg hover:bg-zinc-800/50 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Custos e Tributos */}
-            <div className="bg-zinc-900/50 border border-zinc-800 p-3.5 rounded-xl flex flex-col gap-2.5 text-xs font-mono">
-              <span className="text-zinc-300 font-bold block border-b border-zinc-800 pb-1">
+            <div className="bg-zinc-900/40 border border-zinc-800/80 p-4 rounded-xl flex flex-col gap-2.5 text-xs font-mono">
+              <span className="text-zinc-300 font-bold block border-b border-zinc-800 pb-1.5 uppercase tracking-wide text-[11px]">
                 Tributos Exigidos para o {currentCount + 1}º Elemento:
               </span>
 
@@ -1352,7 +1362,7 @@ export const InventoryView: React.FC = () => {
                     <span>Sacrifício de Sangue (Vital):</span>
                     <span className="font-bold">-25% de CPS Permanente</span>
                   </div>
-                  <div className="flex items-center justify-between text-amber-300 border-t border-zinc-800 pt-1">
+                  <div className="flex items-center justify-between text-amber-300 border-t border-zinc-800 pt-1.5">
                     <span>Oferenda de Lâmina Sagrada:</span>
                     <span className="font-bold">1x Arma Épica ou Superior</span>
                   </div>
@@ -1369,7 +1379,7 @@ export const InventoryView: React.FC = () => {
                     <span>Sacrifício de Sangue (Vital):</span>
                     <span className="font-bold">-25% de CPS Permanente</span>
                   </div>
-                  <div className="flex items-center justify-between text-amber-300 border-t border-zinc-800 pt-1">
+                  <div className="flex items-center justify-between text-amber-300 border-t border-zinc-800 pt-1.5">
                     <span>Oferenda de Lâmina Divina:</span>
                     <span className="font-bold">1x Arma Lendária, Mítica, Divina ou ADM</span>
                   </div>
@@ -1391,13 +1401,13 @@ export const InventoryView: React.FC = () => {
                       <div
                         key={`sac-weapon-${slotIndex}`}
                         onClick={() => setSelectedSacrificeWeaponSlot(slotIndex)}
-                        className={`p-2 rounded-xl border flex items-center gap-2 cursor-pointer transition text-xs font-mono ${
+                        className={`p-2.5 rounded-xl border flex items-center gap-2.5 cursor-pointer transition-all duration-200 text-xs font-mono ${
                           selectedSacrificeWeaponSlot === slotIndex
-                            ? 'bg-rose-950/50 border-rose-500 ring-1 ring-rose-400'
-                            : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+                            ? 'bg-rose-950/60 border-rose-500 ring-2 ring-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.3)] scale-[1.02]'
+                            : 'bg-zinc-900/60 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-850'
                         }`}
                       >
-                        <div className="w-8 h-8 rounded-lg bg-zinc-950 flex items-center justify-center flex-shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-zinc-950 flex items-center justify-center flex-shrink-0 border border-zinc-800">
                           {renderItemIcon(item.iconName, 'w-4 h-4 text-zinc-200')}
                         </div>
                         <div className="truncate">
@@ -1437,13 +1447,13 @@ export const InventoryView: React.FC = () => {
             <div className="flex items-center gap-3 border-t border-zinc-800/80 pt-3">
               <button
                 onClick={() => setSacrificeModalTarget(null)}
-                className="flex-1 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-mono font-semibold transition cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-mono font-semibold transition cursor-pointer hover:border hover:border-zinc-700"
               >
                 Recuar
               </button>
               <button
                 onClick={handleExecuteSacrifice}
-                className="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-mono font-bold transition shadow-lg cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white text-xs font-mono font-bold transition shadow-lg shadow-rose-900/50 cursor-pointer active:scale-98"
               >
                 Consumar Sacrifício
               </button>
