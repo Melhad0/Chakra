@@ -44,7 +44,10 @@ import {
   Package,
   FastForward,
   Repeat,
+  Wind,
+  Info,
 } from 'lucide-react';
+import { Tooltip } from '../ui/Tooltip';
 
 const SLOT_SHORT_LABELS: Record<BossEquipmentSlotKey, string> = {
   HELMET: 'Capacete',
@@ -670,54 +673,91 @@ export const ChallengesView: React.FC = () => {
           <div className="relative z-10">
             <div className="flex items-center justify-between pb-3 border-b border-white/10 flex-wrap gap-2 bg-zinc-950/60 backdrop-blur-xl p-4 rounded-2xl border border-white/10 shadow-xl">
               <div className="flex items-center gap-3.5">
-                <div
-                  className={`w-14 h-14 rounded-2xl bg-zinc-900/90 backdrop-blur-md border flex items-center justify-center transition-all duration-300 shadow-md ${
-                    isHit
-                      ? 'border-rose-500 scale-95 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.4)]'
-                      : isCleared
-                      ? 'border-emerald-500/70 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
-                      : isActiveTarget
-                      ? 'border-rose-500/80 text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
-                      : 'border-zinc-800 text-zinc-500'
-                  }`}
+                <Tooltip
+                  title={`#${currentBoss.id} ${currentBoss.name}`}
+                  badgeText={currentBoss.tier}
+                  badgeVariant={isCleared ? 'emerald' : isActiveTarget ? 'rose' : 'neutral'}
+                  description={`${currentBoss.title} (${currentBoss.arc}). ${currentBoss.justification} Mecânica Especial: ${currentBoss.mechanic.title} - ${currentBoss.mechanic.description}`}
+                  metrics={[
+                    { label: 'Mecânica Especial', value: currentBoss.mechanic.title, colorClass: 'text-amber-400' },
+                    { label: 'HP Máximo', value: formatBigNumber(currentBoss.hp), colorClass: 'text-rose-400' },
+                    { label: 'Dano do Golpe', value: `${bossAttackDamage}`, colorClass: 'text-rose-300' },
+                    { label: 'Cadência de Ataque', value: `${bossAttackIntervalSec.toFixed(1)}s`, colorClass: 'text-zinc-300' },
+                    { label: 'Recompensa Chakra', value: `+${formatBigNumber(effectiveRewardChakra)}`, colorClass: 'text-orange-400' },
+                    { label: 'Chakra Ancestral', value: `+${currentBoss.bountyAncestral} Anc`, colorClass: 'text-amber-300' },
+                    { label: 'XP Concedido', value: `+${formatBigNumber(bossXpReward)} XP`, colorClass: 'text-cyan-400' },
+                    { label: 'Chance Drop / Slot', value: `${slotDropRatePct}%`, colorClass: 'text-cyan-300' },
+                  ]}
+                  position="bottom"
                 >
-                  <IconRenderer name={currentBoss.avatar} className="w-7 h-7 stroke-[1.8]" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-zinc-400 font-bold">
-                      Fase #{currentBoss.id}
-                    </span>
-                    <h2 className="text-base font-black text-white font-sans">{currentBoss.name}</h2>
-                    {isCleared ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950/80 border border-emerald-500/70 text-emerald-400 shadow-sm">
-                        <CheckCircle2 className="w-3 h-3" /> VENCIDO
+                  <div className="flex items-center gap-3.5 cursor-help group/boss">
+                    <div
+                      className={`w-14 h-14 rounded-2xl bg-zinc-900/90 backdrop-blur-md border flex items-center justify-center transition-all duration-300 shadow-md ${
+                        isHit
+                          ? 'border-rose-500 scale-95 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.4)]'
+                          : isCleared
+                          ? 'border-emerald-500/70 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
+                          : isActiveTarget
+                          ? 'border-rose-500/80 text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
+                          : 'border-zinc-800 text-zinc-500'
+                      }`}
+                    >
+                      <IconRenderer name={currentBoss.avatar} className="w-7 h-7 stroke-[1.8]" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-zinc-400 font-bold">
+                          Fase #{currentBoss.id}
+                        </span>
+                        <h2 className="text-base font-black text-white font-sans flex items-center gap-1.5">
+                          {currentBoss.name}
+                          <Info className="w-3.5 h-3.5 text-cyan-400/80 group-hover/boss:text-cyan-300" />
+                        </h2>
+                        {isCleared ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950/80 border border-emerald-500/70 text-emerald-400 shadow-sm">
+                            <CheckCircle2 className="w-3 h-3" /> VENCIDO
+                          </span>
+                        ) : isActiveTarget ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-950/80 border border-rose-500/70 text-rose-300 animate-pulse shadow-sm">
+                            <Swords className="w-3 h-3" /> ALVO ATIVO
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-zinc-900/80 border border-zinc-800 text-zinc-500">
+                            <Lock className="w-3 h-3" /> BLOQUEADO
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs font-mono text-zinc-400 block mt-0.5">
+                        {currentBoss.title} • {currentBoss.level} ({currentBoss.arc})
                       </span>
-                    ) : isActiveTarget ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-950/80 border border-rose-500/70 text-rose-300 animate-pulse shadow-sm">
-                        <Swords className="w-3 h-3" /> ALVO ATIVO
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-zinc-900/80 border border-zinc-800 text-zinc-500">
-                        <Lock className="w-3 h-3" /> BLOQUEADO
-                      </span>
-                    )}
+                    </div>
                   </div>
-                  <span className="text-xs font-mono text-zinc-400 block mt-0.5">
-                    {currentBoss.title} • {currentBoss.level} ({currentBoss.arc})
-                  </span>
-                </div>
+                </Tooltip>
               </div>
 
               {/* Distintivos & Recompensas em Destaque */}
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="neutral">{currentBoss.tier}</Badge>
-                <div className="px-2.5 py-1 rounded-lg bg-zinc-900/80 backdrop-blur-sm border border-white/10 text-right font-mono text-xs shadow">
-                  <span className="text-[10px] text-zinc-500 uppercase block">Recompensa</span>
-                  <span className="text-orange-400 font-bold">+{formatBigNumber(effectiveRewardChakra)}</span>
-                  <span className="text-amber-300 text-[10px] ml-1.5 font-semibold">+{currentBoss.bountyAncestral} Anc</span>
-                  <span className="text-cyan-400 text-[10px] ml-1.5 font-semibold">+{formatBigNumber(bossXpReward)} XP</span>
-                </div>
+                <Tooltip
+                  title="Recompensas do Confronto"
+                  badgeText="Bounty"
+                  badgeVariant="amber"
+                  description="Recursos concedidos instantaneamente ao derrotar o chefe deste desafio territorial."
+                  metrics={[
+                    { label: 'Chakra', value: `+${formatBigNumber(effectiveRewardChakra)}`, colorClass: 'text-orange-400' },
+                    { label: 'Chakra Ancestral', value: `+${currentBoss.bountyAncestral} Anc`, colorClass: 'text-amber-300' },
+                    { label: 'Experiência Shinobi', value: `+${formatBigNumber(bossXpReward)} XP`, colorClass: 'text-cyan-400' },
+                    { label: 'Taxa Drop / Slot', value: `${slotDropRatePct}%`, colorClass: 'text-cyan-300' },
+                  ]}
+                  position="bottom"
+                >
+                  <div className="px-2.5 py-1 rounded-lg bg-zinc-900/80 backdrop-blur-sm border border-white/10 text-right font-mono text-xs shadow cursor-help">
+                    <span className="text-[10px] text-zinc-500 uppercase block">Recompensa</span>
+                    <span className="text-orange-400 font-bold">+{formatBigNumber(effectiveRewardChakra)}</span>
+                    <span className="text-amber-300 text-[10px] ml-1.5 font-semibold">+{currentBoss.bountyAncestral} Anc</span>
+                    <span className="text-cyan-400 text-[10px] ml-1.5 font-semibold">+{formatBigNumber(bossXpReward)} XP</span>
+                  </div>
+                </Tooltip>
               </div>
             </div>
 
@@ -801,8 +841,8 @@ export const ChallengesView: React.FC = () => {
                     Sua Vida (Shinobi)
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-cyan-300 font-mono px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-700/60 shadow">
-                      💨 Esquiva: {playerDodgeChance}%
+                    <span className="text-[10px] text-cyan-300 font-mono px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-700/60 shadow flex items-center gap-1">
+                      <Wind className="w-3 h-3 text-cyan-400 stroke-[2]" /> Esquiva: {playerDodgeChance}%
                     </span>
                     <span className="text-zinc-200 font-bold">
                       {formatBigNumber(playerHp)} / {formatBigNumber(playerMaxHp)} ({playerHpPercent.toFixed(1)}%)
@@ -1005,8 +1045,8 @@ export const ChallengesView: React.FC = () => {
                   </button>
                 </div>
 
-                <span className="text-[10px] font-mono text-zinc-400 mt-2.5 bg-zinc-950/70 px-3 py-1 rounded-full border border-white/10 shadow-sm">
-                  ⚡ Auto-ataque a cada 0.8s + cliques manuais livres
+                <span className="text-[10px] font-mono text-zinc-400 mt-2.5 bg-zinc-950/70 px-3 py-1 rounded-full border border-white/10 shadow-sm flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-amber-400" /> Auto-ataque a cada 0.8s + cliques manuais livres
                 </span>
 
                 {/* Botão de Borda para Mecânica do Baki */}
@@ -1082,11 +1122,6 @@ export const ChallengesView: React.FC = () => {
               </div>
             )}
 
-            {/* Mecânica do Chefe */}
-            <div className="mt-3 max-w-lg text-center px-4 py-2 rounded-xl bg-zinc-950/50 backdrop-blur-md border border-white/10 text-xs text-zinc-300 font-mono shadow">
-              <span className="text-zinc-200 font-semibold mr-1">[{currentBoss.mechanic.title}]:</span>
-              <span>{currentBoss.mechanic.description}</span>
-            </div>
           </div>
 
           {/* RODAPÉ DA ARENA: Navegação entre Chefes */}
@@ -1213,8 +1248,9 @@ export const ChallengesView: React.FC = () => {
               </div>
 
               {/* Informação de Regra de Nível */}
-              <div className="text-[11px] font-mono text-zinc-400 bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-800">
-                💡 Cada nível ganho ao derrotar chefes concede <strong>+8 pontos de atributos</strong> para distribuir.
+              <div className="text-[11px] font-mono text-zinc-400 bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-800 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                <span>Cada nível ganho ao derrotar chefes concede <strong>+8 pontos de atributos</strong> para distribuir.</span>
               </div>
 
               {/* Atributo 1: FORÇA (DANO) */}
@@ -1222,7 +1258,7 @@ export const ChallengesView: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-orange-950/60 border border-orange-700/60 flex items-center justify-center text-orange-400 font-bold">
-                      ⚔️
+                      <Swords className="w-4 h-4 stroke-[2]" />
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-zinc-200">Força (Ataque)</h4>
@@ -1310,7 +1346,7 @@ export const ChallengesView: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-cyan-950/60 border border-cyan-700/60 flex items-center justify-center text-cyan-400 font-bold">
-                      💨
+                      <Wind className="w-4 h-4 stroke-[2]" />
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-zinc-200">Agilidade (Esquiva)</h4>
@@ -1409,7 +1445,7 @@ export const ChallengesView: React.FC = () => {
                         {/* Badge de posse ✓ */}
                         {owned && (
                           <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 text-zinc-950 flex items-center justify-center text-[9px] font-black shadow-sm z-10">
-                            ✓
+                            <CheckCircle2 className="w-2.5 h-2.5 stroke-[3]" />
                           </span>
                         )}
 

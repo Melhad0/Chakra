@@ -14,15 +14,13 @@ import { getGeneratorMilestoneEffects, TECHNIQUE_UPGRADES } from '../../constant
 import { QuantitySelector } from '../common/QuantitySelector';
 import { IconRenderer } from '../common/IconRenderer';
 import { UpgradesList } from './UpgradesList';
+import { Tooltip } from '../ui/Tooltip';
 import { TroopTierCategory } from '../../types/economy';
 import {
   Users,
   Sparkles,
-  Award,
   PanelLeftClose,
   Search,
-  Clock,
-  TrendingUp,
   Filter,
   X,
   Store,
@@ -514,129 +512,92 @@ export const EconomyPanel: React.FC = () => {
                 const tierConf = gen.tierCategory
                   ? TIER_CONFIG[gen.tierCategory]
                   : TIER_CONFIG.INICIANTE;
-                const TierIcon = tierConf.icon;
+
+                const tierVariantMap: Record<TroopTierCategory, 'emerald' | 'cyan' | 'amber' | 'purple' | 'rose'> = {
+                  INICIANTE: 'emerald',
+                  ELITE: 'cyan',
+                  LENDARIO: 'amber',
+                  COSMICO: 'purple',
+                  DIVINO: 'rose',
+                };
 
                 return (
-                  <div
+                  <Tooltip
                     key={key}
-                    onClick={() => {
-                      if (canAfford) {
-                        buyGenerator(key);
-                      }
-                    }}
-                    className={`group/card p-3 rounded-2xl border transition-all duration-300 flex flex-col gap-2 select-none relative overflow-hidden ${
-                      canAfford
-                        ? `${tierConf.borderAffordable} border-zinc-800/90 text-zinc-100 hover:-translate-y-0.5 hover:shadow-xl active:scale-[0.99] cursor-pointer`
-                        : `${tierConf.borderMuted} opacity-60 text-zinc-400 cursor-not-allowed`
-                    }`}
+                    title={gen.name}
+                    badgeText={`${tierConf.label} • Nv. ${gen.level}`}
+                    badgeVariant={tierVariantMap[gen.tierCategory || 'INICIANTE']}
+                    description={gen.lore || 'Tropa leal em serviço contínuo para o fluxo de chakra da Aldeia.'}
+                    metrics={[
+                      { label: 'Produção Base', value: `+${formatBigNumber(gen.baseCPS)} CPS` },
+                      { label: 'Produção Acumulada', value: `+${formatBigNumber(genCurrentCPS)} CPS`, colorClass: 'text-emerald-400' },
+                      { label: 'Participação no CPS Global', value: `${sharePercent.toFixed(1)}%`, colorClass: 'text-cyan-400' },
+                      { label: 'Próximo Nível (+1)', value: `+${formatBigNumber(gen.baseCPS.mul(milestone.cpsMultiplier))} CPS`, colorClass: 'text-amber-300' },
+                      ...(milestone.cpsMultiplier.gt(1) ? [{ label: `Marco: ${milestone.tierName}`, value: `${milestone.cpsMultiplier}x CPS`, colorClass: 'text-purple-300' }] : []),
+                      ...(milestone.nextMilestoneLevel ? [{ label: `Progresso para Marco Nv.${milestone.nextMilestoneLevel}`, value: `${milestoneProgress}%`, colorClass: 'text-cyan-300' }] : []),
+                      ...(milestone.clickCpsRatio > 0 ? [{ label: 'Bônus no Clique', value: `+${(milestone.clickCpsRatio * 100).toFixed(2)}%`, colorClass: 'text-orange-400' }] : []),
+                      { label: 'Tempo Estimado', value: timeToAffordStr, colorClass: canAfford ? 'text-emerald-400' : 'text-zinc-400' },
+                    ]}
+                    position="right"
+                    className="w-full"
                   >
-                    {/* Linha de brilho superior dinâmica no hover */}
-                    <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-300" />
+                    <div
+                      onClick={() => {
+                        if (canAfford) {
+                          buyGenerator(key);
+                        }
+                      }}
+                      className={`group/card p-2.5 rounded-xl border transition-all duration-200 flex items-center justify-between gap-2.5 select-none relative overflow-hidden ${
+                        canAfford
+                          ? `${tierConf.borderAffordable} border-zinc-800/90 text-zinc-100 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99] cursor-pointer`
+                          : `${tierConf.borderMuted} opacity-60 text-zinc-400 cursor-not-allowed`
+                      }`}
+                    >
+                      {/* Linha de brilho superior dinâmica no hover */}
+                      <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-300" />
 
-                    {/* Header do Card da Tropa */}
-                    <div className="flex items-start justify-between gap-2">
+                      {/* Lado Esquerdo: Ícone + Nome Curto + Badge Nv. X */}
                       <div className="flex items-center gap-2.5 min-w-0">
-                        {/* Avatar do Shinobi com animação de escala no hover */}
                         <div
-                          className={`w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover/card:scale-105 ${tierConf.avatarBg}`}
+                          className={`w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover/card:scale-105 ${tierConf.avatarBg}`}
                         >
                           <IconRenderer name={gen.avatar} className="w-5 h-5 stroke-[1.8]" />
                         </div>
 
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
+                          <div className="flex items-center gap-1.5">
                             <h3 className="text-xs font-bold text-zinc-100 truncate tracking-tight">
                               {gen.name}
                             </h3>
-
-                            {/* Badge do Tier */}
-                            <span
-                              className={`text-[9px] uppercase font-mono tracking-wider px-1.5 py-0.2 rounded border flex items-center gap-1 ${tierConf.badgeStyle}`}
-                            >
-                              <TierIcon className="w-2.5 h-2.5" />
-                              {tierConf.label}
+                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-md bg-zinc-950/80 border border-zinc-700/80 text-zinc-300 shadow-sm flex-shrink-0">
+                              Nv. {gen.level}
                             </span>
-
-                            {/* Badge de Marco (Milestone) */}
-                            {gen.level >= 25 && (
-                              <span
-                                className={`text-[9px] font-mono px-1.5 py-0.2 rounded border flex items-center gap-0.5 ${milestone.badgeColor}`}
-                              >
-                                <Award className="w-2.5 h-2.5" />
-                                {milestone.tierName} ({milestone.cpsMultiplier.toString()}x)
-                              </span>
-                            )}
                           </div>
-
-                          {/* Lore do Shinobi */}
-                          {gen.lore && (
-                            <p className="text-[10px] text-zinc-400/90 italic truncate mt-0.5 max-w-[240px]">
-                              {gen.lore}
-                            </p>
-                          )}
                         </div>
                       </div>
 
-                      {/* Contador de Nível */}
-                      <div className="text-right flex-shrink-0 flex flex-col items-end">
-                        <span className="text-xs font-mono font-black text-zinc-200 px-2 py-0.5 rounded-lg bg-zinc-950/90 border border-zinc-700/80 shadow-sm">
-                          Nv. {gen.level}
-                        </span>
-                        {sharePercent > 0 && (
-                          <span className="text-[9px] font-mono text-cyan-400 mt-1 flex items-center gap-0.5">
-                            <TrendingUp className="w-2.5 h-2.5" />
-                            {sharePercent.toFixed(1)}% do CPS
-                          </span>
-                        )}
-                      </div>
+                      {/* Lado Direito: Botão de Compra com o Preço */}
+                      <button
+                        disabled={!canAfford}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (canAfford) {
+                            buyGenerator(key);
+                          }
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all flex-shrink-0 border cursor-pointer active:scale-95 ${
+                          canAfford
+                            ? shopMode === 'buy'
+                              ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border-amber-500/50 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+                              : 'bg-rose-950/40 hover:bg-rose-900/60 border-rose-700/60 text-rose-300'
+                            : 'bg-zinc-900/60 border-zinc-800 text-zinc-500 cursor-not-allowed'
+                        }`}
+                      >
+                        <span>{shopMode === 'buy' ? '-' : '+'}</span>
+                        <span>{formatBigNumber(cost)}</span>
+                      </button>
                     </div>
-
-                    {/* Linha de Produção & Custo Dinâmico */}
-                    <div className="flex items-center justify-between pt-1 border-t border-zinc-800/50 text-[11px] font-mono">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-emerald-400 font-bold">
-                          +{formatBigNumber(gen.baseCPS.mul(milestone.cpsMultiplier))} CPS
-                        </span>
-                        {milestone.clickCpsRatio > 0 && (
-                          <span className="text-cyan-400 text-[9px] hidden sm:inline">
-                            (+{(milestone.clickCpsRatio * 100).toFixed(2)}% clique)
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {timeToAffordStr !== 'Disponível' && shopMode === 'buy' && (
-                          <span className="text-[9px] text-zinc-500 flex items-center gap-0.5">
-                            <Clock className="w-2.5 h-2.5" />
-                            {timeToAffordStr}
-                          </span>
-                        )}
-
-                        <span
-                          className={`font-black tracking-tight ${
-                            canAfford
-                              ? shopMode === 'buy'
-                                ? 'text-amber-300'
-                                : 'text-rose-400'
-                              : 'text-zinc-500'
-                          }`}
-                        >
-                          {shopMode === 'buy' ? '-' : '+'}
-                          {formatBigNumber(cost)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Barra de Progresso do Marco (Milestone Bar Dinâmica) */}
-                    {milestone.nextMilestoneLevel && (
-                      <div className="w-full h-1 bg-zinc-950 rounded-full overflow-hidden">
-                        <div
-                          style={{ width: `${milestoneProgress}%` }}
-                          className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 rounded-full transition-all duration-300"
-                        />
-                      </div>
-                    )}
-                  </div>
+                  </Tooltip>
                 );
               })
             )}

@@ -9,17 +9,16 @@ import {
   GitFork,
   Trophy,
   Sparkles,
-  ArrowUpRight,
   Maximize2,
   Dice5,
   PanelRightClose,
   Swords,
   Briefcase,
-  Clock,
   Flame,
   CheckCircle2,
   Zap,
 } from 'lucide-react';
+import { Tooltip } from '../ui/Tooltip';
 import { PRESTIGE_THRESHOLD, calculatePendingAncestralChakra } from '../../engine/formulas';
 import { getCurrentRank, getNextPromotionMission } from '../../constants/rankings';
 
@@ -136,234 +135,216 @@ export const OperationsPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. OS 6 CARTÕES DE ACESSO RÁPIDO AOS MÓDULOS DE OPERAÇÃO */}
-      <div className="grid grid-cols-2 gap-2 my-2.5 flex-shrink-0 max-h-[250px] overflow-y-auto custom-scrollbar pr-0.5 relative z-10">
+      {/* 2. OS 6 CARTÕES DE ACESSO RÁPIDO AOS MÓDULOS DE OPERAÇÃO (CLEAN UI & PROGRESSIVE DISCLOSURE) */}
+      <div className="grid grid-cols-2 gap-2 my-2.5 flex-shrink-0 relative z-10">
         {/* Card 1: Arena de Desafios (Gauntlet) */}
-        <button
-          onClick={() => setView('CHALLENGES')}
-          className="group relative p-2.5 rounded-xl bg-zinc-900/70 hover:bg-zinc-850/90 border border-rose-950/50 hover:border-rose-500/60 text-left transition-all duration-300 shadow-sm hover:shadow-[0_4px_16px_rgba(244,63,94,0.18)] hover:-translate-y-0.5 flex flex-col justify-between cursor-pointer overflow-hidden"
+        <Tooltip
+          title="Arena de Desafios (Gauntlet)"
+          badgeText="Combate Tático"
+          badgeVariant="rose"
+          description="Batalhas contra chefes canônicos do universo shinobi. Derrote vilões para desbloquear saques estocásticos, armaduras e pontos de atributo RPG."
+          metrics={[
+            { label: 'Chefe Alvo Ativo', value: `#${gauntlet.currentActiveBossId}`, colorClass: 'text-rose-400' },
+            { label: 'Maior Derrotado', value: `#${gauntlet.highestBossDefeated}`, colorClass: 'text-amber-400' },
+            { label: 'Status', value: cooldownRemaining > 0 ? `Recuperação (${cooldownRemaining}s)` : 'Pronto para Batalha', colorClass: cooldownRemaining > 0 ? 'text-amber-400' : 'text-emerald-400' },
+          ]}
+          position="left"
+          className="w-full"
         >
-          <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/10 rounded-bl-full pointer-events-none group-hover:scale-125 transition-transform duration-500" />
-          
-          <div className="flex items-center justify-between w-full mb-1.5 relative z-10">
-            <div className="w-7 h-7 rounded-lg bg-rose-950/70 border border-rose-700/60 flex items-center justify-center text-rose-400 group-hover:scale-110 group-hover:border-rose-500 group-hover:shadow-[0_0_10px_rgba(244,63,94,0.4)] transition-all duration-300">
-              <Swords className="w-3.5 h-3.5 stroke-[2]" />
+          <button
+            onClick={() => setView('CHALLENGES')}
+            className="w-full group p-2.5 rounded-xl bg-zinc-900/70 hover:bg-zinc-850/90 border border-rose-950/50 hover:border-rose-500/60 transition-all duration-200 shadow-sm hover:shadow-[0_4px_16px_rgba(244,63,94,0.18)] hover:-translate-y-0.5 flex items-center justify-between cursor-pointer"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-rose-950/70 border border-rose-700/60 flex items-center justify-center text-rose-400 group-hover:scale-105 transition-transform">
+                <Swords className="w-3.5 h-3.5 stroke-[2]" />
+              </div>
+              <span className="text-xs font-bold text-zinc-100 group-hover:text-rose-300 transition-colors truncate">
+                Desafios
+              </span>
             </div>
-            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-950/60 border border-rose-800/60 text-rose-300">
+            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-950/80 border border-rose-800/60 text-rose-300 flex-shrink-0">
               #{gauntlet.currentActiveBossId}
             </span>
-          </div>
-
-          <div className="relative z-10">
-            <h4 className="text-xs font-bold text-zinc-100 group-hover:text-rose-300 transition-colors">
-              Desafios
-            </h4>
-            <p className="text-[9px] font-mono text-zinc-400 truncate">
-              Gauntlet de Chefes
-            </p>
-          </div>
-
-          <div className="mt-2 pt-1.5 border-t border-zinc-800/80 flex items-center justify-between text-[9px] font-mono relative z-10">
-            <span className={cooldownRemaining > 0 ? 'text-amber-400 font-semibold flex items-center gap-1' : 'text-zinc-400 group-hover:text-rose-300'}>
-              {cooldownRemaining > 0 ? (
-                <>
-                  <Clock className="w-2.5 h-2.5 animate-spin" />
-                  {cooldownRemaining}s
-                </>
-              ) : (
-                'Batalhar'
-              )}
-            </span>
-            <ArrowUpRight className="w-3 h-3 text-rose-400/80 group-hover:text-rose-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </div>
-        </button>
+          </button>
+        </Tooltip>
 
         {/* Card 2: Quadro de Missões Shinobi */}
-        <button
-          onClick={() => setView('MISSIONS')}
-          className={`group relative p-2.5 rounded-xl text-left transition-all duration-300 shadow-sm hover:-translate-y-0.5 flex flex-col justify-between cursor-pointer overflow-hidden border ${
-            isMissionReady
-              ? 'bg-emerald-950/30 border-emerald-500/70 shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:border-emerald-400'
-              : 'bg-zinc-900/70 hover:bg-zinc-850/90 border-emerald-950/50 hover:border-emerald-500/60 hover:shadow-[0_4px_16px_rgba(16,185,129,0.18)]'
-          }`}
+        <Tooltip
+          title="Quadro Oficial de Missões"
+          badgeText="Mural da Folha"
+          badgeVariant="emerald"
+          description="Incursões táticas de Rank E a SS. Envie esquadrões para obter recompensas passivas, pergaminhos de gacha e minigames de selos manuais."
+          metrics={[
+            { label: 'Total no Catálogo', value: '14 Missões', colorClass: 'text-emerald-400' },
+            { label: 'Status Atual', value: isMissionReady ? 'Pronto para Resgate!' : isMissionRunning ? 'Em Andamento...' : 'Disponível', colorClass: isMissionReady ? 'text-emerald-300' : 'text-zinc-400' },
+          ]}
+          position="left"
+          className="w-full"
         >
-          <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/10 rounded-bl-full pointer-events-none group-hover:scale-125 transition-transform duration-500" />
-          
-          <div className="flex items-center justify-between w-full mb-1.5 relative z-10">
-            <div className="w-7 h-7 rounded-lg bg-emerald-950/70 border border-emerald-700/60 flex items-center justify-center text-emerald-400 group-hover:scale-110 group-hover:border-emerald-500 group-hover:shadow-[0_0_10px_rgba(16,185,129,0.4)] transition-all duration-300">
-              <Dice5 className="w-3.5 h-3.5 stroke-[2]" />
+          <button
+            onClick={() => setView('MISSIONS')}
+            className={`w-full group p-2.5 rounded-xl transition-all duration-200 shadow-sm hover:-translate-y-0.5 flex items-center justify-between cursor-pointer border ${
+              isMissionReady
+                ? 'bg-emerald-950/30 border-emerald-500/70 shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:border-emerald-400'
+                : 'bg-zinc-900/70 hover:bg-zinc-850/90 border-emerald-950/50 hover:border-emerald-500/60'
+            }`}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-emerald-950/70 border border-emerald-700/60 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
+                <Dice5 className="w-3.5 h-3.5 stroke-[2]" />
+              </div>
+              <span className="text-xs font-bold text-zinc-100 group-hover:text-emerald-300 transition-colors truncate">
+                Missões
+              </span>
             </div>
             <span
-              className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+              className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border flex-shrink-0 ${
                 isMissionReady
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 animate-pulse'
                   : 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60'
               }`}
             >
-              {isMissionReady ? 'Pronto!' : isMissionRunning ? 'Incursão' : '14 Missões'}
+              {isMissionReady ? '!' : '14'}
             </span>
-          </div>
-
-          <div className="relative z-10">
-            <h4 className="text-xs font-bold text-zinc-100 group-hover:text-emerald-300 transition-colors">
-              Missões
-            </h4>
-            <p className="text-[9px] font-mono text-zinc-400 truncate">
-              {isMissionReady ? 'Resgatar espólios!' : isMissionRunning ? 'Em andamento...' : 'Ranks E a SS'}
-            </p>
-          </div>
-
-          <div className="mt-2 pt-1.5 border-t border-zinc-800/80 flex items-center justify-between text-[9px] font-mono relative z-10">
-            <span className={isMissionReady ? 'text-emerald-400 font-bold' : 'text-zinc-400 group-hover:text-emerald-300'}>
-              {isMissionReady ? 'Revelar' : isMissionRunning ? 'Verificar' : 'Mural'}
-            </span>
-            <ArrowUpRight className="w-3 h-3 text-emerald-400/80 group-hover:text-emerald-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </div>
-        </button>
+          </button>
+        </Tooltip>
 
         {/* Card 3: Inventário & Arsenal */}
-        <button
-          onClick={() => setView('INVENTORY')}
-          className="group relative p-2.5 rounded-xl bg-zinc-900/70 hover:bg-zinc-850/90 border border-cyan-950/50 hover:border-cyan-500/60 text-left transition-all duration-300 shadow-sm hover:shadow-[0_4px_16px_rgba(6,182,212,0.18)] hover:-translate-y-0.5 flex flex-col justify-between cursor-pointer overflow-hidden"
+        <Tooltip
+          title="Arsenal Shinobi & Afinidades"
+          badgeText="RPG Paper Doll"
+          badgeVariant="cyan"
+          description="Gestão de 11 slots de equipamentos, armaduras e armas canônicas obtidas em chefes, além da Roda dos Cinco Elementos de Chakra."
+          metrics={[
+            { label: 'Itens na Mochila', value: `${inventoryItemCount} itens`, colorClass: 'text-cyan-300' },
+            { label: 'Elementos Despertos', value: `${inventory?.unlockedElements?.length || 0}/5`, colorClass: 'text-amber-400' },
+          ]}
+          position="left"
+          className="w-full"
         >
-          <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-500/10 rounded-bl-full pointer-events-none group-hover:scale-125 transition-transform duration-500" />
-          
-          <div className="flex items-center justify-between w-full mb-1.5 relative z-10">
-            <div className="w-7 h-7 rounded-lg bg-cyan-950/70 border border-cyan-700/60 flex items-center justify-center text-cyan-400 group-hover:scale-110 group-hover:border-cyan-500 group-hover:shadow-[0_0_10px_rgba(6,182,212,0.4)] transition-all duration-300">
-              <Briefcase className="w-3.5 h-3.5 stroke-[2]" />
+          <button
+            onClick={() => setView('INVENTORY')}
+            className="w-full group p-2.5 rounded-xl bg-zinc-900/70 hover:bg-zinc-850/90 border border-cyan-950/50 hover:border-cyan-500/60 transition-all duration-200 shadow-sm hover:shadow-[0_4px_16px_rgba(6,182,212,0.18)] hover:-translate-y-0.5 flex items-center justify-between cursor-pointer"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-cyan-950/70 border border-cyan-700/60 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform">
+                <Briefcase className="w-3.5 h-3.5 stroke-[2]" />
+              </div>
+              <span className="text-xs font-bold text-zinc-100 group-hover:text-cyan-300 transition-colors truncate">
+                Inventário
+              </span>
             </div>
-            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60 text-cyan-300">
-              {inventoryItemCount} Itens
+            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60 text-cyan-300 flex-shrink-0">
+              {inventoryItemCount}
             </span>
-          </div>
-
-          <div className="relative z-10">
-            <h4 className="text-xs font-bold text-zinc-100 group-hover:text-cyan-300 transition-colors">
-              Inventário
-            </h4>
-            <p className="text-[9px] font-mono text-zinc-400 truncate">
-              Arsenal & Afinidade
-            </p>
-          </div>
-
-          <div className="mt-2 pt-1.5 border-t border-zinc-800/80 flex items-center justify-between text-[9px] font-mono relative z-10">
-            <span className="text-zinc-400 group-hover:text-cyan-300">Equipar</span>
-            <ArrowUpRight className="w-3 h-3 text-cyan-400/80 group-hover:text-cyan-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </div>
-        </button>
+          </button>
+        </Tooltip>
 
         {/* Card 4: Árvore de Clãs */}
-        <button
-          onClick={() => setView('CLAN_TREE')}
-          className="group relative p-2.5 rounded-xl bg-zinc-900/70 hover:bg-zinc-850/90 border border-purple-950/50 hover:border-purple-500/60 text-left transition-all duration-300 shadow-sm hover:shadow-[0_4px_16px_rgba(168,85,247,0.18)] hover:-translate-y-0.5 flex flex-col justify-between cursor-pointer overflow-hidden"
+        <Tooltip
+          title="Árvore Genealógica de Clãs"
+          badgeText="Linhagens Sábias"
+          badgeVariant="purple"
+          description="Desperte nós ancestrais (Senju, Uchiha, Hyūga, Otsutsuki) investindo Chakra Ancestral obtido através do Renascimento Shinobi."
+          metrics={[
+            { label: 'Linhagens Despertas', value: `${unlockedClanNodesCount}/${totalClanNodesCount}`, colorClass: 'text-purple-300' },
+            { label: 'Chakra Ancestral', value: chakraAncestral.toString(), colorClass: 'text-purple-400' },
+            { label: 'Renascimento', value: canPrestige ? 'Disponível!' : `${prestigeProgress.toFixed(0)}%`, colorClass: canPrestige ? 'text-amber-400' : 'text-zinc-400' },
+          ]}
+          position="left"
+          className="w-full"
         >
-          <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-bl-full pointer-events-none group-hover:scale-125 transition-transform duration-500" />
-          
-          <div className="flex items-center justify-between w-full mb-1.5 relative z-10">
-            <div className="w-7 h-7 rounded-lg bg-purple-950/70 border border-purple-700/60 flex items-center justify-center text-purple-400 group-hover:scale-110 group-hover:border-purple-500 group-hover:shadow-[0_0_10px_rgba(168,85,247,0.4)] transition-all duration-300">
-              <GitFork className="w-3.5 h-3.5 stroke-[2]" />
+          <button
+            onClick={() => setView('CLAN_TREE')}
+            className="w-full group p-2.5 rounded-xl bg-zinc-900/70 hover:bg-zinc-850/90 border border-purple-950/50 hover:border-purple-500/60 transition-all duration-200 shadow-sm hover:shadow-[0_4px_16px_rgba(168,85,247,0.18)] hover:-translate-y-0.5 flex items-center justify-between cursor-pointer"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-purple-950/70 border border-purple-700/60 flex items-center justify-center text-purple-400 group-hover:scale-105 transition-transform">
+                <GitFork className="w-3.5 h-3.5 stroke-[2]" />
+              </div>
+              <span className="text-xs font-bold text-zinc-100 group-hover:text-purple-300 transition-colors truncate">
+                Clãs
+              </span>
             </div>
-            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-950/60 border border-purple-800/60 text-purple-300">
-              {chakraAncestral.toString()}
+            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-950/60 border border-purple-800/60 text-purple-300 flex-shrink-0">
+              {unlockedClanNodesCount}/{totalClanNodesCount}
             </span>
-          </div>
-
-          <div className="relative z-10">
-            <h4 className="text-xs font-bold text-zinc-100 group-hover:text-purple-300 transition-colors">
-              Clãs
-            </h4>
-            <p className="text-[9px] font-mono text-zinc-400 truncate">
-              {unlockedClanNodesCount}/{totalClanNodesCount} Linhagens
-            </p>
-          </div>
-
-          <div className="mt-2 pt-1.5 border-t border-zinc-800/80 flex items-center justify-between text-[9px] font-mono relative z-10">
-            <span className={canPrestige ? 'text-amber-400 font-bold' : 'text-zinc-400 group-hover:text-purple-300'}>
-              {canPrestige ? 'Renascimento!' : `${prestigeProgress.toFixed(0)}%`}
-            </span>
-            <ArrowUpRight className="w-3 h-3 text-purple-400/80 group-hover:text-purple-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </div>
-        </button>
+          </button>
+        </Tooltip>
 
         {/* Card 5: Missões de Graduação & Patentes */}
-        <button
-          onClick={() => setView('CHUNIN_EXAM')}
-          className={`group relative p-2.5 rounded-xl text-left transition-all duration-300 shadow-sm hover:-translate-y-0.5 flex flex-col justify-between cursor-pointer overflow-hidden border ${
-            isExamEligible
-              ? 'bg-amber-950/30 border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.25)] hover:border-amber-400'
-              : 'bg-zinc-900/70 hover:bg-zinc-850/90 border-amber-950/50 hover:border-amber-500/60 hover:shadow-[0_4px_16px_rgba(245,158,11,0.18)]'
-          }`}
+        <Tooltip
+          title="Quartel de Graduação Shinobi"
+          badgeText="Patentes Oficiais"
+          badgeVariant="amber"
+          description="Missões de promoção oficial de patente (Gennin até Rikudō Sennin). Complete critérios estritos de cliques, CPS e chefes derrotados."
+          metrics={[
+            { label: 'Patente Atual', value: currentRank.title, colorClass: 'text-amber-300' },
+            { label: 'Próximo Alvo', value: nextMission ? nextMission.codename : 'Patente Máxima', colorClass: 'text-zinc-200' },
+            { label: 'Avaliação', value: isExamEligible ? 'Apto para Promoção!' : 'Critérios em Curso', colorClass: isExamEligible ? 'text-amber-400' : 'text-zinc-400' },
+          ]}
+          position="left"
+          className="w-full"
         >
-          <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/10 rounded-bl-full pointer-events-none group-hover:scale-125 transition-transform duration-500" />
-          
-          <div className="flex items-center justify-between w-full mb-1.5 relative z-10">
-            <div
-              className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300 border ${
-                isExamEligible
-                  ? 'bg-amber-950/80 border-amber-500 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
-                  : 'bg-amber-950/70 border-amber-700/60 text-amber-400 group-hover:scale-110 group-hover:border-amber-500'
-              }`}
-            >
-              <Flame className="w-3.5 h-3.5 stroke-[2]" />
+          <button
+            onClick={() => setView('CHUNIN_EXAM')}
+            className={`w-full group p-2.5 rounded-xl transition-all duration-200 shadow-sm hover:-translate-y-0.5 flex items-center justify-between cursor-pointer border ${
+              isExamEligible
+                ? 'bg-amber-950/30 border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.25)] hover:border-amber-400'
+                : 'bg-zinc-900/70 hover:bg-zinc-850/90 border-amber-950/50 hover:border-amber-500/60'
+            }`}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-amber-950/70 border border-amber-700/60 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform">
+                <Flame className="w-3.5 h-3.5 stroke-[2]" />
+              </div>
+              <span className="text-xs font-bold text-zinc-100 group-hover:text-amber-300 transition-colors truncate">
+                Graduação
+              </span>
             </div>
             <span
-              className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+              className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border flex-shrink-0 ${
                 isExamEligible
                   ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse'
                   : 'bg-amber-950/60 text-amber-400 border-amber-800/60'
               }`}
             >
-              {nextMission ? (isExamEligible ? 'Pronto!' : 'Em Curso') : 'Max ✔'}
+              {isExamEligible ? '!' : 'Rank'}
             </span>
-          </div>
-
-          <div className="relative z-10">
-            <h4 className="text-xs font-bold transition-colors text-zinc-100 group-hover:text-amber-300 truncate">
-              {nextMission ? nextMission.title : 'Graduação Completa'}
-            </h4>
-            <p className="text-[9px] font-mono text-zinc-400 truncate">
-              {nextMission ? `Alvo: ${nextMission.codename}` : 'Patente Máxima'}
-            </p>
-          </div>
-
-          <div className="mt-2 pt-1.5 border-t border-zinc-800/80 flex items-center justify-between text-[9px] font-mono relative z-10">
-            <span className={isExamEligible ? 'text-amber-300 font-bold' : 'text-zinc-400 group-hover:text-amber-300'}>
-              {isExamEligible ? 'Realizar Prova' : 'Graduação'}
-            </span>
-            <ArrowUpRight className="w-3 h-3 text-amber-400/80 group-hover:text-amber-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </div>
-        </button>
+          </button>
+        </Tooltip>
 
         {/* Card 6: Hall da Fama */}
-        <button
-          onClick={() => setView('RANKINGS')}
-          className="group relative p-2.5 rounded-xl bg-zinc-900/70 hover:bg-zinc-850/90 border border-yellow-950/50 hover:border-yellow-500/60 text-left transition-all duration-300 shadow-sm hover:shadow-[0_4px_16px_rgba(234,179,8,0.18)] hover:-translate-y-0.5 flex flex-col justify-between cursor-pointer overflow-hidden"
+        <Tooltip
+          title="Hall da Fama Global"
+          badgeText="Neon Postgres"
+          badgeVariant="amber"
+          description="Placar mundial conectando todos os jogadores com métricas sincronizadas em tempo real no banco de dados Neon."
+          metrics={[
+            { label: 'Sua Patente', value: currentRank.title, colorClass: 'text-amber-300' },
+            { label: 'Classificação', value: 'Top 50 Mundiais', colorClass: 'text-zinc-200' },
+          ]}
+          position="left"
+          className="w-full"
         >
-          <div className="absolute top-0 right-0 w-16 h-16 bg-yellow-500/10 rounded-bl-full pointer-events-none group-hover:scale-125 transition-transform duration-500" />
-          
-          <div className="flex items-center justify-between w-full mb-1.5 relative z-10">
-            <div className="w-7 h-7 rounded-lg bg-yellow-950/70 border border-yellow-700/60 flex items-center justify-center text-yellow-400 group-hover:scale-110 group-hover:border-yellow-500 group-hover:shadow-[0_0_10px_rgba(234,179,8,0.4)] transition-all duration-300">
-              <Trophy className="w-3.5 h-3.5 stroke-[2]" />
+          <button
+            onClick={() => setView('RANKINGS')}
+            className="w-full group p-2.5 rounded-xl bg-zinc-900/70 hover:bg-zinc-850/90 border border-yellow-950/50 hover:border-yellow-500/60 transition-all duration-200 shadow-sm hover:shadow-[0_4px_16px_rgba(234,179,8,0.18)] hover:-translate-y-0.5 flex items-center justify-between cursor-pointer"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-yellow-950/70 border border-yellow-700/60 flex items-center justify-center text-yellow-400 group-hover:scale-105 transition-transform">
+                <Trophy className="w-3.5 h-3.5 stroke-[2]" />
+              </div>
+              <span className="text-xs font-bold text-zinc-100 group-hover:text-yellow-300 transition-colors truncate">
+                Rankings
+              </span>
             </div>
-            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-yellow-950/60 border border-yellow-800/60 text-yellow-300">
-              Top 100
+            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-yellow-950/60 border border-yellow-800/60 text-yellow-300 flex-shrink-0">
+              Top 50
             </span>
-          </div>
-
-          <div className="relative z-10">
-            <h4 className="text-xs font-bold text-zinc-100 group-hover:text-yellow-300 transition-colors">
-              Rankings
-            </h4>
-            <p className="text-[9px] font-mono text-zinc-400 truncate">
-              {currentRank.title}
-            </p>
-          </div>
-
-          <div className="mt-2 pt-1.5 border-t border-zinc-800/80 flex items-center justify-between text-[9px] font-mono relative z-10">
-            <span className="text-zinc-400 group-hover:text-yellow-300">Placar Global</span>
-            <ArrowUpRight className="w-3 h-3 text-yellow-400/80 group-hover:text-yellow-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </div>
-        </button>
+          </button>
+        </Tooltip>
       </div>
 
       {/* 3. SELETOR DE ABAS COM VISUAL MODERNO E EXPANDIR */}

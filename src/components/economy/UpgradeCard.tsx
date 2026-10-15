@@ -3,13 +3,13 @@ import Decimal from 'break_infinity.js';
 import { TechniqueUpgrade, UpgradeCategory } from '../../types/upgrades';
 import { formatBigNumber } from '../../engine/BigNumber';
 import { IconRenderer } from '../common/IconRenderer';
+import { Tooltip } from '../ui/Tooltip';
 import {
   Zap,
   Users,
   Flame,
   Shield,
   CheckCircle2,
-  Clock,
   Lock,
 } from 'lucide-react';
 
@@ -32,6 +32,7 @@ const CATEGORY_CONFIG: Record<
     borderAffordable: string;
     borderMuted: string;
     avatarBg: string;
+    badgeVariant: 'amber' | 'cyan' | 'purple' | 'emerald';
     icon: React.ComponentType<{ className?: string }>;
   }
 > = {
@@ -41,6 +42,7 @@ const CATEGORY_CONFIG: Record<
     borderAffordable: 'hover:border-amber-500/60 bg-gradient-to-br from-amber-950/15 via-zinc-900/70 to-zinc-900/40',
     borderMuted: 'border-zinc-850/60',
     avatarBg: 'bg-amber-950/40 border-amber-800/50 text-amber-300',
+    badgeVariant: 'amber',
     icon: Zap,
   },
   ninjutsu: {
@@ -49,6 +51,7 @@ const CATEGORY_CONFIG: Record<
     borderAffordable: 'hover:border-cyan-500/60 bg-gradient-to-br from-cyan-950/15 via-zinc-900/70 to-zinc-900/40',
     borderMuted: 'border-zinc-850/60',
     avatarBg: 'bg-cyan-950/40 border-cyan-800/50 text-cyan-300',
+    badgeVariant: 'cyan',
     icon: Users,
   },
   senjutsu: {
@@ -57,6 +60,7 @@ const CATEGORY_CONFIG: Record<
     borderAffordable: 'hover:border-fuchsia-500/60 bg-gradient-to-br from-fuchsia-950/15 via-zinc-900/70 to-zinc-900/40',
     borderMuted: 'border-zinc-850/60',
     avatarBg: 'bg-fuchsia-950/40 border-fuchsia-800/50 text-fuchsia-300',
+    badgeVariant: 'purple',
     icon: Flame,
   },
   fuinjutsu: {
@@ -65,6 +69,7 @@ const CATEGORY_CONFIG: Record<
     borderAffordable: 'hover:border-emerald-500/60 bg-gradient-to-br from-emerald-950/15 via-zinc-900/70 to-zinc-900/40',
     borderMuted: 'border-zinc-850/60',
     avatarBg: 'bg-emerald-950/40 border-emerald-800/50 text-emerald-300',
+    badgeVariant: 'emerald',
     icon: Shield,
   },
 };
@@ -124,68 +129,43 @@ export const UpgradeCard: React.FC<UpgradeCardProps> = ({
   const timeRemainingStr = formatTimeToAfford(upgrade.cost, currentChakra, currentCPS);
 
   return (
-    <div
-      onClick={() => {
-        if (isBuyable) {
-          onBuy(upgrade.id);
-        }
-      }}
-      className={`group/card relative backdrop-blur-xl rounded-xl p-3 transition-all duration-200 flex flex-col justify-between border overflow-hidden select-none ${
-        purchased
-          ? 'bg-zinc-950/40 border-zinc-850/60 opacity-60'
-          : isLocked
-          ? 'bg-zinc-950/70 border-zinc-850/90 opacity-75'
-          : canAfford
-          ? `${cat.borderAffordable} border-zinc-800/90 shadow-md hover:shadow-xl cursor-pointer active:scale-[0.99]`
-          : 'bg-zinc-950/60 border-zinc-850/80 opacity-80 hover:opacity-95'
-      }`}
+    <Tooltip
+      title={upgrade.name}
+      badgeText={`${cat.label}${tierConfig ? ` • ${tierConfig.label}` : ''}`}
+      badgeVariant={cat.badgeVariant}
+      description={upgrade.description}
+      metrics={[
+        { label: 'Custo de Chakra', value: formatBigNumber(upgrade.cost), colorClass: canAfford ? 'text-amber-300' : 'text-rose-400' },
+        ...(upgrade.multiplier ? [{ label: 'Efeito Multiplicador', value: `+${((upgrade.multiplier - 1) * 100).toFixed(0)}% CPS`, colorClass: 'text-emerald-400' }] : []),
+        ...(isLocked && prerequisiteName ? [{ label: 'Pré-requisito', value: prerequisiteName, colorClass: 'text-rose-400' }] : []),
+        { label: 'Status', value: purchased ? 'Dominado ✔' : isLocked ? 'Bloqueado' : canAfford ? 'Pronto' : timeRemainingStr, colorClass: purchased ? 'text-emerald-400' : isLocked ? 'text-rose-400' : canAfford ? 'text-cyan-400' : 'text-zinc-400' },
+      ]}
+      position="right"
+      className="w-full"
     >
-      {/* Linha de brilho superior no hover */}
-      <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-fuchsia-400/40 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-300" />
+      <div
+        onClick={() => {
+          if (isBuyable) {
+            onBuy(upgrade.id);
+          }
+        }}
+        className={`group/card relative backdrop-blur-xl rounded-xl p-2.5 transition-all duration-200 flex items-center justify-between border overflow-hidden select-none ${
+          purchased
+            ? 'bg-zinc-950/40 border-zinc-850/60 opacity-60'
+            : isLocked
+            ? 'bg-zinc-950/70 border-zinc-850/90 opacity-75'
+            : canAfford
+            ? `${cat.borderAffordable} border-zinc-800/90 shadow-md hover:shadow-xl cursor-pointer active:scale-[0.99]`
+            : 'bg-zinc-950/60 border-zinc-850/80 opacity-80 hover:opacity-95'
+        }`}
+      >
+        {/* Linha de brilho superior no hover */}
+        <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-fuchsia-400/40 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-300" />
 
-      <div>
-        {/* Top Header: Badge de Categoria, Tier & Indicador de Status */}
-        <div className="flex items-center justify-between mb-2 gap-1">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span
-              className={`text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 rounded-md border flex items-center gap-1 font-medium ${cat.badgeStyle}`}
-            >
-              <CategoryIcon className="w-3 h-3" />
-              {cat.label}
-            </span>
-
-            {tierConfig && (
-              <span
-                className={`text-[9px] uppercase font-mono px-1.5 py-0.5 rounded border tracking-wider ${tierConfig.badgeStyle}`}
-              >
-                {tierConfig.label}
-              </span>
-            )}
-          </div>
-
-          {purchased ? (
-            <span className="flex items-center gap-1 text-[11px] font-mono text-emerald-400 font-medium flex-shrink-0">
-              <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.2]" /> Dominado
-            </span>
-          ) : isLocked ? (
-            <span className="flex items-center gap-1 text-[10px] font-mono text-rose-400 bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-850/60 flex-shrink-0">
-              <Lock className="w-3 h-3" /> Bloqueado
-            </span>
-          ) : !canAfford ? (
-            <span className="flex items-center gap-1 text-[10px] font-mono text-amber-400/90 bg-zinc-900/80 px-1.5 py-0.5 rounded border border-zinc-800 flex-shrink-0">
-              <Clock className="w-3 h-3" /> {timeRemainingStr}
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-400 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-800/50 flex-shrink-0">
-              Pronto
-            </span>
-          )}
-        </div>
-
-        {/* Título, Ícone e Descrição */}
-        <div className="flex items-start gap-2.5 mb-2">
+        {/* Lado Esquerdo: Ícone + Título e Badge */}
+        <div className="flex items-center gap-2.5 min-w-0">
           <div
-            className={`w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0 mt-0.5 transition-transform group-hover/card:scale-105 ${
+            className={`w-8 h-8 rounded-xl border flex items-center justify-center flex-shrink-0 transition-transform group-hover/card:scale-105 ${
               purchased
                 ? 'bg-zinc-900 border-zinc-800 text-zinc-500'
                 : isLocked
@@ -198,31 +178,31 @@ export const UpgradeCard: React.FC<UpgradeCardProps> = ({
               className="w-4 h-4 stroke-[1.8]"
             />
           </div>
-          <div className="min-w-0 flex-1">
-            <h4 className="text-xs font-semibold text-zinc-100 leading-tight truncate">
-              {upgrade.name}
-            </h4>
-            <p className="text-[11px] text-zinc-400 mt-1 leading-snug line-clamp-2">
-              {upgrade.description}
-            </p>
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h4 className="text-xs font-semibold text-zinc-100 leading-tight truncate">
+                {upgrade.name}
+              </h4>
+              {tierConfig && (
+                <span
+                  className={`text-[9px] uppercase font-mono px-1 py-0.2 rounded border tracking-wider ${tierConfig.badgeStyle}`}
+                >
+                  {tierConfig.label}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-mono text-zinc-400 flex items-center gap-1 truncate">
+              <CategoryIcon className="w-2.5 h-2.5" />
+              {cat.label}
+            </span>
           </div>
         </div>
 
-        {/* Notificação de Pré-requisito Faltante */}
-        {isLocked && prerequisiteName && (
-          <div className="mt-1 mb-2 px-2 py-1 rounded-md bg-rose-950/30 border border-rose-800/40 flex items-center gap-1.5 text-[10px] text-rose-300 font-mono">
-            <Lock className="w-3 h-3 text-rose-400 flex-shrink-0" />
-            <span className="truncate">Requer: {prerequisiteName}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Footer: Preço e Ação de Compra */}
-      <div className="pt-2 border-t border-zinc-850/80 flex items-center justify-between mt-1">
-        <div className="flex items-baseline gap-1">
-          <span className="text-[10px] uppercase font-mono text-zinc-500 tracking-wider">Custo:</span>
+        {/* Lado Direito: Preço e Ação */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           <span
-            className={`text-xs font-mono font-semibold ${
+            className={`text-xs font-mono font-bold ${
               purchased
                 ? 'text-zinc-500 line-through'
                 : canAfford && !isLocked
@@ -232,37 +212,37 @@ export const UpgradeCard: React.FC<UpgradeCardProps> = ({
           >
             {formatBigNumber(upgrade.cost)}
           </span>
-        </div>
 
-        {!purchased && (
-          <button
-            disabled={!isBuyable}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (isBuyable) {
-                onBuy(upgrade.id);
-              }
-            }}
-            className={`px-3 py-1 rounded-lg text-[11px] font-mono font-medium transition-all flex items-center gap-1.5 border cursor-pointer select-none active:scale-95 ${
-              isLocked
-                ? 'bg-zinc-900/60 border-zinc-800 text-rose-400/60 cursor-not-allowed'
-                : canAfford
-                ? 'bg-gradient-to-r from-zinc-800 via-zinc-750 to-zinc-800 hover:from-fuchsia-950 hover:to-zinc-800 hover:border-fuchsia-500/60 hover:text-fuchsia-200 text-zinc-100 border-zinc-700 shadow-sm'
-                : 'bg-zinc-900/60 border-zinc-850 text-zinc-600 cursor-not-allowed'
-            }`}
-          >
-            {isLocked ? (
-              <>
-                <Lock className="w-3 h-3" />
-                <span>Bloqueado</span>
-              </>
-            ) : (
-              'Aprender'
-            )}
-          </button>
-        )}
+          {purchased ? (
+            <span className="p-1 rounded-lg bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
+              <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.2]" />
+            </span>
+          ) : isLocked ? (
+            <span className="p-1 rounded-lg bg-rose-950/50 text-rose-400 border border-rose-800/60">
+              <Lock className="w-3.5 h-3.5" />
+            </span>
+          ) : (
+            <button
+              disabled={!isBuyable}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isBuyable) {
+                  onBuy(upgrade.id);
+                }
+              }}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all flex items-center gap-1 border cursor-pointer select-none active:scale-95 ${
+                canAfford
+                  ? 'bg-gradient-to-r from-zinc-800 via-zinc-750 to-zinc-800 hover:from-fuchsia-950 hover:to-zinc-800 hover:border-fuchsia-500/60 hover:text-fuchsia-200 text-zinc-100 border-zinc-700 shadow-sm'
+                  : 'bg-zinc-900/60 border-zinc-850 text-zinc-600 cursor-not-allowed'
+              }`}
+            >
+              Aprender
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </Tooltip>
   );
 };
+
 

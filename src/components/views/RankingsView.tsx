@@ -24,7 +24,9 @@ import {
   Swords,
   Globe2,
   Crown,
+  CheckCircle2,
 } from 'lucide-react';
+import { Tooltip } from '../ui/Tooltip';
 
 export const RankingsView: React.FC = () => {
   const stats = useGameStore((s) => s.stats);
@@ -435,16 +437,29 @@ export const RankingsView: React.FC = () => {
                           )}
                         </td>
                         <td className="py-3 px-4">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center flex-shrink-0 text-zinc-300 group-hover/row:scale-105 group-hover/row:border-zinc-700 transition-all">
-                              <IconRenderer name={ninja.avatar} className="w-4 h-4 stroke-[1.8]" />
+                          <Tooltip
+                            title={ninja.name}
+                            badgeText={ninja.position <= 3 ? `Pódio #${ninja.position}` : `Top #${ninja.position}`}
+                            badgeVariant={ninja.position === 1 ? 'amber' : ninja.position <= 3 ? 'cyan' : 'neutral'}
+                            description="Registro oficial no Hall da Fama Shinobi sincronizado na nuvem."
+                            metrics={[
+                              { label: 'Posição', value: `#${ninja.position}`, colorClass: 'text-amber-400' },
+                              { label: 'Patente Ninja', value: ninja.title },
+                              { label: 'Métrica Registrada', value: formatMetricDisplay(ninja), colorClass: 'text-emerald-400' },
+                            ]}
+                            position="top"
+                          >
+                            <div className="flex items-center gap-2.5 cursor-pointer">
+                              <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center flex-shrink-0 text-zinc-300 group-hover/row:scale-105 group-hover/row:border-zinc-700 transition-all">
+                                <IconRenderer name={ninja.avatar} className="w-4 h-4 stroke-[1.8]" />
+                              </div>
+                              <div className="min-w-0">
+                                <span className="font-semibold block truncate max-w-[200px] text-zinc-100 group-hover/row:text-amber-300 transition-colors">
+                                  {ninja.name}
+                                </span>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <span className="font-semibold block truncate max-w-[200px] text-zinc-100 group-hover/row:text-amber-300 transition-colors">
-                                {ninja.name}
-                              </span>
-                            </div>
-                          </div>
+                          </Tooltip>
                         </td>
                         <td className="py-3 px-4 text-zinc-400 font-sans text-xs">{ninja.title}</td>
                         <td className="py-3 px-4 text-right font-bold text-emerald-400">
@@ -464,37 +479,64 @@ export const RankingsView: React.FC = () => {
         {/* ================================================================= */}
         <aside className="w-full lg:w-96 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-[#090a0f]/95 backdrop-blur-2xl border border-zinc-800/90 rounded-2xl shadow-2xl p-5 lg:p-6 flex flex-col justify-between overflow-y-auto custom-scrollbar relative">
           <div className="space-y-6">
-            {/* Cartão de Patente Atual com Glow */}
-            <div className="p-4 rounded-xl bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 border border-zinc-800/90 shadow-md relative overflow-hidden">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 font-bold block mb-2">
-                Graduação Ninja Oficial
-              </span>
-              <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.25)] flex-shrink-0">
-                  <Award className="w-6 h-6 stroke-[1.8]" />
+            {/* Cartão de Patente Atual com Glow e Tooltip */}
+            <Tooltip
+              title={`Graduação Atual: ${currentRank.title}`}
+              badgeText={currentRank.subtitle}
+              badgeVariant="amber"
+              description="Sua graduação ninja oficial baseada em maestria marcial, produção de chakra e histórico de renascimentos."
+              metrics={[
+                ...(nextRank
+                  ? [
+                      { label: 'Próxima Graduação', value: nextRank.title, colorClass: 'text-amber-300' },
+                      { label: 'Progresso Global', value: `${progress.overallProgress}%`, colorClass: 'text-emerald-400' },
+                      {
+                        label: 'Meta de Cliques',
+                        value: `${allTimeClicks.toLocaleString('pt-BR')} / ${nextRank.minClicksAllTime.toLocaleString('pt-BR')}`,
+                        colorClass: allTimeClicks >= nextRank.minClicksAllTime ? 'text-emerald-400' : 'text-zinc-500',
+                      },
+                      {
+                        label: 'Meta de CPS',
+                        value: `${formatBigNumber(highestCPS)} / ${formatBigNumber(nextRank.minCPS)}`,
+                        colorClass: highestCPS.gte(nextRank.minCPS) ? 'text-emerald-400' : 'text-zinc-500',
+                      },
+                    ]
+                  : [{ label: 'Graduação Máxima', value: 'Alcançada', colorClass: 'text-emerald-400' }]),
+              ]}
+              position="left"
+              className="w-full"
+            >
+              <div className="p-4 rounded-xl bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 border border-zinc-800/90 shadow-md relative overflow-hidden cursor-help">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 font-bold block mb-2">
+                  Graduação Ninja Oficial
+                </span>
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.25)] flex-shrink-0">
+                    <Award className="w-6 h-6 stroke-[1.8]" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white">{currentRank.title}</h3>
+                    <p className="text-xs text-zinc-400 font-mono mt-0.5">{currentRank.subtitle}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-base font-black text-white">{currentRank.title}</h3>
-                  <p className="text-xs text-zinc-400 font-mono mt-0.5">{currentRank.subtitle}</p>
-                </div>
-              </div>
 
-              {/* Barra de Progresso até a próxima patente */}
-              {nextRank && (
-                <div className="mt-4 pt-3 border-t border-zinc-800/80">
-                  <div className="flex justify-between text-xs font-mono text-zinc-400 mb-1.5">
-                    <span>Próxima: <strong className="text-zinc-200">{nextRank.title}</strong></span>
-                    <strong className="text-amber-400">{progress.overallProgress}%</strong>
+                {/* Barra de Progresso até a próxima patente */}
+                {nextRank && (
+                  <div className="mt-4 pt-3 border-t border-zinc-800/80">
+                    <div className="flex justify-between text-xs font-mono text-zinc-400 mb-1.5">
+                      <span>Próxima: <strong className="text-zinc-200">{nextRank.title}</strong></span>
+                      <strong className="text-amber-400">{progress.overallProgress}%</strong>
+                    </div>
+                    <div className="w-full h-2 bg-zinc-950 rounded-full overflow-hidden p-0.5 border border-zinc-850">
+                      <div
+                        style={{ width: `${progress.overallProgress}%` }}
+                        className="h-full bg-gradient-to-r from-amber-500 to-emerald-400 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+                      />
+                    </div>
                   </div>
-                  <div className="w-full h-2 bg-zinc-950 rounded-full overflow-hidden p-0.5 border border-zinc-850">
-                    <div
-                      style={{ width: `${progress.overallProgress}%` }}
-                      className="h-full bg-gradient-to-r from-amber-500 to-emerald-400 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            </Tooltip>
 
             {/* Lista de Patentes & Resgate de Recompensas de Promoção */}
             <div>
@@ -514,38 +556,72 @@ export const RankingsView: React.FC = () => {
                   if (rank.id === 'estudante') return null;
 
                   return (
-                    <div
+                    <Tooltip
                       key={rank.id}
-                      className={`p-3 rounded-xl border text-xs font-mono transition-all duration-200 ${
-                        isClaimed
-                          ? 'bg-zinc-950/40 border-zinc-850 opacity-60'
-                          : qualifies
-                          ? 'bg-emerald-950/25 border-emerald-500/60 shadow-md shadow-emerald-950/20 hover:border-emerald-400'
-                          : 'bg-zinc-950/60 border-zinc-850/80 text-zinc-500'
-                      }`}
+                      title={`Patente: ${rank.title}`}
+                      badgeText={isClaimed ? 'Resgatado' : qualifies ? 'Disponível' : 'Bloqueado'}
+                      badgeVariant={isClaimed ? 'emerald' : qualifies ? 'amber' : 'neutral'}
+                      description={rank.reward.description}
+                      metrics={[
+                        {
+                          label: 'Cliques Totais',
+                          value: `${allTimeClicks.toLocaleString('pt-BR')} / ${rank.minClicksAllTime.toLocaleString('pt-BR')}`,
+                          colorClass: allTimeClicks >= rank.minClicksAllTime ? 'text-emerald-400' : 'text-zinc-500',
+                        },
+                        {
+                          label: 'Recorde CPS',
+                          value: `${formatBigNumber(highestCPS)} / ${formatBigNumber(rank.minCPS)}`,
+                          colorClass: highestCPS.gte(rank.minCPS) ? 'text-emerald-400' : 'text-zinc-500',
+                        },
+                        {
+                          label: 'Renascimentos',
+                          value: `${prestiges} / ${rank.minPrestiges}`,
+                          colorClass: prestiges >= rank.minPrestiges ? 'text-emerald-400' : 'text-zinc-500',
+                        },
+                        {
+                          label: 'Recompensa',
+                          value: `+${rank.reward.value}% ${rank.reward.title}`,
+                          colorClass: 'text-amber-400',
+                        },
+                      ]}
+                      position="left"
+                      className="w-full"
                     >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="font-bold text-zinc-200">{rank.title}</span>
-                        {isClaimed ? (
-                          <span className="text-[10px] text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/60">
-                            Resgatado ✔
-                          </span>
-                        ) : (
-                          <button
-                            disabled={!qualifies}
-                            onClick={() => claimRankReward(rank.id)}
-                            className={`px-3 py-1 rounded-lg text-[10px] font-bold font-mono transition-all duration-200 border ${
-                              qualifies
-                                ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-black border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.35)] cursor-pointer hover:scale-105 active:scale-95'
-                                : 'bg-zinc-900/60 border-zinc-800 text-zinc-600 cursor-not-allowed'
-                            }`}
-                          >
-                            Resgatar Recompensa
-                          </button>
-                        )}
+                      <div
+                        className={`p-3 rounded-xl border text-xs font-mono transition-all duration-200 ${
+                          isClaimed
+                            ? 'bg-zinc-950/40 border-zinc-850 opacity-60'
+                            : qualifies
+                            ? 'bg-emerald-950/25 border-emerald-500/60 shadow-md shadow-emerald-950/20 hover:border-emerald-400'
+                            : 'bg-zinc-950/60 border-zinc-850/80 text-zinc-500'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-bold text-zinc-200">{rank.title}</span>
+                          {isClaimed ? (
+                            <span className="text-[10px] text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/60 flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                              <span>Resgatado</span>
+                            </span>
+                          ) : (
+                            <button
+                              disabled={!qualifies}
+                              onClick={() => claimRankReward(rank.id)}
+                              className={`px-3 py-1 rounded-lg text-[10px] font-bold font-mono transition-all duration-200 border ${
+                                qualifies
+                                  ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-black border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.35)] cursor-pointer hover:scale-105 active:scale-95'
+                                  : 'bg-zinc-900/60 border-zinc-800 text-zinc-600 cursor-not-allowed'
+                              }`}
+                            >
+                              Resgatar
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-zinc-400 leading-snug truncate">
+                          {rank.reward.description}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-zinc-400 leading-snug">{rank.reward.description}</p>
-                    </div>
+                    </Tooltip>
                   );
                 })}
               </div>

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { ViewHeader } from './ViewHeader';
 import { Badge } from '../common/Badge';
+import { Tooltip } from '../ui/Tooltip';
 import { formatBigNumber } from '../../engine/BigNumber';
 import {
   SHINOBI_PROMOTION_MISSIONS,
@@ -25,8 +26,9 @@ import {
   Check,
   ChevronRight,
   Gift,
-  AlertCircle,
   Crown,
+  User,
+  Info,
 } from 'lucide-react';
 
 export const RankPromotionView: React.FC = () => {
@@ -190,42 +192,75 @@ export const RankPromotionView: React.FC = () => {
         badgeText={`Patente: ${currentRank.title}`}
       />
 
-      {/* 2. BARRA DE STATUS DO SHINOBI & PROGRESSÃO */}
+      {/* 2. BARRA DE STATUS DO SHINOBI & PROGRESSÃO COM TOOLTIPS */}
       <div className="px-6 py-2.5 bg-zinc-950/70 backdrop-blur-md border-b border-zinc-800/80 flex flex-wrap items-center justify-between gap-3 text-xs font-mono relative z-10 shadow-sm">
         <div className="flex items-center gap-2.5 flex-wrap">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800">
-            <Shield className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="text-zinc-400">Shinobi:</span>
-            <span className="text-white font-bold">{currentUser?.fullName || 'Ninja Operativo'}</span>
-            <span className="text-cyan-400 font-bold">#{currentUser?.ninjaId || 1049}</span>
-          </div>
+          <Tooltip
+            title="Registro Oficial Shinobi"
+            badgeText={`#${currentUser?.ninjaId || 1049}`}
+            badgeVariant="cyan"
+            description="Identificação registrada nos anais da folha e nos servidores centrais da vila."
+            metrics={[
+              { label: 'Ninja', value: currentUser?.fullName || 'Ninja Operativo' },
+              { label: 'Patente Atual', value: currentRank.title, colorClass: 'text-amber-400' },
+            ]}
+          >
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800 cursor-help">
+              <Shield className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="text-zinc-400">Shinobi:</span>
+              <span className="text-white font-bold">{currentUser?.fullName || 'Ninja Operativo'}</span>
+              <span className="text-cyan-400 font-bold">#{currentUser?.ninjaId || 1049}</span>
+            </div>
+          </Tooltip>
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800">
-            <Flame className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-zinc-400">Patente Atual:</span>
-            <span
-              className={`font-bold px-2 py-0.5 rounded text-[11px] border ${currentRank.badgeClass}`}
-            >
-              {currentRank.title}
-            </span>
-          </div>
+          <Tooltip
+            title="Patente Hierárquica"
+            badgeText={currentRank.title}
+            badgeVariant="amber"
+            description="Cargo oficial dentro da estrutura militar shinobi, concedendo bônus passivos permanentes de produção e combate."
+            metrics={[
+              { label: 'Título Oficial', value: currentRank.title },
+              { label: 'Graduações Concluídas', value: `${totalPassedCount} de ${SHINOBI_PROMOTION_MISSIONS.length}` },
+            ]}
+          >
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800 cursor-help">
+              <Flame className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-zinc-400">Patente Atual:</span>
+              <span
+                className={`font-bold px-2 py-0.5 rounded text-[11px] border ${currentRank.badgeClass}`}
+              >
+                {currentRank.title}
+              </span>
+            </div>
+          </Tooltip>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2.5 bg-zinc-900/80 px-3 py-1.5 rounded-xl border border-zinc-800">
-            <span className="text-zinc-400">Graduações Concluídas:</span>
-            <span className="text-emerald-400 font-bold text-sm">
-              {totalPassedCount} / {SHINOBI_PROMOTION_MISSIONS.length}
-            </span>
-            <div className="w-24 h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-850 p-0.5">
-              <div
-                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-                style={{
-                  width: `${(totalPassedCount / SHINOBI_PROMOTION_MISSIONS.length) * 100}%`,
-                }}
-              />
+          <Tooltip
+            title="Progresso de Carreira Shinobi"
+            badgeText={`${totalPassedCount}/${SHINOBI_PROMOTION_MISSIONS.length}`}
+            badgeVariant="emerald"
+            description="Percentual de missões de exame e graduação militar superadas com êxito."
+            metrics={[
+              { label: 'Exames Aprovados', value: `${totalPassedCount}`, colorClass: 'text-emerald-400' },
+              { label: 'Total de Patentes', value: `${SHINOBI_PROMOTION_MISSIONS.length}` },
+            ]}
+          >
+            <div className="flex items-center gap-2.5 bg-zinc-900/80 px-3 py-1.5 rounded-xl border border-zinc-800 cursor-help">
+              <span className="text-zinc-400">Graduações:</span>
+              <span className="text-emerald-400 font-bold text-sm">
+                {totalPassedCount} / {SHINOBI_PROMOTION_MISSIONS.length}
+              </span>
+              <div className="w-24 h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-850 p-0.5">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                  style={{
+                    width: `${(totalPassedCount / SHINOBI_PROMOTION_MISSIONS.length) * 100}%`,
+                  }}
+                />
+              </div>
             </div>
-          </div>
+          </Tooltip>
 
           <button
             onClick={() => setView('RANKINGS')}
@@ -238,7 +273,7 @@ export const RankPromotionView: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. TRILHA SEQUENCIAL DE MISSÕES DE PROMOÇÃO (STEPPER HORIZONTAL) */}
+      {/* 3. TRILHA SEQUENCIAL DE MISSÕES DE PROMOÇÃO (STEPPER HORIZONTAL COM TOOLTIPS) */}
       <div className="px-6 py-3 bg-zinc-950/50 border-b border-zinc-800/80 overflow-x-auto custom-scrollbar flex-shrink-0 relative z-10">
         <div className="flex items-center gap-2 min-w-max">
           {SHINOBI_PROMOTION_MISSIONS.map((mission, index) => {
@@ -247,6 +282,7 @@ export const RankPromotionView: React.FC = () => {
             const isRequiredPassed =
               mission.requiredRankId === 'estudante' || !!passedExams[mission.requiredRankId];
             const isCurrentActive = !isPassed && isRequiredPassed;
+            const targetRank = SHINOBI_RANKS_MAP[mission.targetRankId];
 
             return (
               <React.Fragment key={mission.id}>
@@ -257,33 +293,49 @@ export const RankPromotionView: React.FC = () => {
                     }`}
                   />
                 )}
-                <button
-                  onClick={() => setSelectedMissionId(mission.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-mono transition-all duration-200 cursor-pointer ${
-                    isSelected
-                      ? 'bg-zinc-850 border-amber-500 text-white shadow-lg shadow-amber-950/30 ring-1 ring-amber-400/50 scale-105'
-                      : isPassed
-                      ? 'bg-emerald-950/30 hover:bg-emerald-950/50 border-emerald-700/60 text-emerald-300'
-                      : isCurrentActive
-                      ? 'bg-amber-950/30 hover:bg-amber-950/50 border-amber-500/60 text-amber-300 animate-pulse'
-                      : 'bg-zinc-900/50 hover:bg-zinc-900 border-zinc-800 text-zinc-500'
-                  }`}
+                <Tooltip
+                  title={targetRank?.title || mission.title}
+                  badgeText={isPassed ? 'Concluído' : isCurrentActive ? 'Em Andamento' : 'Bloqueado'}
+                  badgeVariant={isPassed ? 'emerald' : isCurrentActive ? 'amber' : 'neutral'}
+                  description={`${mission.loreDescription} Examinador: ${mission.proctor.name} (${mission.proctor.title}).`}
+                  metrics={[
+                    { label: 'Codinome', value: mission.codename },
+                    { label: 'Chakra', value: `+${formatBigNumber(mission.bonusRewards.chakra)}`, colorClass: 'text-orange-400' },
+                    { label: 'Ancestral', value: `+${mission.bonusRewards.ancestral} Anc`, colorClass: 'text-amber-300' },
+                    { label: 'Bônus Vitalício', value: mission.bonusRewards.permanentEffectDescription, colorClass: 'text-emerald-400' },
+                  ]}
+                  position="bottom"
                 >
-                  <span className="text-sm">{mission.proctor.avatarEmoji}</span>
-                  <div className="text-left">
-                    <div className="font-bold flex items-center gap-1">
-                      <span>{SHINOBI_RANKS_MAP[mission.targetRankId]?.title || mission.title}</span>
-                      {isPassed ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[2.5]" />
-                      ) : !isRequiredPassed ? (
-                        <Lock className="w-3 h-3 text-zinc-600" />
-                      ) : null}
+                  <button
+                    onClick={() => setSelectedMissionId(mission.id)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-mono transition-all duration-200 cursor-pointer ${
+                      isSelected
+                        ? 'bg-zinc-850 border-amber-500 text-white shadow-lg shadow-amber-950/30 ring-1 ring-amber-400/50 scale-105'
+                        : isPassed
+                        ? 'bg-emerald-950/30 hover:bg-emerald-950/50 border-emerald-700/60 text-emerald-300'
+                        : isCurrentActive
+                        ? 'bg-amber-950/30 hover:bg-amber-950/50 border-amber-500/60 text-amber-300 animate-pulse'
+                        : 'bg-zinc-900/50 hover:bg-zinc-900 border-zinc-800 text-zinc-500'
+                    }`}
+                  >
+                    <div className="w-5 h-5 rounded-md bg-zinc-800 flex items-center justify-center text-amber-400">
+                      <User className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-[10px] text-zinc-400 block -mt-0.5">
-                      {isPassed ? 'Concluído ✔' : isCurrentActive ? 'Missão Atual' : 'Bloqueado'}
-                    </span>
-                  </div>
-                </button>
+                    <div className="text-left">
+                      <div className="font-bold flex items-center gap-1">
+                        <span>{targetRank?.title || mission.title}</span>
+                        {isPassed ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[2.5]" />
+                        ) : !isRequiredPassed ? (
+                          <Lock className="w-3 h-3 text-zinc-600" />
+                        ) : null}
+                      </div>
+                      <span className="text-[10px] text-zinc-400 block -mt-0.5">
+                        {isPassed ? 'Aprovado' : isCurrentActive ? 'Missão Atual' : 'Bloqueado'}
+                      </span>
+                    </div>
+                  </button>
+                </Tooltip>
               </React.Fragment>
             );
           })}
@@ -293,7 +345,7 @@ export const RankPromotionView: React.FC = () => {
       {/* 4. PALCO PRINCIPAL DA MISSÃO DE PROMOÇÃO SELECIONADA */}
       <div className="flex-1 overflow-y-auto p-4 lg:p-6 custom-scrollbar relative z-10">
         <div className="max-w-5xl mx-auto space-y-6">
-          {/* BANNER / CARTÃO HERO DA MISSÃO */}
+          {/* BANNER / CARTÃO HERO DA MISSÃO LIMPO E PROGRESSIVO */}
           <div
             className={`p-6 rounded-2xl border backdrop-blur-2xl relative overflow-hidden shadow-2xl transition-all duration-300 ${
               isMissionPassed
@@ -316,96 +368,71 @@ export const RankPromotionView: React.FC = () => {
               }`}
             />
 
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 relative z-10">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
               <div className="space-y-2 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="px-2.5 py-0.5 rounded-full bg-zinc-850 border border-zinc-700 text-[11px] font-mono text-zinc-300">
                     Codinome: {activeMission.codename}
                   </span>
 
-                  {isMissionPassed ? (
-                    <Badge variant="production" icon={<CheckCircle2 className="w-3.5 h-3.5" />}>
-                      Graduação Oficial Aprovada
-                    </Badge>
-                  ) : !isPrerequisiteMet ? (
-                    <Badge variant="neutral" icon={<Lock className="w-3.5 h-3.5" />}>
-                      Requer Patente Anterior
-                    </Badge>
-                  ) : reqStatus.allMet ? (
-                    <Badge variant="chakra" icon={<Sparkles className="w-3.5 h-3.5" />}>
-                      Apto para Promoção!
-                    </Badge>
-                  ) : (
-                    <Badge variant="warning" icon={<Target className="w-3.5 h-3.5" />}>
-                      Missão em Andamento
-                    </Badge>
-                  )}
+                  <Tooltip
+                    title={`${activeMission.title} ➔ ${targetRankDef.title}`}
+                    badgeText={isMissionPassed ? 'Aprovado' : reqStatus.allMet ? 'Apto' : 'Em Andamento'}
+                    badgeVariant={isMissionPassed ? 'emerald' : reqStatus.allMet ? 'amber' : 'neutral'}
+                    description={`${activeMission.loreDescription} Regras & Diálogo do Examinador (${activeMission.proctor.name} - ${activeMission.proctor.title}): "${activeMission.proctor.quote}"`}
+                    metrics={[
+                      { label: 'Examinador Oficial', value: activeMission.proctor.name },
+                      { label: 'Bônus de Chakra', value: `+${formatBigNumber(activeMission.bonusRewards.chakra)}`, colorClass: 'text-orange-400' },
+                      { label: 'Chakra Ancestral', value: `+${activeMission.bonusRewards.ancestral} Anc`, colorClass: 'text-amber-300' },
+                      { label: 'Efeito Permanente', value: activeMission.bonusRewards.permanentEffectDescription, colorClass: 'text-emerald-400' },
+                      { label: 'Bilhetes Gacha', value: `${activeMission.bonusRewards.gachaTickets}`, colorClass: 'text-cyan-400' },
+                    ]}
+                    position="bottom"
+                  >
+                    <div className="cursor-help">
+                      {isMissionPassed ? (
+                        <Badge variant="production" icon={<CheckCircle2 className="w-3.5 h-3.5" />}>
+                          Graduação Aprovada
+                        </Badge>
+                      ) : !isPrerequisiteMet ? (
+                        <Badge variant="neutral" icon={<Lock className="w-3.5 h-3.5" />}>
+                          Requer Patente Anterior
+                        </Badge>
+                      ) : reqStatus.allMet ? (
+                        <Badge variant="chakra" icon={<Sparkles className="w-3.5 h-3.5" />}>
+                          Apto para Promoção
+                        </Badge>
+                      ) : (
+                        <Badge variant="warning" icon={<Target className="w-3.5 h-3.5" />}>
+                          Em Andamento (Passe o mouse)
+                        </Badge>
+                      )}
+                    </div>
+                  </Tooltip>
                 </div>
 
-                <h2 className="text-2xl font-black tracking-wide text-white flex items-center gap-2 font-sans">
-                  <span>{activeMission.title}</span>
-                  <span className="text-amber-400 text-lg font-bold">
-                    ➔ {targetRankDef.title}
-                  </span>
-                </h2>
-
-                <p className="text-xs text-zinc-300 leading-relaxed font-sans max-w-2xl">
-                  {activeMission.loreDescription}
-                </p>
-              </div>
-
-              {/* DIÁLOGO DO EXAMINADOR OFICIAL */}
-              <div className="p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800 md:max-w-xs flex-shrink-0 shadow-inner">
-                <div className="flex items-center gap-2 mb-1.5 pb-1.5 border-b border-zinc-850">
-                  <span className="text-xl">{activeMission.proctor.avatarEmoji}</span>
-                  <div>
-                    <h4 className="text-xs font-bold text-zinc-100">{activeMission.proctor.name}</h4>
-                    <span className="text-[10px] text-zinc-400 block font-mono">
-                      {activeMission.proctor.title}
+                <Tooltip
+                  title={activeMission.title}
+                  badgeText={targetRankDef.title}
+                  badgeVariant="amber"
+                  description={`${activeMission.loreDescription} "${activeMission.proctor.quote}"`}
+                  position="bottom"
+                >
+                  <h2 className="text-2xl font-black tracking-wide text-white flex items-center gap-2 font-sans cursor-help group/title">
+                    <span>{activeMission.title}</span>
+                    <span className="text-amber-400 text-lg font-bold">
+                      ➔ {targetRankDef.title}
                     </span>
-                  </div>
-                </div>
-                <p className="text-[11px] italic text-zinc-300 font-serif leading-snug">
-                  "{activeMission.proctor.quote}"
-                </p>
-              </div>
-            </div>
-
-            {/* AVISO DE STATUS DA MISSÃO */}
-            <div className="mt-5 pt-4 border-t border-zinc-800/80 flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-2 text-xs font-mono">
-                {isMissionPassed ? (
-                  <span className="text-emerald-400 flex items-center gap-1.5 font-bold">
-                    <CheckCircle2 className="w-4 h-4" />
-                    Patente outorgada definitivamente. O shinobi avançou para o próximo nível hierárquico.
-                  </span>
-                ) : !isPrerequisiteMet ? (
-                  <span className="text-zinc-500 flex items-center gap-1.5">
-                    <Lock className="w-4 h-4" />
-                    Você deve ser promovido para{' '}
-                    <strong className="text-zinc-300">
-                      {SHINOBI_RANKS_MAP[activeMission.requiredRankId]?.title}
-                    </strong>{' '}
-                    antes de assumir esta graduação.
-                  </span>
-                ) : reqStatus.allMet ? (
-                  <span className="text-emerald-400 flex items-center gap-1.5 font-bold animate-pulse">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    Todos os requisitos foram atingidos! Clique no botão ao lado para oficializar o cargo.
-                  </span>
-                ) : (
-                  <span className="text-amber-300 flex items-center gap-1.5">
-                    <AlertCircle className="w-4 h-4 text-amber-400" />
-                    Atenda aos critérios de avaliação abaixo para solicitar a promoção oficial.
-                  </span>
-                )}
+                    <Info className="w-4 h-4 text-zinc-500 group-hover/title:text-cyan-300 transition-colors" />
+                  </h2>
+                </Tooltip>
               </div>
 
               {/* BOTÃO PRINCIPAL DE GRADUAÇÃO */}
               <button
                 disabled={isMissionPassed || !isPrerequisiteMet || !reqStatus.allMet}
                 onClick={handleExecutePromotion}
-                className={`px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition-all duration-300 flex items-center gap-2 shadow-lg cursor-pointer ${
+                className={`px-6 py-3 rounded-xl font-mono text-xs font-bold transition-all duration-300 flex items-center gap-2 shadow-lg cursor-pointer flex-shrink-0 ${
                   isMissionPassed
                     ? 'bg-zinc-850 text-zinc-400 border border-zinc-750 cursor-not-allowed opacity-80'
                     : !isPrerequisiteMet
@@ -418,7 +445,7 @@ export const RankPromotionView: React.FC = () => {
                 {isMissionPassed ? (
                   <>
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>Graduação Concluída ✔</span>
+                    <span>Graduação Concluída</span>
                   </>
                 ) : !isPrerequisiteMet ? (
                   <>

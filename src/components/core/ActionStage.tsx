@@ -16,6 +16,7 @@ import {
   PanelLeftOpen,
 } from 'lucide-react';
 import { Badge } from '../common/Badge';
+import { Tooltip } from '../ui/Tooltip';
 import { ClickStageBackground } from './ClickStageBackground';
 import { EightGatesSidebar } from './EightGatesSidebar';
 
@@ -142,22 +143,31 @@ export const ActionStage: React.FC = () => {
 
   return (
     <main className="h-full bg-zinc-900/40 backdrop-blur-md border border-zinc-800/80 hover:border-zinc-700/80 transition-colors rounded-xl p-3 sm:p-3.5 flex flex-col justify-between relative overflow-hidden select-none shadow-sm">
-      {/* ALERTA DE EXAUSTÃO MUSCULAR SEVERA */}
+      {/* ALERTA DE EXAUSTÃO MUSCULAR SEVERA COM TOOLTIP */}
       {(exhaustionTimer > 0 || clickExhaustionTimer > 0) && (
-        <div className="w-full mb-2 p-2 sm:p-2.5 bg-rose-950/40 border border-rose-800/60 rounded-xl text-rose-300 font-mono text-xs flex items-center justify-between z-20 flex-shrink-0 animate-in fade-in duration-200">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-rose-400 stroke-[2] animate-bounce" />
-            <div>
-              <span className="font-bold">Colapso Muscular Shinobi:</span>
-              <span className="ml-1 text-[11px] text-rose-200">CPS -85% ({exhaustionTimer.toFixed(1)}s)</span>
+        <Tooltip
+          title="Colapso Muscular Shinobi"
+          badgeText="Sobrecarga"
+          badgeVariant="rose"
+          description="Efeito pós-rompimento dos oito portões. As vias de chakra sofrem fadiga extrema, penalizando a produção global temporariamente."
+          metrics={[
+            { label: 'Penalidade no CPS', value: '-85%', colorClass: 'text-rose-400' },
+            { label: 'Duração da Fadiga', value: `${exhaustionTimer.toFixed(1)}s`, colorClass: 'text-amber-300' },
+            ...(clickExhaustionTimer > 0 ? [{ label: 'Cliques Bloqueados', value: `${clickExhaustionTimer.toFixed(1)}s`, colorClass: 'text-rose-400' }] : []),
+          ]}
+        >
+          <div className="w-full mb-2 p-2 sm:p-2.5 bg-rose-950/40 border border-rose-800/60 rounded-xl text-rose-300 font-mono text-xs flex items-center justify-between z-20 flex-shrink-0 cursor-help animate-in fade-in duration-200">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-400 stroke-[2] animate-bounce" />
+              <span className="font-bold">Colapso Muscular ({exhaustionTimer.toFixed(1)}s)</span>
             </div>
+            {clickExhaustionTimer > 0 && (
+              <span className="px-2 py-0.5 rounded bg-rose-900/60 border border-rose-700/60 text-[10px] text-rose-200 font-bold">
+                Cliques: {clickExhaustionTimer.toFixed(1)}s
+              </span>
+            )}
           </div>
-          {clickExhaustionTimer > 0 && (
-            <span className="px-2 py-0.5 rounded bg-rose-900/60 border border-rose-700/60 text-[10px] text-rose-200 font-bold">
-              Cliques Bloqueados: {clickExhaustionTimer.toFixed(1)}s
-            </span>
-          )}
-        </div>
+        </Tooltip>
       )}
 
       {/* BARRA SUPERIOR DE CONTROLE & TOGGLES DE TODAS AS SIDEBARS */}
@@ -183,59 +193,96 @@ export const ActionStage: React.FC = () => {
             </span>
           </button>
 
-          <Badge variant="chakra" icon={<Zap className="w-3 h-3 stroke-[1.75]" />}>
-            +{formatBigNumber(clickPower)} / Clique
-          </Badge>
-          <Badge variant="neutral" icon={<Activity className="w-3 h-3 stroke-[1.75]" />}>
-            Crítico: {clanNodes['sharingan_awakening'] ? '15%' : '5%'}
-          </Badge>
+          <Tooltip
+            title="Poder de Canalização (Clique)"
+            badgeText="Manual"
+            badgeVariant="cyan"
+            description="Quantidade de chakra gerada diretamente a cada clique ou toque manual no selo central."
+            metrics={[
+              { label: 'Chakra por Clique', value: `+${formatBigNumber(clickPower)}`, colorClass: 'text-cyan-400' },
+              { label: 'Escala de Base', value: '5% do CPS Total', colorClass: 'text-zinc-400' },
+            ]}
+          >
+            <div>
+              <Badge variant="chakra" icon={<Zap className="w-3 h-3 stroke-[1.75]" />}>
+                +{formatBigNumber(clickPower)}
+              </Badge>
+            </div>
+          </Tooltip>
+
+          <Tooltip
+            title="Impacto Crítico de Chakra"
+            badgeText={clanNodes['sharingan_awakening'] ? 'Sharingan Ativo' : 'Padrão'}
+            badgeVariant={clanNodes['sharingan_awakening'] ? 'rose' : 'neutral'}
+            description="Probabilidade de desferir um impacto focalizado de chakra no selo central que triplica o rendimento do clique."
+            metrics={[
+              { label: 'Chance Crítica', value: clanNodes['sharingan_awakening'] ? '15%' : '5%', colorClass: 'text-rose-400' },
+              { label: 'Multiplicador Crítico', value: '3x Chakra', colorClass: 'text-amber-400' },
+            ]}
+          >
+            <div>
+              <Badge variant="neutral" icon={<Activity className="w-3 h-3 stroke-[1.75]" />}>
+                {clanNodes['sharingan_awakening'] ? '15%' : '5%'} Crítico
+              </Badge>
+            </div>
+          </Tooltip>
         </div>
 
         {/* Lado Direito: Sidebar Toggle dos Oito Portões + Sidebar Toggle da Direita (Operações) */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* SIDEBAR TOGGLE: SISTEMA DOS OITO PORTÕES */}
-          <button
-            onClick={toggleEightGatesSidebar}
-            title={isEightGatesSidebarOpen ? 'Recolher Painel dos Oito Portões' : 'Abrir Painel dos Oito Portões'}
-            className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition-all flex items-center gap-2 border cursor-pointer ${
-              gatesActiveTimer > 0
-                ? 'bg-rose-950/60 border-rose-500 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse'
-                : isEightGatesSidebarOpen
-                ? 'bg-orange-500/20 border-orange-500/50 text-orange-300 shadow-[0_0_12px_rgba(249,115,22,0.15)]'
-                : 'bg-zinc-900/80 hover:bg-zinc-850 border-zinc-800 hover:border-orange-500/40 text-zinc-300'
-            }`}
+          <Tooltip
+            title="Painel dos Oito Portões"
+            badgeText={`${gatesUnlocked}/8 Abertos`}
+            badgeVariant={gatesActiveTimer > 0 ? 'rose' : 'amber'}
+            description="Acesso ao menu de liberação dos portões corporais e acionamento de Fúria Shinobi."
+            metrics={[
+              { label: 'Portões Abertos', value: `${gatesUnlocked}/8` },
+              { label: 'Bônus de Fúria', value: `${gatesMultiplier}x CPS`, colorClass: 'text-amber-400' },
+            ]}
           >
-            <Flame
-              className={`w-3.5 h-3.5 stroke-[2] ${
-                gatesActiveTimer > 0 ? 'text-rose-400 animate-bounce' : 'text-orange-400'
+            <button
+              onClick={toggleEightGatesSidebar}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition-all flex items-center gap-2 border cursor-pointer ${
+                gatesActiveTimer > 0
+                  ? 'bg-rose-950/60 border-rose-500 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse'
+                  : isEightGatesSidebarOpen
+                  ? 'bg-orange-500/20 border-orange-500/50 text-orange-300 shadow-[0_0_12px_rgba(249,115,22,0.15)]'
+                  : 'bg-zinc-900/80 hover:bg-zinc-850 border-zinc-800 hover:border-orange-500/40 text-zinc-300'
               }`}
-            />
-            <span className="font-semibold hidden sm:inline">Oito Portões</span>
+            >
+              <Flame
+                className={`w-3.5 h-3.5 stroke-[2] ${
+                  gatesActiveTimer > 0 ? 'text-rose-400 animate-bounce' : 'text-orange-400'
+                }`}
+              />
+              <span className="font-semibold hidden sm:inline">Oito Portões</span>
 
-            {gatesActiveTimer > 0 ? (
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-900/70 text-rose-200 border border-rose-600/60 font-bold">
-                {gatesActiveTimer.toFixed(1)}s ({gatesMultiplier}x)
-              </span>
-            ) : gatesCooldownTimer > 0 ? (
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-950/60 text-amber-300 border border-amber-800/40 font-bold">
-                {gatesCooldownTimer.toFixed(1)}s
-              </span>
-            ) : exhaustionTimer > 0 ? (
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-950/60 text-rose-300 border border-rose-800/40 font-bold">
-                Exausto
-              </span>
-            ) : (
-              <span className="text-[10px] text-zinc-500 font-mono">
-                ({gatesUnlocked}/8)
-              </span>
-            )}
+              {gatesActiveTimer > 0 ? (
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-900/70 text-rose-200 border border-rose-600/60 font-bold">
+                  {gatesActiveTimer.toFixed(1)}s
+                </span>
+              ) : gatesCooldownTimer > 0 ? (
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-950/60 text-amber-300 border border-amber-800/40 font-bold">
+                  {gatesCooldownTimer.toFixed(1)}s
+                </span>
+              ) : exhaustionTimer > 0 ? (
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-950/60 text-rose-300 border border-rose-800/40 font-bold">
+                  Exausto
+                </span>
+              ) : (
+                <span className="text-[10px] text-zinc-500 font-mono">
+                  {gatesUnlocked}/8
+                </span>
+              )}
 
-            {isEightGatesSidebarOpen ? (
-              <PanelRightClose className="w-3.5 h-3.5 text-orange-400 stroke-[2]" />
-            ) : (
-              <PanelRightOpen className="w-3.5 h-3.5 text-zinc-400 stroke-[2]" />
-            )}
-          </button>
+              {isEightGatesSidebarOpen ? (
+                <PanelRightClose className="w-3.5 h-3.5 text-orange-400 stroke-[2]" />
+              ) : (
+                <PanelRightOpen className="w-3.5 h-3.5 text-zinc-400 stroke-[2]" />
+              )}
+            </button>
+          </Tooltip>
 
           {/* SIDEBAR TOGGLE: CENTRAL DE OPERAÇÕES (DIREITA) */}
           <button

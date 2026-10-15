@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useGameStore } from '../../store/useGameStore';
-import { formatBigNumber } from '../../engine/BigNumber';
+import { formatBigNumber, D } from '../../engine/BigNumber';
 import {
   EquipmentItem,
   FarmMaterialItem,
@@ -12,6 +12,7 @@ import {
 } from '../../types/inventory';
 import { getRarityConfig } from '../../types/rarity';
 import { ViewHeader } from './ViewHeader';
+import { Tooltip } from '../ui/Tooltip';
 import {
   Briefcase,
   Shield,
@@ -560,6 +561,112 @@ export const InventoryView: React.FC = () => {
   };
 
   /**
+   * Helper que gera as propriedades estruturadas para o Balão Flutuante (Tooltip)
+   */
+  const getItemTooltipProps = (item: InventorySlotItem) => {
+    const rarityStyle = getRarityConfig(item.rarity);
+    const badgeVariant: 'cyan' | 'purple' | 'rose' | 'amber' | 'emerald' | 'neutral' =
+      item.rarity === 'DIVINE' || item.rarity === 'MYTHIC'
+        ? 'amber'
+        : item.rarity === 'LEGENDARY'
+        ? 'rose'
+        : item.rarity === 'EPIC'
+        ? 'purple'
+        : item.rarity === 'RARE'
+        ? 'cyan'
+        : 'neutral';
+
+    const isMaterial = item.type === 'MATERIAL';
+    const equip = !isMaterial ? (item as EquipmentItem) : null;
+    const mat = isMaterial ? (item as FarmMaterialItem) : null;
+
+    const metrics = [
+      {
+        label: 'Tipo',
+        value: isMaterial
+          ? 'Material de Farm'
+          : GEAR_SLOTS_METADATA[normalizeEquipmentSlot(item.type)]?.label || item.type,
+      },
+      ...(isMaterial && mat
+        ? [
+            { label: 'Pilha', value: `x${mat.stackCount} unidades` },
+            { label: 'Cotação Unitária', value: `${formatBigNumber(mat.baseGoldValue)} Chakra` },
+            {
+              label: 'Valor de Revenda',
+              value: `${formatBigNumber(mat.baseGoldValue.mul(mat.stackCount))} Chakra`,
+              colorClass: 'text-amber-400',
+            },
+          ]
+        : equip
+        ? [
+            ...(equip.bonusCpsMult && equip.bonusCpsMult.gt(1)
+              ? [
+                  {
+                    label: 'Bônus de CPS',
+                    value: `+${equip.bonusCpsMult.sub(1).mul(100).toFixed(0)}%`,
+                    colorClass: 'text-emerald-400',
+                  },
+                ]
+              : []),
+            ...(equip.bonusClickMult && equip.bonusClickMult.gt(1)
+              ? [
+                  {
+                    label: 'Bônus de Clique',
+                    value: `+${equip.bonusClickMult.sub(1).mul(100).toFixed(0)}%`,
+                    colorClass: 'text-orange-400',
+                  },
+                ]
+              : []),
+            ...(equip.bonusCritChance
+              ? [
+                  {
+                    label: 'Chance Crítica',
+                    value: `+${(equip.bonusCritChance * 100).toFixed(0)}%`,
+                    colorClass: 'text-purple-400',
+                  },
+                ]
+              : []),
+            ...(equip.bonusCritMult && equip.bonusCritMult.gt(1)
+              ? [
+                  {
+                    label: 'Dano Crítico',
+                    value: `+${equip.bonusCritMult.sub(1).mul(100).toFixed(0)}%`,
+                    colorClass: 'text-cyan-400',
+                  },
+                ]
+              : []),
+            ...(equip.elementalAffinityReq
+              ? [
+                  {
+                    label: 'Afinidade Elemental',
+                    value: `${
+                      ELEMENT_CONFIG[equip.elementalAffinityReq]?.name || equip.elementalAffinityReq
+                    }`,
+                    colorClass: 'text-cyan-300',
+                  },
+                ]
+              : []),
+            {
+              label: 'Valor de Revenda',
+              value: `${formatBigNumber(
+                equip.bonusCpsMult ? equip.bonusCpsMult.mul(25000) : D(10000)
+              )} Chakra`,
+              colorClass: 'text-amber-400',
+            },
+          ]
+        : []),
+    ];
+
+    return {
+      title: item.name,
+      badgeText: rarityStyle.label,
+      badgeVariant,
+      description: item.description,
+      metrics,
+    };
+  };
+
+  /**
    * Renderizador de Slot Individual do Paper Doll com Efeito Rúnico e Iluminação
    */
   const renderGearSlot = (slotKey: GearSlotKey) => {
@@ -570,81 +677,95 @@ export const InventoryView: React.FC = () => {
     const rarityStyle = item ? getRarityConfig(item.rarity) : null;
     const IconComponent = meta.icon;
 
+    const tooltipProps = item
+      ? getItemTooltipProps(item)
+      : {
+          title: meta.label,
+          badgeText: 'Slot Vazio',
+          badgeVariant: 'neutral' as const,
+          description: `Equipe um item do tipo ${meta.label} para canalizar chakra e desbloquear bônus passivos.`,
+          metrics: [
+            { label: 'Status', value: isFilterTarget ? 'Filtro Ativo' : 'Vazio' },
+            { label: 'Ação', value: 'Clique para filtrar mochila', colorClass: 'text-cyan-400' },
+          ],
+        };
+
     return (
-      <div
-        key={`gear-slot-${slotKey}`}
-        onClick={() => {
-          if (item) {
-            setSelectedSlot({ source: 'GEAR', gearKey: slotKey });
-            setSelectedGearSlotFilter(null);
-          } else {
-            setSelectedSlot(null);
-            setSelectedGearSlotFilter((prev) => (prev === slotKey ? null : slotKey));
-          }
-        }}
-        className={`group relative flex flex-col items-center justify-center transition-all duration-300 cursor-pointer overflow-hidden ${
-          meta.isCircular
-            ? 'w-18 h-18 sm:w-20 sm:h-20 rounded-full border-2'
-            : 'w-16 h-16 sm:w-18 sm:h-18 rounded-2xl border'
-        } ${
-          item && rarityStyle
-            ? `${rarityStyle.borderClass} ${rarityStyle.glowClass} ${rarityStyle.bgGradientClass || 'bg-zinc-950/90'} hover:scale-105 active:scale-95`
-            : isFilterTarget
-            ? 'border-cyan-400 bg-cyan-950/30 ring-2 ring-cyan-400/50'
-            : 'border-zinc-800/80 hover:border-purple-500/60 bg-zinc-950/60 hover:bg-zinc-900/80 border-dashed'
-        } ${isSelected ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-zinc-950' : ''}`}
-        title={`${meta.label}${item ? `: ${item.name} (${rarityStyle?.label})` : ' (Vazio - Clique para equipar)'}`}
-      >
-        {/* Fundo de Selo Rúnico / Chakra Arcane Sigil */}
-        <RunicSigilPattern
-          rarityColor={rarityStyle ? rarityStyle.colorHex : '#8b5cf6'}
-          isEquipped={!!item}
-          isCircular={meta.isCircular}
-        />
+      <Tooltip {...tooltipProps} position="top">
+        <div
+          key={`gear-slot-${slotKey}`}
+          onClick={() => {
+            if (item) {
+              setSelectedSlot({ source: 'GEAR', gearKey: slotKey });
+              setSelectedGearSlotFilter(null);
+            } else {
+              setSelectedSlot(null);
+              setSelectedGearSlotFilter((prev) => (prev === slotKey ? null : slotKey));
+            }
+          }}
+          className={`group relative flex flex-col items-center justify-center transition-all duration-300 cursor-pointer overflow-hidden ${
+            meta.isCircular
+              ? 'w-18 h-18 sm:w-20 sm:h-20 rounded-full border-2'
+              : 'w-16 h-16 sm:w-18 sm:h-18 rounded-2xl border'
+          } ${
+            item && rarityStyle
+              ? `${rarityStyle.borderClass} ${rarityStyle.glowClass} ${rarityStyle.bgGradientClass || 'bg-zinc-950/90'} hover:scale-105 active:scale-95`
+              : isFilterTarget
+              ? 'border-cyan-400 bg-cyan-950/30 ring-2 ring-cyan-400/50'
+              : 'border-zinc-800/80 hover:border-purple-500/60 bg-zinc-950/60 hover:bg-zinc-900/80 border-dashed'
+          } ${isSelected ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-zinc-950' : ''}`}
+        >
+          {/* Fundo de Selo Rúnico / Chakra Arcane Sigil */}
+          <RunicSigilPattern
+            rarityColor={rarityStyle ? rarityStyle.colorHex : '#8b5cf6'}
+            isEquipped={!!item}
+            isCircular={meta.isCircular}
+          />
 
-        {/* Efeito Dinâmico de Reflexo Luminoso no Hover */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none" />
+          {/* Efeito Dinâmico de Reflexo Luminoso no Hover */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none" />
 
-        {/* Conteúdo Central do Slot */}
-        {item ? (
-          <div className="relative z-10 flex flex-col items-center justify-center">
-            <div className="group-hover:scale-110 transition-transform duration-200">
-              {renderItemIcon(item.iconName, 'w-6 h-6 sm:w-7 sm:h-7 text-zinc-100 drop-shadow-md')}
-            </div>
+          {/* Conteúdo Central do Slot */}
+          {item ? (
+            <div className="relative z-10 flex flex-col items-center justify-center">
+              <div className="group-hover:scale-110 transition-transform duration-200">
+                {renderItemIcon(item.iconName, 'w-6 h-6 sm:w-7 sm:h-7 text-zinc-100 drop-shadow-md')}
+              </div>
 
-            {/* Badge de Raridade no Canto */}
-            <span
-              className={`absolute -top-1.5 -right-1.5 text-[8px] px-1 py-0.2 rounded font-mono font-bold border uppercase ${
-                rarityStyle?.badgeClass
-              }`}
-            >
-              {item.rarity.slice(0, 3)}
-            </span>
-
-            {/* Tag Elemental se houver afinidade */}
-            {item.elementalAffinityReq && (
-              <span className="absolute -bottom-1.5 -left-1 text-[8px] px-1 rounded-full bg-zinc-950/90 border border-zinc-700 font-mono text-cyan-300">
-                {ELEMENT_CONFIG[item.elementalAffinityReq].kanji}
+              {/* Badge de Raridade no Canto */}
+              <span
+                className={`absolute -top-1.5 -right-1.5 text-[8px] px-1 py-0.2 rounded font-mono font-bold border uppercase ${
+                  rarityStyle?.badgeClass
+                }`}
+              >
+                {item.rarity.slice(0, 3)}
               </span>
-            )}
-          </div>
-        ) : (
-          <div className="relative z-10 flex flex-col items-center justify-center text-center p-1">
-            <IconComponent
-              className={`w-5 h-5 mb-0.5 transition-colors ${
-                isFilterTarget ? 'text-cyan-400' : 'text-zinc-600 group-hover:text-purple-300'
-              }`}
-            />
-            <span
-              className={`text-[8px] font-mono tracking-wider uppercase font-semibold leading-tight ${
-                isFilterTarget ? 'text-cyan-300' : 'text-zinc-600 group-hover:text-zinc-300'
-              }`}
-            >
-              {meta.shortLabel}
-            </span>
-          </div>
-        )}
-      </div>
+
+              {/* Tag Elemental se houver afinidade */}
+              {item.elementalAffinityReq && (
+                <span className="absolute -bottom-1.5 -left-1 text-[8px] px-1 rounded-full bg-zinc-950/90 border border-zinc-700 font-mono text-cyan-300">
+                  {ELEMENT_CONFIG[item.elementalAffinityReq].kanji}
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="relative z-10 flex flex-col items-center justify-center text-center p-1">
+              <IconComponent
+                className={`w-5 h-5 mb-0.5 transition-colors ${
+                  isFilterTarget ? 'text-cyan-400' : 'text-zinc-600 group-hover:text-purple-300'
+                }`}
+              />
+              <span
+                className={`text-[8px] font-mono tracking-wider uppercase font-semibold leading-tight ${
+                  isFilterTarget ? 'text-cyan-300' : 'text-zinc-600 group-hover:text-zinc-300'
+                }`}
+              >
+                {meta.shortLabel}
+              </span>
+            </div>
+          )}
+        </div>
+      </Tooltip>
     );
   };
 
@@ -775,22 +896,61 @@ export const InventoryView: React.FC = () => {
 
               {/* RESUMO DE ATRIBUTOS TOTAIS DOS EQUIPAMENTOS */}
               <div className="relative z-10 bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-3 mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-mono">
-                <div>
-                  <span className="text-[9px] text-zinc-500 uppercase block">CPS Trajes</span>
-                  <span className="text-emerald-400 font-bold">+{totalGearStats.cpsPct}%</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-zinc-500 uppercase block">Clique Armas</span>
-                  <span className="text-orange-400 font-bold">+{totalGearStats.clickPct}%</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-zinc-500 uppercase block">Crítico Bônus</span>
-                  <span className="text-purple-400 font-bold">+{totalGearStats.critChancePct}%</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-zinc-500 uppercase block">Dano Crítico</span>
-                  <span className="text-cyan-400 font-bold">+{totalGearStats.critMultPct}%</span>
-                </div>
+                <Tooltip
+                  title="Produção Contínua (CPS)"
+                  badgeText="Equipamentos"
+                  badgeVariant="emerald"
+                  description="Multiplicador passivo concedido cumulativamente por todas as armaduras e trajes equipados."
+                  metrics={[{ label: 'Bônus Total', value: `+${totalGearStats.cpsPct}%`, colorClass: 'text-emerald-400' }]}
+                  position="top"
+                >
+                  <div className="cursor-help p-1 rounded-lg hover:bg-zinc-900/50 transition-colors">
+                    <span className="text-[9px] text-zinc-500 uppercase block">CPS Trajes</span>
+                    <span className="text-emerald-400 font-bold">+{totalGearStats.cpsPct}%</span>
+                  </div>
+                </Tooltip>
+
+                <Tooltip
+                  title="Poder de Ataque Manual"
+                  badgeText="Equipamentos"
+                  badgeVariant="amber"
+                  description="Multiplicador somado ao poder de clique direto na esfera primordial de chakra."
+                  metrics={[{ label: 'Bônus Total', value: `+${totalGearStats.clickPct}%`, colorClass: 'text-orange-400' }]}
+                  position="top"
+                >
+                  <div className="cursor-help p-1 rounded-lg hover:bg-zinc-900/50 transition-colors">
+                    <span className="text-[9px] text-zinc-500 uppercase block">Clique Armas</span>
+                    <span className="text-orange-400 font-bold">+{totalGearStats.clickPct}%</span>
+                  </div>
+                </Tooltip>
+
+                <Tooltip
+                  title="Chance de Golpe Crítico"
+                  badgeText="Combate"
+                  badgeVariant="purple"
+                  description="Probabilidade percentual de desferir um golpe crítico em ataques manuais e jutsus."
+                  metrics={[{ label: 'Bônus Total', value: `+${totalGearStats.critChancePct}%`, colorClass: 'text-purple-400' }]}
+                  position="top"
+                >
+                  <div className="cursor-help p-1 rounded-lg hover:bg-zinc-900/50 transition-colors">
+                    <span className="text-[9px] text-zinc-500 uppercase block">Crítico Bônus</span>
+                    <span className="text-purple-400 font-bold">+{totalGearStats.critChancePct}%</span>
+                  </div>
+                </Tooltip>
+
+                <Tooltip
+                  title="Multiplicador Crítico"
+                  badgeText="Combate"
+                  badgeVariant="cyan"
+                  description="Multiplicador amplificador de dano aplicado quando um golpe crítico tem êxito."
+                  metrics={[{ label: 'Bônus Total', value: `+${totalGearStats.critMultPct}%`, colorClass: 'text-cyan-400' }]}
+                  position="top"
+                >
+                  <div className="cursor-help p-1 rounded-lg hover:bg-zinc-900/50 transition-colors">
+                    <span className="text-[9px] text-zinc-500 uppercase block">Dano Crítico</span>
+                    <span className="text-cyan-400 font-bold">+{totalGearStats.critMultPct}%</span>
+                  </div>
+                </Tooltip>
               </div>
             </div>
           </div>
@@ -927,33 +1087,39 @@ export const InventoryView: React.FC = () => {
                   {filteredBagItems.map(({ item, originalIndex }) => {
                     const isSelected = selectedSlot?.source === 'BAG' && selectedSlot.index === originalIndex;
                     const rarityStyle = getRarityConfig(item.rarity);
+                    const tooltipProps = getItemTooltipProps(item);
                     return (
-                      <div
+                      <Tooltip
                         key={`slot-item-${item.id}-${originalIndex}`}
-                        onClick={() => setSelectedSlot({ source: 'BAG', index: originalIndex })}
-                        className={`w-full aspect-square rounded-xl border flex items-center justify-center relative transition-all cursor-pointer ${
-                          rarityStyle.bgGradientClass || 'bg-zinc-900/80'
-                        } hover:scale-105 ${
-                          rarityStyle.borderClass
-                        } ${rarityStyle.glowClass} ${
-                          isSelected ? 'ring-2 ring-cyan-400 shadow-cyan-500/20 shadow-lg scale-105' : ''
-                        }`}
-                        title={`${item.name} (${rarityStyle.label})`}
+                        {...tooltipProps}
+                        position="top"
+                        className="w-full aspect-square"
                       >
-                        {renderItemIcon(item.iconName, 'w-6 h-6 text-zinc-200')}
+                        <div
+                          onClick={() => setSelectedSlot({ source: 'BAG', index: originalIndex })}
+                          className={`w-full h-full rounded-xl border flex items-center justify-center relative transition-all cursor-pointer ${
+                            rarityStyle.bgGradientClass || 'bg-zinc-900/80'
+                          } hover:scale-105 ${
+                            rarityStyle.borderClass
+                          } ${rarityStyle.glowClass} ${
+                            isSelected ? 'ring-2 ring-cyan-400 shadow-cyan-500/20 shadow-lg scale-105' : ''
+                          }`}
+                        >
+                          {renderItemIcon(item.iconName, 'w-6 h-6 text-zinc-200')}
 
-                        {/* Badge da Quantidade para Materiais */}
-                        {item.type === 'MATERIAL' && (
-                          <span className="absolute bottom-1 right-1 text-[9px] font-mono font-bold text-amber-300 bg-zinc-950/90 px-1 py-0.2 rounded border border-zinc-800">
-                            x{(item as FarmMaterialItem).stackCount}
-                          </span>
-                        )}
+                          {/* Badge da Quantidade para Materiais */}
+                          {item.type === 'MATERIAL' && (
+                            <span className="absolute bottom-1 right-1 text-[9px] font-mono font-bold text-amber-300 bg-zinc-950/90 px-1 py-0.2 rounded border border-zinc-800">
+                              x{(item as FarmMaterialItem).stackCount}
+                            </span>
+                          )}
 
-                        {/* Indicador de Tipo de Equipamento */}
-                        {item.type !== 'MATERIAL' && (
-                          <span className="absolute top-1 left-1 w-2 h-2 rounded-full bg-cyan-400/80" />
-                        )}
-                      </div>
+                          {/* Indicador de Tipo de Equipamento */}
+                          {item.type !== 'MATERIAL' && (
+                            <span className="absolute top-1 left-1 w-2 h-2 rounded-full bg-cyan-400/80" />
+                          )}
+                        </div>
+                      </Tooltip>
                     );
                   })}
                 </div>
@@ -1217,62 +1383,82 @@ export const InventoryView: React.FC = () => {
                   const IconComponent = conf.icon;
 
                   return (
-                    <div
+                    <Tooltip
                       key={`element-card-${element}`}
-                      className={`p-4 rounded-xl border flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 ${
-                        isUnlocked
-                          ? `${conf.borderClass} ${conf.glowClass} bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 shadow-lg`
-                          : 'border-zinc-800/60 bg-zinc-950/40 opacity-70 hover:opacity-90 hover:border-zinc-700'
-                      }`}
+                      title={`${conf.name} (${conf.kanji})`}
+                      badgeText={isUnlocked ? (isNatal ? 'Elemento Natal' : 'Desperto') : 'Bloqueado'}
+                      badgeVariant={isUnlocked ? 'emerald' : 'rose'}
+                      description={conf.passiveDesc}
+                      metrics={[
+                        { label: 'Passiva', value: conf.passiveName, colorClass: 'text-amber-400' },
+                        {
+                          label: 'Requisito Ritual',
+                          value: isUnlocked ? 'Consumado' : 'Sacrificar Arma Lendária',
+                          colorClass: isUnlocked ? 'text-emerald-400' : 'text-rose-400',
+                        },
+                      ]}
+                      position="top"
+                      className="h-full flex flex-col"
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div
-                          className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-lg transition-transform duration-300 hover:scale-105 ${
-                            isUnlocked
-                              ? 'bg-zinc-950/90 border border-current shadow-md'
-                              : 'bg-zinc-900/50 border border-zinc-800 text-zinc-600'
-                          } ${conf.textClass}`}
-                        >
-                          <IconComponent className="w-5 h-5 stroke-[2]" />
-                        </div>
-                        <span className="text-2xl font-black font-mono text-zinc-600/80 group-hover:text-zinc-400 transition-colors">{conf.kanji}</span>
-                      </div>
-
-                      <div className="my-2">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <h4 className={`text-xs font-bold uppercase tracking-wider ${isUnlocked ? 'text-zinc-100' : 'text-zinc-500'}`}>
-                            {conf.name}
-                          </h4>
-                        </div>
-                        <span className="text-[10px] font-mono text-amber-300 font-semibold block mb-1">
-                          {conf.passiveName}
-                        </span>
-                        <p className="text-[10px] font-mono text-zinc-400 leading-relaxed">
-                          {conf.passiveDesc}
-                        </p>
-                      </div>
-
-                      <div className="mt-3 pt-3 border-t border-zinc-800/50">
-                        {isUnlocked ? (
-                          <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 font-bold">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                            <span>{isNatal ? 'Elemento Natal' : 'Desperto'}</span>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setSacrificeModalTarget(element);
-                              setSelectedSacrificeWeaponSlot(null);
-                              setSacrificeFeedback(null);
-                            }}
-                            className="w-full py-2 px-2.5 rounded-lg bg-gradient-to-r from-rose-950/60 to-rose-900/60 hover:from-rose-900/80 hover:to-rose-800/80 border border-rose-800/70 hover:border-rose-500 text-[11px] font-mono text-rose-300 transition-all shadow-sm hover:shadow-rose-950/50 cursor-pointer flex items-center justify-center gap-1.5 font-bold hover:scale-[1.02] active:scale-[0.98]"
+                      <div
+                        className={`p-4 rounded-xl border flex flex-col justify-between h-full transition-all duration-300 hover:-translate-y-1 ${
+                          isUnlocked
+                            ? `${conf.borderClass} ${conf.glowClass} bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 shadow-lg`
+                            : 'border-zinc-800/60 bg-zinc-950/40 opacity-70 hover:opacity-90 hover:border-zinc-700'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div
+                            className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-lg transition-transform duration-300 hover:scale-105 ${
+                              isUnlocked
+                                ? 'bg-zinc-950/90 border border-current shadow-md'
+                                : 'bg-zinc-900/50 border border-zinc-800 text-zinc-600'
+                            } ${conf.textClass}`}
                           >
-                            <Lock className="w-3 h-3 text-rose-400" />
-                            Despertar
-                          </button>
-                        )}
+                            <IconComponent className="w-5 h-5 stroke-[2]" />
+                          </div>
+                          <span className="text-2xl font-black font-mono text-zinc-600/80 group-hover:text-zinc-400 transition-colors">
+                            {conf.kanji}
+                          </span>
+                        </div>
+
+                        <div className="my-2">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <h4
+                              className={`text-xs font-bold uppercase tracking-wider ${
+                                isUnlocked ? 'text-zinc-100' : 'text-zinc-500'
+                              }`}
+                            >
+                              {conf.name}
+                            </h4>
+                          </div>
+                          <span className="text-[10px] font-mono text-amber-300 font-semibold block truncate">
+                            {conf.passiveName}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t border-zinc-800/50">
+                          {isUnlocked ? (
+                            <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 font-bold">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                              <span>{isNatal ? 'Elemento Natal' : 'Desperto'}</span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setSacrificeModalTarget(element);
+                                setSelectedSacrificeWeaponSlot(null);
+                                setSacrificeFeedback(null);
+                              }}
+                              className="w-full py-2 px-2.5 rounded-lg bg-gradient-to-r from-rose-950/60 to-rose-900/60 hover:from-rose-900/80 hover:to-rose-800/80 border border-rose-800/70 hover:border-rose-500 text-[11px] font-mono text-rose-300 transition-all shadow-sm hover:shadow-rose-950/50 cursor-pointer flex items-center justify-center gap-1.5 font-bold hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                              <Lock className="w-3 h-3 text-rose-400" />
+                              Despertar
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    </Tooltip>
                   );
                 })}
               </div>
