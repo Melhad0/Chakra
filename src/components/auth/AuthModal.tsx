@@ -24,7 +24,6 @@ import {
   Swords,
   Zap,
   Upload,
-  Hash as HashIcon,
   Trash2,
   FileText,
 } from 'lucide-react';
@@ -47,10 +46,11 @@ import {
   FAVORITE_NINJAS,
   isFrameUnlocked,
   getAvatarById,
+  getFrameById,
 } from '../../constants/profileCustomization';
 import { useGameStore } from '../../store/useGameStore';
 import { getCurrentRank } from '../../constants/rankings';
-import { DiscordProfileCard } from '../profile/DiscordProfileCard';
+import { ShinobiProfileCard } from '../profile/DiscordProfileCard';
 import { InsigniaBadge } from '../profile/InsigniaBadge';
 import {
   SHINOBI_INSIGNIAS,
@@ -123,6 +123,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       ? currentUser.equippedInsignias
       : getDefaultEquippedInsignias()
   );
+
+  type CustomizeSection = 'IDENTITY' | 'APPEARANCE' | 'INSIGNIAS' | 'LORE';
+  const [customizeSection, setCustomizeSection] = useState<CustomizeSection>('IDENTITY');
 
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -713,65 +716,67 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {currentUser ? (
           <div className="flex flex-col flex-1 overflow-hidden">
             {/* Barra de Abas do Perfil */}
-            <div className="grid grid-cols-3 p-1.5 bg-zinc-900/60 border-b border-zinc-800/70 text-xs font-semibold flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setProfileTab('OVERVIEW');
-                  setErrorMessage(null);
-                }}
-                className={`py-2 px-2 rounded-lg transition flex items-center justify-center gap-1.5 ${
-                  profileTab === 'OVERVIEW'
-                    ? 'bg-zinc-800 text-cyan-300 shadow-sm border border-zinc-700/50'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                <User className="w-3.5 h-3.5 stroke-[2]" />
-                <span>Ficha Shinobi</span>
-              </button>
+            <div className="p-2 bg-zinc-950/80 border-b border-zinc-800/80 flex-shrink-0">
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileTab('OVERVIEW');
+                    setErrorMessage(null);
+                  }}
+                  className={`py-2 px-2 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 font-mono text-xs cursor-pointer ${
+                    profileTab === 'OVERVIEW'
+                      ? 'bg-gradient-to-r from-cyan-950/80 to-zinc-900 text-cyan-300 border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.15)] font-bold'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50 border border-transparent'
+                  }`}
+                >
+                  <User className="w-4 h-4 stroke-[2]" />
+                  <span>Ficha Shinobi</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setProfileTab('CUSTOMIZE');
-                  setErrorMessage(null);
-                }}
-                className={`py-2 px-2 rounded-lg transition flex items-center justify-center gap-1.5 ${
-                  profileTab === 'CUSTOMIZE'
-                    ? 'bg-zinc-800 text-cyan-300 shadow-sm border border-zinc-700/50'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                <Palette className="w-3.5 h-3.5 stroke-[2]" />
-                <span>Personalização</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileTab('CUSTOMIZE');
+                    setErrorMessage(null);
+                  }}
+                  className={`py-2 px-2 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 font-mono text-xs cursor-pointer ${
+                    profileTab === 'CUSTOMIZE'
+                      ? 'bg-gradient-to-r from-cyan-950/80 to-zinc-900 text-cyan-300 border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.15)] font-bold'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50 border border-transparent'
+                  }`}
+                >
+                  <Palette className="w-4 h-4 stroke-[2]" />
+                  <span>Editar Perfil</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setProfileTab('SECURITY');
-                  setErrorMessage(null);
-                }}
-                className={`py-2 px-2 rounded-lg transition flex items-center justify-center gap-1.5 ${
-                  profileTab === 'SECURITY'
-                    ? 'bg-zinc-800 text-cyan-300 shadow-sm border border-zinc-700/50'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                <KeyRound className="w-3.5 h-3.5 stroke-[2]" />
-                <span>Segurança</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileTab('SECURITY');
+                    setErrorMessage(null);
+                  }}
+                  className={`py-2 px-2 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 font-mono text-xs cursor-pointer ${
+                    profileTab === 'SECURITY'
+                      ? 'bg-gradient-to-r from-cyan-950/80 to-zinc-900 text-cyan-300 border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.15)] font-bold'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50 border border-transparent'
+                  }`}
+                >
+                  <KeyRound className="w-4 h-4 stroke-[2]" />
+                  <span>Segurança</span>
+                </button>
+              </div>
             </div>
 
             {/* Conteúdo Dinâmico das Abas de Perfil (com Rolagem Independente) */}
             <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 custom-scrollbar">
               {/* ------------------------------------------------------------- */}
-              {/* SUB-ABA 1: FICHA SHINOBI (ESTILO DISCORD PROFILE)            */}
+              {/* SUB-ABA 1: FICHA SHINOBI OFICIAL                              */}
               {/* ------------------------------------------------------------- */}
               {profileTab === 'OVERVIEW' && (
                 <div className="space-y-5 animate-in fade-in-50 duration-200">
-                  {/* Cartão de Perfil Estilo Discord Mobile */}
-                  <DiscordProfileCard
+                  {/* Cartão de Registro Shinobi Oficial */}
+                  <ShinobiProfileCard
                     user={currentUser}
                     onEditProfile={() => setProfileTab('CUSTOMIZE')}
                     onEditClanProfile={() => setProfileTab('CUSTOMIZE')}
@@ -858,11 +863,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               )}
 
               {/* ------------------------------------------------------------- */}
-              {/* SUB-ABA 2: PERSONALIZAÇÃO AVANÇADA (DISCORD STYLE)          */}
+              {/* SUB-ABA 2: EDIÇÃO DINÂMICA & CLEAN DA FICHA SHINOBI         */}
               {/* ------------------------------------------------------------- */}
               {profileTab === 'CUSTOMIZE' && (
-                <form onSubmit={handleUpdateProfile} className="space-y-6 animate-in fade-in-50 duration-200">
-                  {/* Input de Arquivo Oculto */}
+                <form onSubmit={handleUpdateProfile} className="space-y-5 animate-in fade-in-50 duration-200">
+                  {/* Input Oculto de Arquivo */}
                   <input
                     type="file"
                     ref={avatarFileInputRef}
@@ -871,495 +876,598 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     className="hidden"
                   />
 
-                  {/* SEÇÃO 1: FOTO PESSOAL & AVATAR */}
-                  <div className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-800/80 space-y-3.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
-                        <Upload className="w-4 h-4 text-cyan-400" />
-                        <span>Foto Pessoal / Avatar do Usuário</span>
-                      </label>
-                      <span className="text-[10px] font-mono text-zinc-500">
-                        Upload pessoal ou avatares anime
+                  {/* 1. PRÉVIA EM TEMPO REAL DINÂMICA (Live Shinobi Card Preview) */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-zinc-950 via-zinc-900/95 to-zinc-950 border border-cyan-500/30 shadow-[0_8px_30px_rgba(0,0,0,0.6)] relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-3 border-b border-zinc-800/80 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                        <span className="text-[10px] font-mono font-bold tracking-wider text-cyan-300 uppercase">
+                          Prévia em Tempo Real
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-mono text-zinc-500 uppercase">
+                        Licença Ninja Oficial
                       </span>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
-                      {/* Preview do Avatar Selecionado (Quadrado / Squircle) */}
-                      <div className="relative group flex-shrink-0">
-                        <div className="w-20 h-20 rounded-xl p-1 bg-zinc-950 border-2 border-cyan-500/70 shadow-xl overflow-hidden flex items-center justify-center">
+                    <div className="flex items-center gap-3.5">
+                      {/* Avatar com Moldura Dinâmica */}
+                      <div className="relative flex-shrink-0">
+                        <div
+                          className={`w-14 h-14 rounded-xl p-0.5 bg-zinc-950 border ${
+                            getFrameById(editAvatarFrame).borderClass
+                          } ${getFrameById(editAvatarFrame).glowClass} flex items-center justify-center overflow-hidden`}
+                        >
                           {editCustomAvatar ? (
                             <img
                               src={editCustomAvatar}
-                              alt="Foto Pessoal"
+                              alt="Avatar"
                               className="w-full h-full rounded-lg object-cover"
                             />
                           ) : (
                             <div
                               className={`w-full h-full rounded-lg bg-gradient-to-br ${
                                 getAvatarById(editAvatar).bgGradient
-                              } flex items-center justify-center text-3xl shadow-inner`}
+                              } flex items-center justify-center text-2xl`}
                             >
                               <span>{getAvatarById(editAvatar).emojiIcon}</span>
                             </div>
                           )}
                         </div>
+                      </div>
 
-                        {editCustomAvatar && (
-                          <div className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-md bg-cyan-500 text-[9px] font-mono font-bold text-zinc-950 shadow">
-                            Pessoal
-                          </div>
+                      {/* Informações Resumidas Dinâmicas */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-sm font-bold text-white truncate">
+                            {editFullName.trim() || 'Nome do Shinobi'}
+                          </h4>
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-cyan-950/80 border border-cyan-800/60 text-cyan-300">
+                            {editNinjaTag.startsWith('#') ? editNinjaTag : `#${editNinjaTag || '0001'}`}
+                          </span>
+                        </div>
+                        <p className="text-[11px] font-mono text-zinc-400 truncate">
+                          @{editUsername.trim() || 'usuario'} {editPronouns ? `• ${editPronouns}` : ''}
+                        </p>
+                        {editStatusQuote && (
+                          <p className="text-[10px] text-amber-300/90 italic truncate mt-0.5 font-mono">
+                            "{editStatusQuote}"
+                          </p>
                         )}
                       </div>
 
-                      {/* Botões de Ação para Foto Pessoal */}
-                      <div className="flex-1 space-y-2 text-center sm:text-left">
-                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                          <button
-                            type="button"
-                            onClick={() => avatarFileInputRef.current?.click()}
-                            className="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm"
-                          >
-                            <Upload className="w-3.5 h-3.5" />
-                            <span>Enviar Foto do Computador</span>
-                          </button>
-
-                          {editCustomAvatar && (
-                            <button
-                              type="button"
-                              onClick={() => setEditCustomAvatar('')}
-                              className="px-3 py-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-950/70 border border-rose-900/60 text-rose-300 text-xs font-medium flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Remover Foto Pessoal</span>
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="text-[11px] text-zinc-400">
-                          {editCustomAvatar ? (
-                            <span className="text-emerald-400 font-mono">
-                              ✓ Sua foto pessoal está selecionada e será salva no seu perfil.
-                            </span>
-                          ) : (
-                            <span>
-                              Envie sua foto pessoal (PNG, JPG, WebP) ou escolha um dos personagens de anime abaixo.
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Opção de Colar URL de Imagem */}
-                        <div className="pt-1">
-                          <input
-                            type="url"
-                            value={editCustomAvatar.startsWith('data:') ? '' : editCustomAvatar}
-                            onChange={(e) => setEditCustomAvatar(e.target.value)}
-                            placeholder="Ou cole a URL direta de uma imagem na web..."
-                            className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-zinc-100 placeholder-zinc-600 rounded-lg px-3 py-1.5 text-xs font-mono transition"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Grade de Avatares Canônicos Shinobi Alternativos */}
-                    <div className="pt-2 border-t border-zinc-800/60">
-                      <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block mb-2">
-                        Avatares Oficiais Shinobi (12 Opções)
-                      </span>
-                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                        {SHINOBI_AVATARS.map((avatar) => {
-                          const isSelected = !editCustomAvatar && editAvatar === avatar.id;
-                          return (
-                            <button
-                              key={avatar.id}
-                              type="button"
-                              onClick={() => {
-                                setEditCustomAvatar('');
-                                setEditAvatar(avatar.id);
-                              }}
-                              className={`p-1.5 rounded-xl border flex flex-col items-center gap-1 text-center transition-all cursor-pointer relative ${
-                                isSelected
-                                  ? 'bg-cyan-950/50 border-cyan-400 ring-2 ring-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
-                                  : 'bg-zinc-950/50 hover:bg-zinc-900 border-zinc-850 hover:border-zinc-700'
-                              }`}
-                            >
-                              <div
-                                className={`w-9 h-9 rounded-lg bg-gradient-to-br ${avatar.bgGradient} flex items-center justify-center text-lg shadow-inner`}
-                              >
-                                <span>{avatar.emojiIcon}</span>
-                              </div>
-                              <span className="text-[9px] font-semibold text-zinc-300 truncate w-full">
-                                {avatar.name.split(' ')[0]}
-                              </span>
-                              {isSelected && (
-                                <div className="absolute top-1 right-1 w-3 h-3 rounded-full bg-cyan-400 text-zinc-950 flex items-center justify-center">
-                                  <Check className="w-2 h-2 stroke-[3]" />
-                                </div>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* SEÇÃO 2: SISTEMA DE INSÍGNIAS (BADGES DISCORD) */}
-                  <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-3.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
-                        <Award className="w-4 h-4 text-amber-400" />
-                        <span>Insígnias de Perfil (Badges estilo Discord)</span>
-                      </label>
-                      <span className="text-[10px] font-mono font-bold text-cyan-400">
-                        {editEquippedInsignias.length}/6 Equipadas
-                      </span>
-                    </div>
-
-                    {/* Faixa de Pré-visualização das Insígnias Equipadas */}
-                    <div className="p-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800 flex items-center gap-2 overflow-x-auto custom-scrollbar min-h-[46px]">
-                      <span className="text-[10px] font-mono text-zinc-500 uppercase mr-1">Preview:</span>
-                      {editEquippedInsignias.length === 0 ? (
-                        <span className="text-xs text-zinc-500 italic">Nenhuma insígnia equipada. Clique abaixo para equipar!</span>
-                      ) : (
-                        editEquippedInsignias.map((id) => {
+                      {/* Insígnias Equipadas na Prévia */}
+                      <div className="hidden sm:flex items-center gap-1 bg-zinc-950/80 border border-zinc-800 px-2 py-1.5 rounded-lg flex-shrink-0">
+                        {editEquippedInsignias.slice(0, 4).map((id) => {
                           const ins = getInsigniaById(id);
-                          if (!ins) return null;
-                          return <InsigniaBadge key={ins.id} insignia={ins} size="md" />;
-                        })
-                      )}
-                    </div>
-
-                    {/* Grade com Todas as 8 Insígnias Shinobi */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {SHINOBI_INSIGNIAS.map((insignia) => {
-                        const isEquipped = editEquippedInsignias.includes(insignia.id);
-                        return (
-                          <button
-                            key={insignia.id}
-                            type="button"
-                            onClick={() => handleToggleInsignia(insignia.id)}
-                            className={`p-2.5 rounded-xl border flex items-center gap-3 text-left transition-all cursor-pointer relative ${
-                              isEquipped
-                                ? 'bg-zinc-900/90 border-cyan-500/60 ring-1 ring-cyan-500/40 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
-                                : 'bg-zinc-950/40 hover:bg-zinc-900/50 border-zinc-850 hover:border-zinc-750 opacity-75 hover:opacity-100'
-                            }`}
-                          >
-                            <InsigniaBadge insignia={insignia} size="md" />
-
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-xs font-bold text-zinc-200 truncate">
-                                  {insignia.name}
-                                </span>
-                                <span
-                                  className={`text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded-full ${
-                                    isEquipped
-                                      ? 'bg-emerald-950/80 border border-emerald-800 text-emerald-400'
-                                      : 'bg-zinc-800 text-zinc-400'
-                                  }`}
-                                >
-                                  {isEquipped ? 'Equipada' : 'Equipar'}
-                                </span>
-                              </div>
-                              <p className="text-[10px] text-zinc-400 line-clamp-1 mt-0.5">
-                                {insignia.description}
-                              </p>
-                            </div>
-                          </button>
-                        );
-                      })}
+                          return ins ? <InsigniaBadge key={ins.id} insignia={ins} size="sm" /> : null;
+                        })}
+                        {editEquippedInsignias.length > 4 && (
+                          <span className="text-[9px] font-mono font-bold text-zinc-400">
+                            +{editEquippedInsignias.length - 4}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  {/* SEÇÃO 3: IDENTIDADE VISUAL (# NOME E # TAG) */}
-                  <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-3.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
-                      <HashIcon className="w-4 h-4 text-emerald-400" />
-                      <span>Identidade Visual: Nome de Exibição & Tag (#)</span>
-                    </label>
+                  {/* 2. BARRA DE SELEÇÃO DINÂMICA (Segmentos Limpos) */}
+                  <div className="grid grid-cols-4 p-1 rounded-xl bg-zinc-950 border border-zinc-800/80 text-xs font-mono">
+                    <button
+                      type="button"
+                      onClick={() => setCustomizeSection('IDENTITY')}
+                      className={`py-2 px-1 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer text-center ${
+                        customizeSection === 'IDENTITY'
+                          ? 'bg-zinc-850 text-cyan-300 font-bold border border-zinc-700 shadow-sm'
+                          : 'text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      <span className="truncate">Identidade</span>
+                    </button>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                      {/* Nome de Exibição (# Name) */}
-                      <div>
-                        <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 mb-1 flex items-center justify-between">
-                          <span>Nome de Exibição (#)</span>
-                          <span className="text-[10px] text-zinc-500 font-normal">Ex: your mama</span>
-                        </label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500 font-bold text-sm">
-                            #
-                          </div>
+                    <button
+                      type="button"
+                      onClick={() => setCustomizeSection('APPEARANCE')}
+                      className={`py-2 px-1 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer text-center ${
+                        customizeSection === 'APPEARANCE'
+                          ? 'bg-zinc-850 text-cyan-300 font-bold border border-zinc-700 shadow-sm'
+                          : 'text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span className="truncate">Visual & Selo</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCustomizeSection('INSIGNIAS')}
+                      className={`py-2 px-1 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer text-center ${
+                        customizeSection === 'INSIGNIAS'
+                          ? 'bg-zinc-850 text-cyan-300 font-bold border border-zinc-700 shadow-sm'
+                          : 'text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      <Award className="w-3.5 h-3.5" />
+                      <span className="truncate">Insígnias</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCustomizeSection('LORE')}
+                      className={`py-2 px-1 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer text-center ${
+                        customizeSection === 'LORE'
+                          ? 'bg-zinc-850 text-cyan-300 font-bold border border-zinc-700 shadow-sm'
+                          : 'text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span className="truncate">Dossiê</span>
+                    </button>
+                  </div>
+
+                  {/* 3. CONTEÚDO DA SEÇÃO SELECIONADA */}
+
+                  {/* SEÇÃO A: IDENTIDADE SHINOBI */}
+                  {customizeSection === 'IDENTITY' && (
+                    <div className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800/80 space-y-4 animate-in fade-in-50 duration-200">
+                      <div className="border-b border-zinc-800/60 pb-2 flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
+                          <User className="w-4 h-4 text-cyan-400" />
+                          <span>Identificação do Shinobi</span>
+                        </span>
+                        <span className="text-[10px] font-mono text-zinc-500">Dados cadastrais</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Nome de Exibição */}
+                        <div>
+                          <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-300 mb-1">
+                            Nome Completo / Apelido Shinobi *
+                          </label>
                           <input
                             type="text"
                             required
                             value={editFullName}
                             onChange={(e) => setEditFullName(e.target.value)}
-                            placeholder="your mama"
-                            className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-zinc-100 font-bold rounded-xl pl-8 pr-3 py-2 text-xs transition"
+                            placeholder="Ex: Minato Namikaze"
+                            className="w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-zinc-100 font-medium rounded-xl px-3.5 py-2 text-xs transition"
                           />
+                          <span className="text-[10px] text-zinc-500 mt-1 block">
+                            Título principal visível em rankings e na ficha shinobi.
+                          </span>
                         </div>
-                        <span className="text-[10px] text-zinc-500 mt-1 block">
-                          Aparece como o título principal do seu perfil Discord.
-                        </span>
+
+                        {/* Tag Shinobi (#0001, #7777) */}
+                        <div>
+                          <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-300 mb-1">
+                            Código de Registro Ninja (#)
+                          </label>
+                          <div className="relative">
+                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-cyan-400 font-mono font-bold text-xs">
+                              #
+                            </span>
+                            <input
+                              type="text"
+                              value={editNinjaTag.startsWith('#') ? editNinjaTag.slice(1) : editNinjaTag}
+                              onChange={(e) => setEditNinjaTag(`#${e.target.value}`)}
+                              placeholder={String(currentUser.ninjaId || '0001')}
+                              className="w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-cyan-300 font-mono font-bold rounded-xl pl-8 pr-3 py-2 text-xs transition"
+                            />
+                          </div>
+                          <span className="text-[10px] text-zinc-500 mt-1 block">
+                            Seu identificador tático único na aldeia.
+                          </span>
+                        </div>
                       </div>
 
-                      {/* Tag Shinobi Personalizada (#0001, #7777) */}
-                      <div>
-                        <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 mb-1 flex items-center justify-between">
-                          <span>Tag Shinobi (#)</span>
-                          <span className="text-[10px] text-zinc-500 font-normal">Ex: #0001 ou #7777</span>
-                        </label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500 font-bold text-sm">
-                            #
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                        {/* Nome de Usuário (@username) com Validação em Tempo Real */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-[11px] font-mono uppercase tracking-wider text-zinc-300">
+                              Nome de Usuário (@) *
+                            </label>
+                            {editUsernameStatus === 'checking' && (
+                              <span className="text-[10px] font-mono text-zinc-400 flex items-center gap-1">
+                                <Loader2 className="w-2.5 h-2.5 animate-spin" /> Verificando...
+                              </span>
+                            )}
+                            {editUsernameStatus === 'available' && (
+                              <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                                <Check className="w-2.5 h-2.5" /> Disponível
+                              </span>
+                            )}
+                            {editUsernameStatus === 'taken' && (
+                              <span className="text-[10px] font-mono text-rose-400 flex items-center gap-1">
+                                <X className="w-2.5 h-2.5" /> Indisponível
+                              </span>
+                            )}
                           </div>
+                          <div className="relative">
+                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500 font-mono text-xs">
+                              @
+                            </span>
+                            <input
+                              type="text"
+                              required
+                              value={editUsername}
+                              onChange={(e) => setEditUsername(e.target.value)}
+                              placeholder="naruto"
+                              className="w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-zinc-100 rounded-xl pl-8 pr-3 py-2 text-xs transition font-mono"
+                            />
+                          </div>
+                          {editUsernameMessage && (
+                            <span
+                              className={`text-[10px] mt-1 block font-mono ${
+                                editUsernameStatus === 'available'
+                                  ? 'text-emerald-400'
+                                  : editUsernameStatus === 'taken'
+                                  ? 'text-rose-400'
+                                  : 'text-zinc-400'
+                              }`}
+                            >
+                              {editUsernameMessage}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Pronomes / Subtítulo Tático */}
+                        <div>
+                          <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-300 mb-1">
+                            Título / Pronomes
+                          </label>
                           <input
                             type="text"
-                            value={editNinjaTag.startsWith('#') ? editNinjaTag.slice(1) : editNinjaTag}
-                            onChange={(e) => setEditNinjaTag(`#${e.target.value}`)}
-                            placeholder={String(currentUser.ninjaId || '0001')}
-                            className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-cyan-400 font-mono font-bold rounded-xl pl-8 pr-3 py-2 text-xs transition"
+                            value={editPronouns}
+                            onChange={(e) => setEditPronouns(e.target.value)}
+                            placeholder="Ex: Ninja Errante • Ele/Dele"
+                            className="w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-zinc-200 rounded-xl px-3.5 py-2 text-xs transition"
                           />
+                          <span className="text-[10px] text-zinc-500 mt-1 block">
+                            Subtítulo secundário exibido abaixo da sua patente.
+                          </span>
                         </div>
-                        <span className="text-[10px] text-zinc-500 mt-1 block">
-                          Sua hashtag oficial de shinobi exibida ao lado do seu @username.
-                        </span>
                       </div>
                     </div>
+                  )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
-                      {/* Nome de Usuário (@username) com Migração de Save */}
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="text-[11px] font-mono uppercase tracking-wider text-zinc-400">
-                            Nome de Usuário (@)
-                          </label>
-                          {editUsernameStatus === 'checking' && (
-                            <span className="text-[10px] font-mono text-zinc-400 flex items-center gap-1">
-                              <Loader2 className="w-2.5 h-2.5 animate-spin" /> Verificando...
-                            </span>
-                          )}
-                          {editUsernameStatus === 'available' && (
-                            <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                              <Check className="w-2.5 h-2.5" /> Disponível
-                            </span>
-                          )}
-                          {editUsernameStatus === 'taken' && (
-                            <span className="text-[10px] font-mono text-rose-400 flex items-center gap-1">
-                              <X className="w-2.5 h-2.5" /> Ocupado
-                            </span>
+                  {/* SEÇÃO B: VISUAL & MOLDURA ELEMENTAL */}
+                  {customizeSection === 'APPEARANCE' && (
+                    <div className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800/80 space-y-4 animate-in fade-in-50 duration-200">
+                      <div className="border-b border-zinc-800/60 pb-2 flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
+                          <Upload className="w-4 h-4 text-cyan-400" />
+                          <span>Retrato Shinobi & Moldura Elemental</span>
+                        </span>
+                        <span className="text-[10px] font-mono text-zinc-500">Aparência</span>
+                      </div>
+
+                      {/* Upload de Imagem Pessoal */}
+                      <div className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                        <div className="w-16 h-16 rounded-xl bg-zinc-950 border border-zinc-700 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
+                          {editCustomAvatar ? (
+                            <img
+                              src={editCustomAvatar}
+                              alt="Foto Pessoal"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Upload className="w-6 h-6 text-zinc-600" />
                           )}
                         </div>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500 font-mono text-xs">
-                            @
+
+                        <div className="flex-1 space-y-2 text-center sm:text-left w-full">
+                          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                            <button
+                              type="button"
+                              onClick={() => avatarFileInputRef.current?.click()}
+                              className="px-3 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>Enviar Foto Pessoal</span>
+                            </button>
+
+                            {editCustomAvatar && (
+                              <button
+                                type="button"
+                                onClick={() => setEditCustomAvatar('')}
+                                className="px-3 py-1.5 rounded-lg bg-rose-950/30 hover:bg-rose-950/60 border border-rose-900/50 text-rose-300 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Remover Imagem</span>
+                              </button>
+                            )}
                           </div>
+
                           <input
-                            type="text"
-                            required
-                            value={editUsername}
-                            onChange={(e) => setEditUsername(e.target.value)}
-                            placeholder="trulycasper"
-                            className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-zinc-100 rounded-xl pl-8 pr-3 py-2 text-xs transition font-mono"
+                            type="url"
+                            value={editCustomAvatar.startsWith('data:') ? '' : editCustomAvatar}
+                            onChange={(e) => setEditCustomAvatar(e.target.value)}
+                            placeholder="Ou insira a URL direta de uma imagem na web..."
+                            className="w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-500 text-zinc-200 placeholder-zinc-600 rounded-lg px-3 py-1.5 text-xs font-mono transition"
                           />
                         </div>
-                        {editUsernameMessage && (
-                          <span
-                            className={`text-[10px] mt-1 block font-mono ${
-                              editUsernameStatus === 'available'
-                                ? 'text-emerald-400'
-                                : editUsernameStatus === 'taken'
-                                ? 'text-rose-400'
-                                : 'text-zinc-400'
-                            }`}
-                          >
-                            {editUsernameMessage}
+                      </div>
+
+                      {/* Grade de 12 Avatares Oficiais Shinobi */}
+                      <div>
+                        <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block mb-2">
+                          Avatares Oficiais Shinobi (12 Opções Canônicas)
+                        </span>
+                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                          {SHINOBI_AVATARS.map((avatar) => {
+                            const isSelected = !editCustomAvatar && editAvatar === avatar.id;
+                            return (
+                              <button
+                                key={avatar.id}
+                                type="button"
+                                onClick={() => {
+                                  setEditCustomAvatar('');
+                                  setEditAvatar(avatar.id);
+                                }}
+                                className={`p-2 rounded-xl border flex flex-col items-center gap-1 text-center transition-all cursor-pointer relative ${
+                                  isSelected
+                                    ? 'bg-cyan-950/60 border-cyan-400 ring-2 ring-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                                    : 'bg-zinc-900/60 hover:bg-zinc-850 border-zinc-800'
+                                }`}
+                              >
+                                <div
+                                  className={`w-9 h-9 rounded-lg bg-gradient-to-br ${avatar.bgGradient} flex items-center justify-center text-lg shadow-inner`}
+                                >
+                                  <span>{avatar.emojiIcon}</span>
+                                </div>
+                                <span className="text-[9px] font-semibold text-zinc-300 truncate w-full">
+                                  {avatar.name.split(' ')[0]}
+                                </span>
+                                {isSelected && (
+                                  <div className="absolute top-1 right-1 w-3 h-3 rounded-full bg-cyan-400 text-zinc-950 flex items-center justify-center">
+                                    <Check className="w-2 h-2 stroke-[3]" />
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Seletor de Molduras Elementais */}
+                      <div className="pt-2 border-t border-zinc-800/60">
+                        <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block mb-2">
+                          Molduras Elementais Desbloqueáveis
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {AVATAR_FRAMES.map((frame) => {
+                            const isUnlocked = isFrameUnlocked(
+                              frame,
+                              playerRankDef.id,
+                              highestBossDefeated
+                            );
+                            const isSelected = editAvatarFrame === frame.id;
+
+                            return (
+                              <button
+                                key={frame.id}
+                                type="button"
+                                disabled={!isUnlocked}
+                                onClick={() => {
+                                  if (isUnlocked) setEditAvatarFrame(frame.id);
+                                }}
+                                className={`p-2.5 rounded-xl border text-left flex items-start gap-2.5 transition-all relative ${
+                                  !isUnlocked
+                                    ? 'bg-zinc-900/30 border-zinc-850 opacity-50 cursor-not-allowed'
+                                    : isSelected
+                                    ? 'bg-cyan-950/40 border-cyan-400 ring-1 ring-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.2)] cursor-pointer'
+                                    : 'bg-zinc-900/60 hover:bg-zinc-850 border-zinc-800 cursor-pointer'
+                                }`}
+                              >
+                                <div
+                                  className={`w-8 h-8 rounded-lg bg-zinc-950 border-2 ${frame.borderClass} flex items-center justify-center text-xs flex-shrink-0`}
+                                >
+                                  {isUnlocked ? (
+                                    <span>{getAvatarById(editAvatar).emojiIcon}</span>
+                                  ) : (
+                                    <Lock className="w-3.5 h-3.5 text-zinc-500" />
+                                  )}
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-bold text-zinc-200 truncate">
+                                      {frame.name}
+                                    </span>
+                                    {isUnlocked && isSelected && (
+                                      <span className="text-[9px] font-mono font-bold text-cyan-400">
+                                        Ativa
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[9px] font-mono text-zinc-500 block truncate">
+                                    {frame.requirementLabel}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SEÇÃO C: INSÍGNIAS & CONDECORAÇÕES */}
+                  {customizeSection === 'INSIGNIAS' && (
+                    <div className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800/80 space-y-4 animate-in fade-in-50 duration-200">
+                      <div className="border-b border-zinc-800/60 pb-2 flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
+                          <Award className="w-4 h-4 text-amber-400" />
+                          <span>Condecorações de Batalha</span>
+                        </span>
+                        <span className="text-[10px] font-mono font-bold text-cyan-400">
+                          {editEquippedInsignias.length}/6 Equipadas
+                        </span>
+                      </div>
+
+                      {/* Faixa de Pré-visualização das Insígnias */}
+                      <div className="p-2.5 rounded-xl bg-zinc-900/50 border border-zinc-800 flex items-center gap-2 overflow-x-auto custom-scrollbar min-h-[46px]">
+                        <span className="text-[10px] font-mono text-zinc-500 uppercase mr-1">Slots Ativos:</span>
+                        {editEquippedInsignias.length === 0 ? (
+                          <span className="text-xs text-zinc-500 italic">
+                            Nenhuma insígnia equipada. Selecione abaixo para exibir na sua ficha.
                           </span>
+                        ) : (
+                          editEquippedInsignias.map((id) => {
+                            const ins = getInsigniaById(id);
+                            if (!ins) return null;
+                            return <InsigniaBadge key={ins.id} insignia={ins} size="md" />;
+                          })
                         )}
                       </div>
 
-                      {/* Pronomes / Subtítulo Estético */}
+                      {/* Catálogo com Todas as Insígnias */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {SHINOBI_INSIGNIAS.map((insignia) => {
+                          const isEquipped = editEquippedInsignias.includes(insignia.id);
+                          return (
+                            <button
+                              key={insignia.id}
+                              type="button"
+                              onClick={() => handleToggleInsignia(insignia.id)}
+                              className={`p-2.5 rounded-xl border flex items-center gap-3 text-left transition-all cursor-pointer relative ${
+                                isEquipped
+                                  ? 'bg-zinc-900 border-cyan-500/60 ring-1 ring-cyan-500/30 shadow-sm'
+                                  : 'bg-zinc-900/40 hover:bg-zinc-900/70 border-zinc-800 opacity-80 hover:opacity-100'
+                              }`}
+                            >
+                              <InsigniaBadge insignia={insignia} size="md" />
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="text-xs font-bold text-zinc-200 truncate">
+                                    {insignia.name}
+                                  </span>
+                                  <span
+                                    className={`text-[9px] font-mono font-semibold px-2 py-0.5 rounded-md ${
+                                      isEquipped
+                                        ? 'bg-emerald-950/80 border border-emerald-800 text-emerald-400'
+                                        : 'bg-zinc-800 text-zinc-400'
+                                    }`}
+                                  >
+                                    {isEquipped ? 'Equipada' : 'Equipar'}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-zinc-400 line-clamp-1 mt-0.5 font-mono">
+                                  {insignia.description}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SEÇÃO D: DOSSIÊ & NINDŌ */}
+                  {customizeSection === 'LORE' && (
+                    <div className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800/80 space-y-4 animate-in fade-in-50 duration-200">
+                      <div className="border-b border-zinc-800/60 pb-2 flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-cyan-400" />
+                          <span>Dossiê & Nindō (Caminho Ninja)</span>
+                        </span>
+                        <span className="text-[10px] font-mono text-zinc-500">Filosofia</span>
+                      </div>
+
+                      {/* Frase de Lema Shinobi */}
                       <div>
-                        <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 mb-1">
-                          Pronomes / Subtítulo
+                        <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-300 mb-1">
+                          Lema Shinobi / Nindō
                         </label>
                         <input
                           type="text"
-                          value={editPronouns}
-                          onChange={(e) => setEditPronouns(e.target.value)}
-                          placeholder="☆They/them or she/her☆"
-                          className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-zinc-200 font-serif rounded-xl px-3 py-2 text-xs transition"
+                          value={editStatusQuote}
+                          onChange={(e) => setEditStatusQuote(e.target.value)}
+                          placeholder="Ex: Eu nunca volto atrás na minha palavra..."
+                          className="w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-500 text-zinc-100 rounded-xl px-3.5 py-2 text-xs transition"
                         />
                         <span className="text-[10px] text-zinc-500 mt-1 block">
-                          Frase curta ou pronomes exibidos abaixo do @handle.
+                          Frase de efeito exibida em destaque na sua ficha de combate.
                         </span>
                       </div>
-                    </div>
 
-                    {/* Frase de Status Shinobi */}
-                    <div>
-                      <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 mb-1">
-                        Frase de Status Shinobi
-                      </label>
-                      <input
-                        type="text"
-                        value={editStatusQuote}
-                        onChange={(e) => setEditStatusQuote(e.target.value)}
-                        placeholder="🌪️ tornado wya"
-                        className="w-full bg-zinc-950 border border-zinc-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-zinc-200 rounded-xl px-3 py-2 text-xs transition"
-                      />
-                    </div>
-                  </div>
+                      {/* Dossiê & Notas de Campo */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[11px] font-mono uppercase tracking-wider text-zinc-300">
+                            Notas de Campo & Especialidades Ninja
+                          </label>
+                          <span className="text-[10px] font-mono text-zinc-500">
+                            {editBio.length}/350 caracteres
+                          </span>
+                        </div>
+                        <textarea
+                          rows={3}
+                          maxLength={350}
+                          value={editBio}
+                          onChange={(e) => setEditBio(e.target.value)}
+                          placeholder="Descreva suas técnicas elementais favoritas, afinidades com jutsus ou objetivos na Grande Guerra Shinobi..."
+                          className="w-full bg-zinc-900 border border-zinc-800 focus:border-cyan-500 text-zinc-200 placeholder-zinc-600 text-xs font-mono rounded-xl p-3 resize-none leading-relaxed transition"
+                        />
+                      </div>
 
-                  {/* SEÇÃO 4: ABOUT ME (CAIXA TRACEJADA ESTILO DISCORD) */}
-                  <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-cyan-400" />
-                        <span>About Me (Biografia Estilo Discord)</span>
-                      </label>
-                      <span className="text-[10px] font-mono text-zinc-500">
-                        {editBio.length}/350 caracteres
-                      </span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-zinc-950/80 border border-dashed border-zinc-700/80 focus-within:border-cyan-500/80 transition-colors">
-                      <textarea
-                        rows={3}
-                        maxLength={350}
-                        value={editBio}
-                        onChange={(e) => setEditBio(e.target.value)}
-                        placeholder={'* ₊ ✦ Pinterest: trulycasper\n* ₊ ✧ matching pfps w/ jed\n* ₊ ˚ # live laugh love cgs'}
-                        className="w-full bg-transparent border-none focus:outline-none text-zinc-200 placeholder-zinc-600 text-xs font-mono resize-none leading-relaxed"
-                      />
-                    </div>
-                    <span className="text-[10px] text-zinc-500 block">
-                      Suporta quebras de linha e símbolos estéticos exatamente como o Discord mobile.
-                    </span>
-                  </div>
-
-                  {/* SEÇÃO 5: MOLDURA ELEMENTAL & NINJA FAVORITO */}
-                  <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-4">
-                    {/* Moldura Elemental */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Moldura Elemental</span>
+                      {/* Mentor Inspirador */}
+                      <div className="pt-2 border-t border-zinc-800/60">
+                        <label className="text-[11px] font-mono uppercase tracking-wider text-zinc-300 mb-2 flex items-center gap-1.5">
+                          <Award className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Mentor de Inspiração</span>
                         </label>
-                        <span className="text-[10px] font-mono text-zinc-500">
-                          Patente & Chefes
-                        </span>
-                      </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {AVATAR_FRAMES.map((frame) => {
-                          const isUnlocked = isFrameUnlocked(
-                            frame,
-                            playerRankDef.id,
-                            highestBossDefeated
-                          );
-                          const isSelected = editAvatarFrame === frame.id;
-
-                          return (
-                            <button
-                              key={frame.id}
-                              type="button"
-                              disabled={!isUnlocked}
-                              onClick={() => {
-                                if (isUnlocked) setEditAvatarFrame(frame.id);
-                              }}
-                              className={`p-2.5 rounded-xl border text-left flex items-start gap-2.5 transition-all relative ${
-                                !isUnlocked
-                                  ? 'bg-zinc-950/60 border-zinc-900 opacity-60 cursor-not-allowed'
-                                  : isSelected
-                                  ? 'bg-cyan-950/40 border-cyan-400 ring-1 ring-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.2)] cursor-pointer'
-                                  : 'bg-zinc-950/40 hover:bg-zinc-900 border-zinc-800 hover:border-zinc-700 cursor-pointer'
-                              }`}
-                            >
-                              <div
-                                className={`w-8 h-8 rounded-lg bg-zinc-900 border-2 ${frame.borderClass} flex items-center justify-center text-xs flex-shrink-0`}
+                        <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
+                          {FAVORITE_NINJAS.map((ninja) => {
+                            const isSelected =
+                              editFavoriteNinja === ninja.name || editFavoriteNinja === ninja.id;
+                            return (
+                              <button
+                                key={ninja.id}
+                                type="button"
+                                onClick={() => setEditFavoriteNinja(ninja.name)}
+                                className={`p-2 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2 ${
+                                  isSelected
+                                    ? 'bg-amber-950/30 border-amber-500/80 ring-1 ring-amber-400/40 text-amber-200'
+                                    : 'bg-zinc-900/50 hover:bg-zinc-850 border-zinc-800 text-zinc-300'
+                                }`}
                               >
-                                {isUnlocked ? (
-                                  <span>{getAvatarById(editAvatar).emojiIcon}</span>
-                                ) : (
-                                  <Lock className="w-3.5 h-3.5 text-zinc-500" />
-                                )}
-                              </div>
-
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[11px] font-bold text-zinc-200 truncate">
-                                    {frame.name}
+                                <span className="text-base flex-shrink-0">{ninja.insignia}</span>
+                                <div className="min-w-0 flex-1">
+                                  <span className="text-[11px] font-bold block truncate">{ninja.name}</span>
+                                  <span className="text-[9px] font-mono text-zinc-500 block truncate">
+                                    Clã {ninja.clan}
                                   </span>
-                                  {isUnlocked && isSelected && (
-                                    <span className="text-[9px] font-mono font-bold text-cyan-400">
-                                      Ativa
-                                    </span>
-                                  )}
                                 </div>
-                                <span className="text-[9px] font-mono text-zinc-500 block truncate">
-                                  {frame.requirementLabel}
-                                </span>
-                              </div>
-                            </button>
-                          );
-                        })}
+                                {isSelected && (
+                                  <Check className="w-3 h-3 text-amber-400 flex-shrink-0" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
+                  )}
 
-                    {/* Ninja Favorito */}
-                    <div className="pt-2 border-t border-zinc-800/60">
-                      <label className="text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2 flex items-center gap-1.5">
-                        <Award className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Ninja Favorito & Citação</span>
-                      </label>
-
-                      <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
-                        {FAVORITE_NINJAS.map((ninja) => {
-                          const isSelected =
-                            editFavoriteNinja === ninja.name || editFavoriteNinja === ninja.id;
-                          return (
-                            <button
-                              key={ninja.id}
-                              type="button"
-                              onClick={() => setEditFavoriteNinja(ninja.name)}
-                              className={`p-2 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2 ${
-                                isSelected
-                                  ? 'bg-amber-950/30 border-amber-500/80 ring-1 ring-amber-400/40 text-amber-200'
-                                  : 'bg-zinc-950/40 hover:bg-zinc-900 border-zinc-800 text-zinc-300'
-                              }`}
-                            >
-                              <span className="text-base flex-shrink-0">{ninja.insignia}</span>
-                              <div className="min-w-0 flex-1">
-                                <span className="text-[11px] font-bold block truncate">{ninja.name}</span>
-                                <span className="text-[8px] font-mono text-zinc-500 block truncate">
-                                  Clã {ninja.clan}
-                                </span>
-                              </div>
-                              {isSelected && (
-                                <Check className="w-3 h-3 text-amber-400 flex-shrink-0" />
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Botões do Formulário de Personalização */}
+                  {/* 4. BOTÕES DE AÇÃO INFERIORES */}
                   <div className="flex items-center justify-between gap-3 pt-2">
                     <button
                       type="button"
                       onClick={() => setProfileTab('OVERVIEW')}
                       className="px-4 py-2.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 rounded-xl transition cursor-pointer"
                     >
-                      Cancelar
+                      Voltar à Ficha
                     </button>
 
                     <button
                       type="submit"
                       disabled={isSubmitting || editUsernameStatus === 'taken' || editUsernameStatus === 'invalid'}
-                      className="py-2.5 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-zinc-950 font-bold text-xs uppercase tracking-wider transition shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      className="py-2.5 px-6 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-zinc-950 font-bold text-xs uppercase tracking-wider transition shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       {isSubmitting ? (
                         <>
@@ -1369,7 +1477,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       ) : (
                         <>
                           <Sparkles className="w-4 h-4" />
-                          <span>Salvar Perfil Discord</span>
+                          <span>Salvar Registro Shinobi</span>
                         </>
                       )}
                     </button>
