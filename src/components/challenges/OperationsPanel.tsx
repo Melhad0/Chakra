@@ -2,7 +2,6 @@ import React from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { formatBigNumber } from '../../engine/BigNumber';
 import { CLAN_NODES } from '../../engine/data';
-import { Badge } from '../common/Badge';
 import { IconRenderer } from '../common/IconRenderer';
 import { RankingDashboard } from './RankingDashboard';
 import {
@@ -18,6 +17,8 @@ import {
   Briefcase,
   Clock,
   Flame,
+  CheckCircle2,
+  Zap,
 } from 'lucide-react';
 import { PRESTIGE_THRESHOLD, calculatePendingAncestralChakra } from '../../engine/formulas';
 import { getCurrentRank, getNextPromotionMission } from '../../constants/rankings';
@@ -53,440 +54,554 @@ export const OperationsPanel: React.FC = () => {
     return () => clearInterval(interval);
   }, [gauntlet.cooldownExpiresAt]);
 
+  const totalClanNodesCount = Object.keys(CLAN_NODES).length;
+  const unlockedClanNodesCount = Object.keys(clanNodes).filter((k) => clanNodes[k]).length;
+  const currentRank = getCurrentRank(
+    stats.manualClicksAllTime,
+    stats.highestCPSRecord,
+    stats.totalPrestiges,
+    passedExams
+  );
+  const canPrestige = stats.totalChakraEarned.gte(PRESTIGE_THRESHOLD);
+  const prestigeProgress = Math.min(100, Math.max(0, stats.totalChakraEarned.div(PRESTIGE_THRESHOLD).mul(100).toNumber()));
+  const isMissionRunning = !!(activeMission.activeMissionId && activeMission.resolvesAt && activeMission.resolvesAt > Date.now());
+  const isMissionReady = !!(activeMission.activeMissionId && activeMission.resolvesAt && Date.now() >= activeMission.resolvesAt);
+  const inventoryItemCount = inventory ? inventory.inventoryBag.filter(Boolean).length : 0;
+  const nextMission = getNextPromotionMission(passedExams);
+  const isExamEligible = nextMission
+    ? stats.manualClicksAllTime >= nextMission.requirements.minClicksAllTime &&
+      stats.highestCPSRecord.gte(nextMission.requirements.minCPS)
+    : false;
+
   return (
-    <aside className="h-full bg-zinc-900/40 backdrop-blur-md border border-zinc-800/80 hover:border-zinc-700/80 transition-colors rounded-xl p-3.5 flex flex-col overflow-hidden shadow-sm">
-      {/* Cabeçalho da Central de Operações com Sidebar Toggle */}
-      <div className="pb-2.5 mb-2.5 border-b border-zinc-850 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
-            <Scroll className="w-3.5 h-3.5 stroke-[1.75]" />
+    <aside className="relative h-full bg-gradient-to-b from-zinc-900/90 via-zinc-950/85 to-[#08090d]/95 backdrop-blur-2xl border border-zinc-800/90 hover:border-purple-500/40 transition-all duration-300 rounded-2xl p-3.5 flex flex-col overflow-hidden shadow-2xl shadow-black/80 group/panel">
+      {/* 0. LUZ AMBIENTE & NEON DINÂMICO */}
+      <div className="absolute -top-20 -left-20 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
+      <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-purple-500/60 to-transparent pointer-events-none" />
+
+      {/* 1. CABEÇALHO DA CENTRAL DE OPERAÇÕES */}
+      <div className="pb-3 border-b border-zinc-800/80 flex-shrink-0 relative z-10 space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          {/* Logo & Título */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500/20 via-zinc-900 to-rose-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.25)] flex-shrink-0 group-hover/panel:scale-105 transition-transform duration-300">
+              <Scroll className="w-4 h-4 stroke-[2.2]" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <h2 className="text-xs font-black text-white tracking-wider uppercase truncate">
+                  Operações Shinobi
+                </h2>
+                <span className="px-1.5 py-0.2 text-[9px] font-mono font-bold uppercase rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                  Nexus
+                </span>
+              </div>
+              <p className="text-[10px] text-zinc-400 font-mono truncate">
+                Comando tático & módulos de missão
+              </p>
+            </div>
           </div>
-          <span className="text-xs font-bold text-zinc-100 uppercase tracking-wide">
-            Operações Shinobi
-          </span>
+
+          {/* Botão de Toggle da Barra Lateral */}
+          <button
+            onClick={toggleRightSidebar}
+            title="Recolher Central de Operações"
+            className="p-1.5 rounded-xl bg-zinc-900/80 border border-zinc-850 hover:border-purple-500/40 text-zinc-400 hover:text-zinc-100 hover:bg-purple-950/20 transition-all duration-200 cursor-pointer shadow-sm flex items-center justify-center group/btn"
+          >
+            <PanelRightClose className="w-4 h-4 group-hover/btn:translate-x-0.5 transition-transform duration-200" />
+          </button>
         </div>
+
+        {/* HUD Rápido de Status Tático */}
+        <div className="grid grid-cols-3 gap-1.5 text-center">
+          <div className="p-1.5 rounded-lg bg-zinc-900/60 border border-zinc-800/60">
+            <span className="text-[9px] text-zinc-400 block font-mono">Patente</span>
+            <span className="text-[10px] font-bold text-amber-300 truncate block">
+              {currentRank.title.split(' ')[0]}
+            </span>
+          </div>
+          <div className="p-1.5 rounded-lg bg-zinc-900/60 border border-zinc-800/60">
+            <span className="text-[9px] text-zinc-400 block font-mono">Ancestral</span>
+            <span className="text-[10px] font-bold text-purple-300 truncate block font-mono">
+              {chakraAncestral.toString()}
+            </span>
+          </div>
+          <div className="p-1.5 rounded-lg bg-zinc-900/60 border border-zinc-800/60">
+            <span className="text-[9px] text-zinc-400 block font-mono">Linhagens</span>
+            <span className="text-[10px] font-bold text-emerald-300 truncate block font-mono">
+              {unlockedClanNodesCount}/{totalClanNodesCount}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. OS 6 CARTÕES DE ACESSO RÁPIDO AOS MÓDULOS DE OPERAÇÃO */}
+      <div className="grid grid-cols-2 gap-2 my-2.5 flex-shrink-0 max-h-[250px] overflow-y-auto custom-scrollbar pr-0.5 relative z-10">
+        {/* Card 1: Arena de Desafios (Gauntlet) */}
         <button
-          onClick={toggleRightSidebar}
-          title="Recolher Central de Operações (Sidebar Toggle)"
-          className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/80 border border-transparent hover:border-zinc-700/80 transition cursor-pointer"
+          onClick={() => setView('CHALLENGES')}
+          className="group relative p-2.5 rounded-xl bg-zinc-900/70 hover:bg-zinc-850/90 border border-rose-950/50 hover:border-rose-500/60 text-left transition-all duration-300 shadow-sm hover:shadow-[0_4px_16px_rgba(244,63,94,0.18)] hover:-translate-y-0.5 flex flex-col justify-between cursor-pointer overflow-hidden"
         >
-          <PanelRightClose className="w-4 h-4 stroke-[1.75]" />
+          <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/10 rounded-bl-full pointer-events-none group-hover:scale-125 transition-transform duration-500" />
+          
+          <div className="flex items-center justify-between w-full mb-1.5 relative z-10">
+            <div className="w-7 h-7 rounded-lg bg-rose-950/70 border border-rose-700/60 flex items-center justify-center text-rose-400 group-hover:scale-110 group-hover:border-rose-500 group-hover:shadow-[0_0_10px_rgba(244,63,94,0.4)] transition-all duration-300">
+              <Swords className="w-3.5 h-3.5 stroke-[2]" />
+            </div>
+            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-950/60 border border-rose-800/60 text-rose-300">
+              #{gauntlet.currentActiveBossId}
+            </span>
+          </div>
+
+          <div className="relative z-10">
+            <h4 className="text-xs font-bold text-zinc-100 group-hover:text-rose-300 transition-colors">
+              Desafios
+            </h4>
+            <p className="text-[9px] font-mono text-zinc-400 truncate">
+              Gauntlet de Chefes
+            </p>
+          </div>
+
+          <div className="mt-2 pt-1.5 border-t border-zinc-800/80 flex items-center justify-between text-[9px] font-mono relative z-10">
+            <span className={cooldownRemaining > 0 ? 'text-amber-400 font-semibold flex items-center gap-1' : 'text-zinc-400 group-hover:text-rose-300'}>
+              {cooldownRemaining > 0 ? (
+                <>
+                  <Clock className="w-2.5 h-2.5 animate-spin" />
+                  {cooldownRemaining}s
+                </>
+              ) : (
+                'Batalhar'
+              )}
+            </span>
+            <ArrowUpRight className="w-3 h-3 text-rose-400/80 group-hover:text-rose-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </div>
+        </button>
+
+        {/* Card 2: Quadro de Missões Shinobi */}
+        <button
+          onClick={() => setView('MISSIONS')}
+          className={`group relative p-2.5 rounded-xl text-left transition-all duration-300 shadow-sm hover:-translate-y-0.5 flex flex-col justify-between cursor-pointer overflow-hidden border ${
+            isMissionReady
+              ? 'bg-emerald-950/30 border-emerald-500/70 shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:border-emerald-400'
+              : 'bg-zinc-900/70 hover:bg-zinc-850/90 border-emerald-950/50 hover:border-emerald-500/60 hover:shadow-[0_4px_16px_rgba(16,185,129,0.18)]'
+          }`}
+        >
+          <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/10 rounded-bl-full pointer-events-none group-hover:scale-125 transition-transform duration-500" />
+          
+          <div className="flex items-center justify-between w-full mb-1.5 relative z-10">
+            <div className="w-7 h-7 rounded-lg bg-emerald-950/70 border border-emerald-700/60 flex items-center justify-center text-emerald-400 group-hover:scale-110 group-hover:border-emerald-500 group-hover:shadow-[0_0_10px_rgba(16,185,129,0.4)] transition-all duration-300">
+              <Dice5 className="w-3.5 h-3.5 stroke-[2]" />
+            </div>
+            <span
+              className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+                isMissionReady
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 animate-pulse'
+                  : 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60'
+              }`}
+            >
+              {isMissionReady ? 'Pronto!' : isMissionRunning ? 'Incursão' : '14 Missões'}
+            </span>
+          </div>
+
+          <div className="relative z-10">
+            <h4 className="text-xs font-bold text-zinc-100 group-hover:text-emerald-300 transition-colors">
+              Missões
+            </h4>
+            <p className="text-[9px] font-mono text-zinc-400 truncate">
+              {isMissionReady ? 'Resgatar espólios!' : isMissionRunning ? 'Em andamento...' : 'Ranks E a SS'}
+            </p>
+          </div>
+
+          <div className="mt-2 pt-1.5 border-t border-zinc-800/80 flex items-center justify-between text-[9px] font-mono relative z-10">
+            <span className={isMissionReady ? 'text-emerald-400 font-bold' : 'text-zinc-400 group-hover:text-emerald-300'}>
+              {isMissionReady ? 'Revelar' : isMissionRunning ? 'Verificar' : 'Mural'}
+            </span>
+            <ArrowUpRight className="w-3 h-3 text-emerald-400/80 group-hover:text-emerald-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </div>
+        </button>
+
+        {/* Card 3: Inventário & Arsenal */}
+        <button
+          onClick={() => setView('INVENTORY')}
+          className="group relative p-2.5 rounded-xl bg-zinc-900/70 hover:bg-zinc-850/90 border border-cyan-950/50 hover:border-cyan-500/60 text-left transition-all duration-300 shadow-sm hover:shadow-[0_4px_16px_rgba(6,182,212,0.18)] hover:-translate-y-0.5 flex flex-col justify-between cursor-pointer overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-500/10 rounded-bl-full pointer-events-none group-hover:scale-125 transition-transform duration-500" />
+          
+          <div className="flex items-center justify-between w-full mb-1.5 relative z-10">
+            <div className="w-7 h-7 rounded-lg bg-cyan-950/70 border border-cyan-700/60 flex items-center justify-center text-cyan-400 group-hover:scale-110 group-hover:border-cyan-500 group-hover:shadow-[0_0_10px_rgba(6,182,212,0.4)] transition-all duration-300">
+              <Briefcase className="w-3.5 h-3.5 stroke-[2]" />
+            </div>
+            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60 text-cyan-300">
+              {inventoryItemCount} Itens
+            </span>
+          </div>
+
+          <div className="relative z-10">
+            <h4 className="text-xs font-bold text-zinc-100 group-hover:text-cyan-300 transition-colors">
+              Inventário
+            </h4>
+            <p className="text-[9px] font-mono text-zinc-400 truncate">
+              Arsenal & Afinidade
+            </p>
+          </div>
+
+          <div className="mt-2 pt-1.5 border-t border-zinc-800/80 flex items-center justify-between text-[9px] font-mono relative z-10">
+            <span className="text-zinc-400 group-hover:text-cyan-300">Equipar</span>
+            <ArrowUpRight className="w-3 h-3 text-cyan-400/80 group-hover:text-cyan-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </div>
+        </button>
+
+        {/* Card 4: Árvore de Clãs */}
+        <button
+          onClick={() => setView('CLAN_TREE')}
+          className="group relative p-2.5 rounded-xl bg-zinc-900/70 hover:bg-zinc-850/90 border border-purple-950/50 hover:border-purple-500/60 text-left transition-all duration-300 shadow-sm hover:shadow-[0_4px_16px_rgba(168,85,247,0.18)] hover:-translate-y-0.5 flex flex-col justify-between cursor-pointer overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-bl-full pointer-events-none group-hover:scale-125 transition-transform duration-500" />
+          
+          <div className="flex items-center justify-between w-full mb-1.5 relative z-10">
+            <div className="w-7 h-7 rounded-lg bg-purple-950/70 border border-purple-700/60 flex items-center justify-center text-purple-400 group-hover:scale-110 group-hover:border-purple-500 group-hover:shadow-[0_0_10px_rgba(168,85,247,0.4)] transition-all duration-300">
+              <GitFork className="w-3.5 h-3.5 stroke-[2]" />
+            </div>
+            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-950/60 border border-purple-800/60 text-purple-300">
+              {chakraAncestral.toString()}
+            </span>
+          </div>
+
+          <div className="relative z-10">
+            <h4 className="text-xs font-bold text-zinc-100 group-hover:text-purple-300 transition-colors">
+              Clãs
+            </h4>
+            <p className="text-[9px] font-mono text-zinc-400 truncate">
+              {unlockedClanNodesCount}/{totalClanNodesCount} Linhagens
+            </p>
+          </div>
+
+          <div className="mt-2 pt-1.5 border-t border-zinc-800/80 flex items-center justify-between text-[9px] font-mono relative z-10">
+            <span className={canPrestige ? 'text-amber-400 font-bold' : 'text-zinc-400 group-hover:text-purple-300'}>
+              {canPrestige ? 'Renascimento!' : `${prestigeProgress.toFixed(0)}%`}
+            </span>
+            <ArrowUpRight className="w-3 h-3 text-purple-400/80 group-hover:text-purple-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </div>
+        </button>
+
+        {/* Card 5: Missões de Graduação & Patentes */}
+        <button
+          onClick={() => setView('CHUNIN_EXAM')}
+          className={`group relative p-2.5 rounded-xl text-left transition-all duration-300 shadow-sm hover:-translate-y-0.5 flex flex-col justify-between cursor-pointer overflow-hidden border ${
+            isExamEligible
+              ? 'bg-amber-950/30 border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.25)] hover:border-amber-400'
+              : 'bg-zinc-900/70 hover:bg-zinc-850/90 border-amber-950/50 hover:border-amber-500/60 hover:shadow-[0_4px_16px_rgba(245,158,11,0.18)]'
+          }`}
+        >
+          <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/10 rounded-bl-full pointer-events-none group-hover:scale-125 transition-transform duration-500" />
+          
+          <div className="flex items-center justify-between w-full mb-1.5 relative z-10">
+            <div
+              className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300 border ${
+                isExamEligible
+                  ? 'bg-amber-950/80 border-amber-500 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
+                  : 'bg-amber-950/70 border-amber-700/60 text-amber-400 group-hover:scale-110 group-hover:border-amber-500'
+              }`}
+            >
+              <Flame className="w-3.5 h-3.5 stroke-[2]" />
+            </div>
+            <span
+              className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+                isExamEligible
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse'
+                  : 'bg-amber-950/60 text-amber-400 border-amber-800/60'
+              }`}
+            >
+              {nextMission ? (isExamEligible ? 'Pronto!' : 'Em Curso') : 'Max ✔'}
+            </span>
+          </div>
+
+          <div className="relative z-10">
+            <h4 className="text-xs font-bold transition-colors text-zinc-100 group-hover:text-amber-300 truncate">
+              {nextMission ? nextMission.title : 'Graduação Completa'}
+            </h4>
+            <p className="text-[9px] font-mono text-zinc-400 truncate">
+              {nextMission ? `Alvo: ${nextMission.codename}` : 'Patente Máxima'}
+            </p>
+          </div>
+
+          <div className="mt-2 pt-1.5 border-t border-zinc-800/80 flex items-center justify-between text-[9px] font-mono relative z-10">
+            <span className={isExamEligible ? 'text-amber-300 font-bold' : 'text-zinc-400 group-hover:text-amber-300'}>
+              {isExamEligible ? 'Realizar Prova' : 'Graduação'}
+            </span>
+            <ArrowUpRight className="w-3 h-3 text-amber-400/80 group-hover:text-amber-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </div>
+        </button>
+
+        {/* Card 6: Hall da Fama */}
+        <button
+          onClick={() => setView('RANKINGS')}
+          className="group relative p-2.5 rounded-xl bg-zinc-900/70 hover:bg-zinc-850/90 border border-yellow-950/50 hover:border-yellow-500/60 text-left transition-all duration-300 shadow-sm hover:shadow-[0_4px_16px_rgba(234,179,8,0.18)] hover:-translate-y-0.5 flex flex-col justify-between cursor-pointer overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-16 h-16 bg-yellow-500/10 rounded-bl-full pointer-events-none group-hover:scale-125 transition-transform duration-500" />
+          
+          <div className="flex items-center justify-between w-full mb-1.5 relative z-10">
+            <div className="w-7 h-7 rounded-lg bg-yellow-950/70 border border-yellow-700/60 flex items-center justify-center text-yellow-400 group-hover:scale-110 group-hover:border-yellow-500 group-hover:shadow-[0_0_10px_rgba(234,179,8,0.4)] transition-all duration-300">
+              <Trophy className="w-3.5 h-3.5 stroke-[2]" />
+            </div>
+            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-yellow-950/60 border border-yellow-800/60 text-yellow-300">
+              Top 100
+            </span>
+          </div>
+
+          <div className="relative z-10">
+            <h4 className="text-xs font-bold text-zinc-100 group-hover:text-yellow-300 transition-colors">
+              Rankings
+            </h4>
+            <p className="text-[9px] font-mono text-zinc-400 truncate">
+              {currentRank.title}
+            </p>
+          </div>
+
+          <div className="mt-2 pt-1.5 border-t border-zinc-800/80 flex items-center justify-between text-[9px] font-mono relative z-10">
+            <span className="text-zinc-400 group-hover:text-yellow-300">Placar Global</span>
+            <ArrowUpRight className="w-3 h-3 text-yellow-400/80 group-hover:text-yellow-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </div>
         </button>
       </div>
 
-      {/* 6 CARTÕES DE ACESSO RÁPIDO AOS MÓDULOS DE OPERAÇÕES SHINOBI */}
-      {(() => {
-        const totalClanNodesCount = Object.keys(CLAN_NODES).length;
-        const unlockedClanNodesCount = Object.keys(clanNodes).filter((k) => clanNodes[k]).length;
-        const currentRank = getCurrentRank(
-          stats.manualClicksAllTime,
-          stats.highestCPSRecord,
-          stats.totalPrestiges,
-          passedExams
-        );
-        const canPrestige = stats.totalChakraEarned.gte(PRESTIGE_THRESHOLD);
-        const prestigeProgress = Math.min(100, Math.max(0, stats.totalChakraEarned.div(PRESTIGE_THRESHOLD).mul(100).toNumber()));
-        const isMissionRunning = !!(activeMission.activeMissionId && activeMission.resolvesAt && activeMission.resolvesAt > Date.now());
-        const isMissionReady = !!(activeMission.activeMissionId && activeMission.resolvesAt && Date.now() >= activeMission.resolvesAt);
-        const inventoryItemCount = inventory ? inventory.inventoryBag.filter(Boolean).length : 0;
-
-        return (
-          <div className="grid grid-cols-2 gap-2 mb-3 flex-shrink-0 max-h-[260px] overflow-y-auto custom-scrollbar pr-0.5">
-            {/* Card 1: Arena de Desafios (Gauntlet) */}
-            <button
-              onClick={() => setView('CHALLENGES')}
-              className="group p-2 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 border border-rose-900/30 hover:border-rose-500/60 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer"
-            >
-              <div className="flex items-center justify-between w-full mb-1">
-                <div className="w-6 h-6 rounded-md bg-rose-950/60 border border-rose-800/60 flex items-center justify-center text-rose-400 group-hover:scale-105 transition-transform">
-                  <Swords className="w-3.5 h-3.5 stroke-[1.75]" />
-                </div>
-                <span className="text-[10px] font-mono font-bold text-rose-400">
-                  #{gauntlet.currentActiveBossId}
-                </span>
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-zinc-100 group-hover:text-rose-300 transition-colors">
-                  Desafios
-                </h4>
-                <p className="text-[9px] font-mono text-zinc-400 truncate">
-                  Gauntlet de Chefes
-                </p>
-              </div>
-              <div className="mt-1 pt-1 border-t border-zinc-850/80 flex items-center justify-between text-[9px] font-mono text-zinc-500">
-                <span className={cooldownRemaining > 0 ? 'text-amber-400 font-semibold flex items-center gap-1' : 'text-zinc-400'}>
-                  {cooldownRemaining > 0 && <Clock className="w-2.5 h-2.5 animate-spin" />}
-                  {cooldownRemaining > 0 ? `${cooldownRemaining}s` : 'Batalhar'}
-                </span>
-                <ArrowUpRight className="w-3 h-3 text-rose-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </div>
-            </button>
-
-            {/* Card 2: Quadro de Missões Shinobi */}
-            <button
-              onClick={() => setView('MISSIONS')}
-              className={`group p-2 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer border ${
-                isMissionReady
-                  ? 'border-emerald-500/70 bg-emerald-950/20'
-                  : 'border-emerald-900/30 hover:border-emerald-500/60'
-              }`}
-            >
-              <div className="flex items-center justify-between w-full mb-1">
-                <div className="w-6 h-6 rounded-md bg-emerald-950/60 border border-emerald-800/60 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
-                  <Dice5 className="w-3.5 h-3.5 stroke-[1.75]" />
-                </div>
-                <span className={`text-[10px] font-mono font-bold ${isMissionReady ? 'text-emerald-300 animate-pulse' : 'text-emerald-400'}`}>
-                  {isMissionReady ? 'Pronto!' : isMissionRunning ? 'Incursão' : '14 Missões'}
-                </span>
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-zinc-100 group-hover:text-emerald-300 transition-colors">
-                  Missões
-                </h4>
-                <p className="text-[9px] font-mono text-zinc-400 truncate">
-                  {isMissionReady ? 'Recompensas prontas!' : isMissionRunning ? 'Em andamento...' : 'Ranks E a SS'}
-                </p>
-              </div>
-              <div className="mt-1 pt-1 border-t border-zinc-850/80 flex items-center justify-between text-[9px] font-mono text-zinc-500">
-                <span className={isMissionReady ? 'text-emerald-400 font-bold' : ''}>
-                  {isMissionReady ? 'Revelar' : isMissionRunning ? 'Verificar' : 'Mural'}
-                </span>
-                <ArrowUpRight className="w-3 h-3 text-emerald-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </div>
-            </button>
-
-            {/* Card 3: Inventário & Arsenal */}
-            <button
-              onClick={() => setView('INVENTORY')}
-              className="group p-2 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 border border-cyan-900/30 hover:border-cyan-500/60 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer"
-            >
-              <div className="flex items-center justify-between w-full mb-1">
-                <div className="w-6 h-6 rounded-md bg-cyan-950/60 border border-cyan-800/60 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform">
-                  <Briefcase className="w-3.5 h-3.5 stroke-[1.75]" />
-                </div>
-                <span className="text-[10px] font-mono font-bold text-cyan-400">
-                  {inventoryItemCount} Itens
-                </span>
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-zinc-100 group-hover:text-cyan-300 transition-colors">
-                  Inventário
-                </h4>
-                <p className="text-[9px] font-mono text-zinc-400 truncate">
-                  Arsenal & Afinidade
-                </p>
-              </div>
-              <div className="mt-1 pt-1 border-t border-zinc-850/80 flex items-center justify-between text-[9px] font-mono text-zinc-500">
-                <span>Equipar</span>
-                <ArrowUpRight className="w-3 h-3 text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </div>
-            </button>
-
-            {/* Card 4: Árvore de Clãs */}
-            <button
-              onClick={() => setView('CLAN_TREE')}
-              className="group p-2 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 border border-purple-900/30 hover:border-purple-500/60 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer"
-            >
-              <div className="flex items-center justify-between w-full mb-1">
-                <div className="w-6 h-6 rounded-md bg-purple-950/60 border border-purple-800/60 flex items-center justify-center text-purple-400 group-hover:scale-105 transition-transform">
-                  <GitFork className="w-3.5 h-3.5 stroke-[1.75]" />
-                </div>
-                <span className="text-[10px] font-mono font-bold text-purple-400">
-                  {chakraAncestral.toString()}
-                </span>
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-zinc-100 group-hover:text-purple-300 transition-colors">
-                  Clãs
-                </h4>
-                <p className="text-[9px] font-mono text-zinc-400 truncate">
-                  {unlockedClanNodesCount}/{totalClanNodesCount} Linhagens
-                </p>
-              </div>
-              <div className="mt-1 pt-1 border-t border-zinc-850/80 flex items-center justify-between text-[9px] font-mono text-zinc-500">
-                <span>{canPrestige ? 'Pronto!' : `${prestigeProgress.toFixed(0)}%`}</span>
-                <ArrowUpRight className="w-3 h-3 text-purple-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </div>
-            </button>
-
-            {/* Card 5: Missões de Graduação & Patentes */}
-            {(() => {
-              const nextMission = getNextPromotionMission(passedExams);
-              const isEligible = nextMission
-                ? stats.manualClicksAllTime >= nextMission.requirements.minClicksAllTime &&
-                  stats.highestCPSRecord.gte(nextMission.requirements.minCPS)
-                : false;
-
-              return (
-                <button
-                  onClick={() => setView('CHUNIN_EXAM')}
-                  className={`group p-2 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer border ${
-                    isEligible
-                      ? 'border-emerald-500/70 hover:border-emerald-400 bg-emerald-950/20'
-                      : 'border-amber-900/30 hover:border-amber-500/60'
-                  }`}
-                >
-                  <div className="flex items-center justify-between w-full mb-1">
-                    <div
-                      className={`w-6 h-6 rounded-md flex items-center justify-center group-hover:scale-105 transition-transform border ${
-                        isEligible
-                          ? 'bg-emerald-950/60 border-emerald-800/60 text-emerald-400'
-                          : 'bg-amber-950/60 border-amber-800/60 text-amber-400'
-                      }`}
-                    >
-                      <Flame className="w-3.5 h-3.5 stroke-[1.75]" />
-                    </div>
-                    <span
-                      className={`text-[10px] font-mono font-bold ${
-                        isEligible ? 'text-emerald-400 animate-pulse' : 'text-amber-400'
-                      }`}
-                    >
-                      {nextMission ? (isEligible ? 'Pronto!' : 'Em Curso') : 'Max ✔'}
-                    </span>
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold transition-colors text-zinc-100 group-hover:text-amber-300 truncate">
-                      {nextMission ? nextMission.title : 'Graduação Completa'}
-                    </h4>
-                    <p className="text-[9px] font-mono text-zinc-400 truncate">
-                      {nextMission ? `Alvo: ${nextMission.codename}` : 'Patente Máxima'}
-                    </p>
-                  </div>
-                  <div className="mt-1 pt-1 border-t border-zinc-850/80 flex items-center justify-between text-[9px] font-mono text-zinc-500">
-                    <span>Graduação</span>
-                    <ArrowUpRight
-                      className="w-3 h-3 text-amber-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
-                    />
-                  </div>
-                </button>
-              );
-            })()}
-
-            {/* Card 6: Hall da Fama */}
-            <button
-              onClick={() => setView('RANKINGS')}
-              className="group p-2 rounded-xl bg-zinc-950/70 hover:bg-zinc-850/90 border border-yellow-900/30 hover:border-yellow-500/60 text-left transition-all duration-200 shadow-sm flex flex-col justify-between cursor-pointer"
-            >
-              <div className="flex items-center justify-between w-full mb-1">
-                <div className="w-6 h-6 rounded-md bg-yellow-950/60 border border-yellow-800/60 flex items-center justify-center text-yellow-400 group-hover:scale-105 transition-transform">
-                  <Trophy className="w-3.5 h-3.5 stroke-[1.75]" />
-                </div>
-                <span className="text-[10px] font-mono font-bold text-yellow-400">
-                  Top 100
-                </span>
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-zinc-100 group-hover:text-yellow-300 transition-colors">
-                  Rankings
-                </h4>
-                <p className="text-[9px] font-mono text-zinc-400 truncate">
-                  {currentRank.title}
-                </p>
-              </div>
-              <div className="mt-1 pt-1 border-t border-zinc-850/80 flex items-center justify-between text-[9px] font-mono text-zinc-500">
-                <span>Placar</span>
-                <ArrowUpRight className="w-3 h-3 text-yellow-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </div>
-            </button>
-          </div>
-        );
-      })()}
-
-      {/* Abas Deslizantes Minimalistas: Clãs e Rankings */}
-      <nav className="flex items-center justify-between gap-1.5 pb-2 border-b border-zinc-800/80 overflow-x-auto custom-scrollbar flex-shrink-0">
+      {/* 3. SELETOR DE ABAS COM VISUAL MODERNO E EXPANDIR */}
+      <div className="flex items-center justify-between gap-1.5 py-1.5 px-1 bg-zinc-950/60 rounded-xl border border-zinc-800/80 flex-shrink-0 relative z-10">
         <div className="flex items-center gap-1">
           <button
             onClick={() => setActiveTab('clans')}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium whitespace-nowrap transition border ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer ${
               activeTab === 'clans'
-                ? 'bg-zinc-800 text-zinc-100 border-zinc-700 shadow-sm'
-                : 'bg-transparent text-zinc-400 hover:text-zinc-200 border-transparent hover:bg-zinc-800/40'
+                ? 'bg-purple-950/80 text-purple-300 border border-purple-500/50 shadow-[0_0_12px_rgba(168,85,247,0.25)]'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 border border-transparent'
             }`}
           >
-            <GitFork className="w-3 h-3 stroke-[1.75]" /> Clãs
+            <GitFork className="w-3.5 h-3.5 stroke-[2]" />
+            <span>Clãs & Linhagens</span>
           </button>
 
           <button
             onClick={() => setActiveTab('rankings')}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium whitespace-nowrap transition border ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer ${
               activeTab === 'rankings'
-                ? 'bg-zinc-800 text-zinc-100 border-zinc-700 shadow-sm'
-                : 'bg-transparent text-zinc-400 hover:text-zinc-200 border-transparent hover:bg-zinc-800/40'
+                ? 'bg-yellow-950/80 text-yellow-300 border border-yellow-500/50 shadow-[0_0_12px_rgba(234,179,8,0.25)]'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 border border-transparent'
             }`}
           >
-            <Trophy className="w-3 h-3 stroke-[1.75]" /> Rankings
+            <Trophy className="w-3.5 h-3.5 stroke-[2]" />
+            <span>Rankings</span>
           </button>
         </div>
 
-        {/* Botão de Expandir Tela Cheia */}
+        {/* Botão de Expandir Tela Cheia Dedicada */}
         <button
           onClick={() => {
             if (activeTab === 'clans') setView('CLAN_TREE');
             else if (activeTab === 'rankings') setView('RANKINGS');
           }}
           title="Expandir para Tela Cheia Dedicada"
-          className="p-1 rounded-md bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 transition cursor-pointer"
+          className="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800 hover:border-purple-500/50 text-zinc-400 hover:text-purple-300 transition-all duration-200 cursor-pointer shadow-sm group/exp"
         >
-          <Maximize2 className="w-3 h-3" />
+          <Maximize2 className="w-3.5 h-3.5 group-hover/exp:scale-110 transition-transform" />
         </button>
-      </nav>
+      </div>
 
-      {/* Conteúdo Dinâmico */}
-      <div className="flex-1 overflow-y-auto mt-2.5 pr-1 custom-scrollbar">
+      {/* 4. CONTEÚDO DINÂMICO ROLÁVEL */}
+      <div className="flex-1 overflow-y-auto mt-2.5 pr-1 custom-scrollbar relative z-10">
         {/* ================================================================= */}
-        {/* 1. ABA ÁRVORE DE CLÃS COM NÉVOA DA GUERRA & PRESTÍGIO             */}
+        {/* ABA: ÁRVORE DE CLÃS & PRESTÍGIO                                   */}
         {/* ================================================================= */}
         {(activeTab === 'clans' || activeTab === 'gauntlet') && (
           <div className="space-y-3">
-            {/* Card de Prestígio / Renascimento Shinobi Rebalanceado */}
+            {/* Card de Prestígio / Renascimento Shinobi */}
             {(() => {
               const runChakra = stats.totalChakraEarned;
               const pendingPoints = calculatePendingAncestralChakra(runChakra);
-              const canPrestige = runChakra.gte(PRESTIGE_THRESHOLD);
+              const canPrestigeNow = runChakra.gte(PRESTIGE_THRESHOLD);
               const progressPct = Math.min(100, Math.max(0, runChakra.div(PRESTIGE_THRESHOLD).mul(100).toNumber()));
 
               return (
-                <div className="p-3.5 bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 border border-amber-800/40 rounded-xl relative overflow-hidden shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-md bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                        <Sparkles className="w-4 h-4 stroke-[1.75]" />
+                <div className="relative p-3.5 bg-gradient-to-br from-amber-950/20 via-zinc-900/90 to-zinc-950/95 border border-amber-500/30 rounded-xl overflow-hidden shadow-lg shadow-black/50 group/prestige">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none group-hover/prestige:scale-125 transition-transform duration-500" />
+                  
+                  <div className="flex items-center justify-between mb-2.5 relative z-10">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+                        <Sparkles className="w-4 h-4 stroke-[2]" />
                       </div>
                       <div>
-                        <h4 className="text-xs font-semibold text-zinc-100 flex items-center gap-1.5">
-                          Renascimento Shinobi (Prestígio)
-                          <Badge variant="chakra">Nível Kage</Badge>
-                        </h4>
-                        <p className="text-[10px] text-zinc-400">
-                          Reinicia geradores e técnicas em troca de Chakra Ancestral permanente.
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-bold text-zinc-100">
+                            Renascimento Shinobi
+                          </h4>
+                          <span className="px-1.5 py-0.2 text-[9px] font-mono font-bold uppercase rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                            Nível Kage
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-zinc-400 leading-tight">
+                          Reinicia o progresso em troca de Chakra Ancestral permanente.
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2 mt-3 pt-2.5 border-t border-zinc-800/70 font-mono text-[11px]">
-                    <div className="flex items-center justify-between">
-                      <span className="text-zinc-400">Progresso até o Limiar (10T / 10¹³):</span>
-                      <span className={canPrestige ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>
+                  <div className="space-y-2 pt-2 border-t border-zinc-800/80 font-mono text-[11px] relative z-10">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-zinc-400">Progresso até o Limiar:</span>
+                      <span className={canPrestigeNow ? 'text-emerald-400 font-bold' : 'text-zinc-300'}>
                         {formatBigNumber(runChakra)} / {formatBigNumber(PRESTIGE_THRESHOLD)}
                       </span>
                     </div>
 
-                    <div className="w-full h-1.5 bg-zinc-900 rounded-sm overflow-hidden">
+                    {/* Barra de Progresso com Shimmer */}
+                    <div className="w-full h-2 bg-zinc-950 rounded-full overflow-hidden p-0.5 border border-zinc-850">
                       <div
                         style={{ width: `${progressPct}%` }}
-                        className={`h-full transition-all duration-300 rounded-sm ${
-                          canPrestige ? 'bg-amber-400' : 'bg-zinc-600'
+                        className={`h-full transition-all duration-500 rounded-full ${
+                          canPrestigeNow
+                            ? 'bg-gradient-to-r from-amber-500 to-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.5)]'
+                            : 'bg-gradient-to-r from-zinc-700 to-zinc-500'
                         }`}
                       />
                     </div>
 
-                    <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center justify-between pt-0.5">
                       <span className="text-zinc-400">Chakra Ancestral a receber:</span>
-                      <span className="text-amber-300 font-bold">
+                      <span className="text-amber-300 font-bold flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
                         +{pendingPoints} Ancestral
                       </span>
                     </div>
                   </div>
 
-                  <div className="mt-3">
+                  <div className="mt-3 relative z-10">
                     <button
-                      disabled={!canPrestige}
+                      disabled={!canPrestigeNow}
                       onClick={() => {
                         if (confirm(`Confirma o Renascimento Shinobi? Você receberá +${pendingPoints} Chakra Ancestral e reiniciará seu progresso na run atual.`)) {
                           performPrestige();
                         }
                       }}
-                      className={`w-full py-2 px-3 rounded-lg text-xs font-medium font-mono transition border flex items-center justify-center gap-2 ${
-                        canPrestige
-                          ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm cursor-pointer'
-                          : 'bg-zinc-900/50 border-zinc-800/60 text-zinc-600 cursor-not-allowed'
+                      className={`w-full py-2 px-3 rounded-xl text-xs font-bold font-mono transition-all duration-300 flex items-center justify-center gap-2 ${
+                        canPrestigeNow
+                          ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black shadow-[0_0_20px_rgba(245,158,11,0.4)] cursor-pointer hover:scale-[1.02] active:scale-[0.98]'
+                          : 'bg-zinc-900/60 border border-zinc-800 text-zinc-600 cursor-not-allowed'
                       }`}
                     >
                       <Sparkles className="w-3.5 h-3.5" />
-                      {canPrestige
+                      {canPrestigeNow
                         ? `Executar Renascimento (+${pendingPoints} Ancestral)`
-                        : `Bloqueado: Requer ${formatBigNumber(PRESTIGE_THRESHOLD)} Chakra`}
+                        : `Requer ${formatBigNumber(PRESTIGE_THRESHOLD)} Chakra`}
                     </button>
                   </div>
                 </div>
               );
             })()}
 
-            <div className="flex items-center justify-between bg-zinc-950/60 p-3 rounded-lg border border-zinc-800/80">
-              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                Chakra Ancestral Disponível
-              </span>
-              <span className="text-sm font-mono font-medium text-amber-300">
+            {/* Saldo de Chakra Ancestral */}
+            <div className="flex items-center justify-between bg-zinc-950/70 p-3 rounded-xl border border-zinc-800/80 shadow-inner">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300">
+                  <Zap className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                  Chakra Ancestral
+                </span>
+              </div>
+              <span className="text-base font-mono font-black text-purple-300 drop-shadow-[0_0_8px_rgba(168,85,247,0.4)]">
                 {chakraAncestral.toString()}
               </span>
             </div>
 
+            {/* Lista dos Nós de Clã */}
             <div className="space-y-2">
               {Object.values(CLAN_NODES)
                 .filter((node) => !node.parent || !!clanNodes[node.parent])
                 .map((node) => {
-                const isUnlocked = !!clanNodes[node.id];
-                const canAfford = chakraAncestral.gte(node.cost);
+                  const isUnlocked = !!clanNodes[node.id];
+                  const canAfford = chakraAncestral.gte(node.cost);
 
-                return (
-                  <div
-                    key={node.id}
-                    className={`p-3 rounded-lg border transition ${
-                      isUnlocked
-                        ? 'bg-zinc-850/90 border-zinc-700/80 shadow-sm'
-                        : canAfford
-                        ? 'bg-zinc-900/60 border-zinc-700/80 hover:border-zinc-600'
-                        : 'bg-zinc-950/40 border-zinc-850 opacity-70'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-md bg-zinc-800/80 border border-zinc-700/60 flex items-center justify-center text-zinc-300 flex-shrink-0">
-                          <IconRenderer name={node.icon} className="w-4 h-4 stroke-[1.75]" />
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-semibold text-zinc-200">{node.name}</h4>
-                          <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">{node.desc}</p>
+                  return (
+                    <div
+                      key={node.id}
+                      className={`relative p-3 rounded-xl border transition-all duration-300 overflow-hidden ${
+                        isUnlocked
+                          ? 'bg-gradient-to-br from-purple-950/30 via-zinc-900/80 to-zinc-950/90 border-purple-500/50 shadow-md shadow-purple-950/20'
+                          : canAfford
+                          ? 'bg-zinc-900/80 border-purple-500/30 hover:border-purple-500/70 hover:shadow-lg hover:shadow-purple-950/30'
+                          : 'bg-zinc-950/50 border-zinc-850 opacity-70'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-2.5 min-w-0">
+                          <div
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 border ${
+                              isUnlocked
+                                ? 'bg-purple-950/80 border-purple-500/60 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.3)]'
+                                : canAfford
+                                ? 'bg-zinc-850 border-zinc-700 text-zinc-300'
+                                : 'bg-zinc-900 border-zinc-800 text-zinc-600'
+                            }`}
+                          >
+                            <IconRenderer name={node.icon} className="w-4 h-4 stroke-[2]" />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-bold text-zinc-100 truncate flex items-center gap-1.5">
+                              {node.name}
+                              {isUnlocked && (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                              )}
+                            </h4>
+                            <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug line-clamp-2">
+                              {node.desc}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="mt-2.5 flex items-center justify-between">
-                      <span className="text-[10px] font-mono text-zinc-400">
-                        {isUnlocked ? (
-                          <Badge variant="production">Desperto</Badge>
-                        ) : (
-                          `Custo: ${node.cost} Ancestral`
+                      <div className="mt-2.5 pt-2 border-t border-zinc-800/60 flex items-center justify-between">
+                        <span className="text-[10px] font-mono">
+                          {isUnlocked ? (
+                            <span className="text-emerald-400 font-bold flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" /> Linhagem Ativa
+                            </span>
+                          ) : (
+                            <span className={canAfford ? 'text-purple-300 font-semibold' : 'text-zinc-500'}>
+                              Custo: {node.cost} Ancestral
+                            </span>
+                          )}
+                        </span>
+
+                        {!isUnlocked && (
+                          <button
+                            disabled={!canAfford}
+                            onClick={() => buyClanNode(node.id)}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold font-mono transition-all duration-200 border cursor-pointer ${
+                              canAfford
+                                ? 'bg-purple-600 hover:bg-purple-500 text-white border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.35)] hover:scale-105 active:scale-95'
+                                : 'bg-zinc-900/60 border-zinc-800 text-zinc-600 cursor-not-allowed'
+                            }`}
+                          >
+                            Despertar
+                          </button>
                         )}
-                      </span>
-
-                      {!isUnlocked && (
-                        <button
-                          disabled={!canAfford}
-                          onClick={() => buyClanNode(node.id)}
-                          className={`px-3 py-1 rounded text-[11px] font-medium transition border ${
-                            canAfford
-                              ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border-zinc-700 shadow-sm'
-                              : 'bg-zinc-900/50 border-zinc-800 text-zinc-600 cursor-not-allowed'
-                          }`}
-                        >
-                          Despertar
-                        </button>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           </div>
         )}
 
-
         {/* ================================================================= */}
-        {/* 3. ABA RANKINGS                                                  */}
+        {/* ABA: RANKINGS GLOBAIS & PLACAR                                    */}
         {/* ================================================================= */}
-        {activeTab === 'rankings' && <RankingDashboard />}
+        {activeTab === 'rankings' && (
+          <div className="pb-4">
+            <RankingDashboard />
+          </div>
+        )}
       </div>
     </aside>
   );
